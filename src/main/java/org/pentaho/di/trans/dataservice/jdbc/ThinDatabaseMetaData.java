@@ -20,7 +20,7 @@
  *
  ******************************************************************************/
 
-package org.pentaho.di.core.jdbc;
+package org.pentaho.di.trans.dataservice.jdbc;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -33,6 +33,7 @@ import java.util.List;
 
 import org.pentaho.di.cluster.HttpUtil;
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.jdbc.ThinUtil;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;

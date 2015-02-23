@@ -20,7 +20,7 @@
  *
  ******************************************************************************/
 
-package org.pentaho.di.core.jdbc;
+package org.pentaho.di.trans.dataservice.jdbc;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -47,6 +47,7 @@ import java.util.Calendar;
 import java.util.List;
 
 import org.pentaho.di.core.exception.KettleSQLException;
+import org.pentaho.di.core.jdbc.ThinUtil;
 import org.pentaho.di.core.row.ValueMeta;
 import org.pentaho.di.core.row.ValueMetaInterface;
 

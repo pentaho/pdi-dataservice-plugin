@@ -20,7 +20,7 @@
  *
  ******************************************************************************/
 
-package org.pentaho.di.core.jdbc;
+package org.pentaho.di.trans.dataservice.jdbc;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

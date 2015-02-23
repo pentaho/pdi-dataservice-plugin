@@ -20,12 +20,15 @@
  *
  ******************************************************************************/
 
-package org.pentaho.di.core.jdbc;
+package org.pentaho.di.trans.dataservice.jdbc;
 
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -42,72 +45,426 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.pentaho.di.cluster.HttpUtil;
+import org.pentaho.di.cluster.SlaveConnectionManager;
+import org.pentaho.di.core.Const;
+import org.pentaho.di.core.Result;
+import org.pentaho.di.core.exception.KettleEOFException;
+import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.jdbc.ThinUtil;
+import org.pentaho.di.core.logging.LogChannel;
+import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.variables.Variables;
+import org.pentaho.di.core.xml.XMLHandler;
+import org.pentaho.di.www.WebResult;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 
-public class RowsResultSet implements ResultSet {
+public class ThinResultSet implements ResultSet {
 
+  private ThinStatement statement;
+  private ThinConnection connection;
+
+  private DataInputStream dataInputStream;
   private RowMetaInterface rowMeta;
-  private List<Object[]> rows;
-
-  private int currentIndex;
+  private Object[] currentRow;
+  private int rowNumber;
   private boolean lastNull;
 
-  /**
-   * @param rowMeta
-   * @param rows
-   */
-  public RowsResultSet( RowMetaInterface rowMeta, List<Object[]> rows ) {
-    this.rowMeta = rowMeta;
-    this.rows = rows;
-    currentIndex = -1;
+  private String serviceName;
+
+  private PostMethod method;
+
+  private String serviceTransName;
+
+  private String serviceObjectId;
+
+  private String sqlTransName;
+
+  private String sqlObjectId;
+  private AtomicBoolean stopped;
+
+  public ThinResultSet( ThinStatement statement, String urlString, String username, String password, String sql ) throws SQLException {
+    this.statement = statement;
+    this.connection = (ThinConnection) statement.getConnection();
+
+    rowNumber = 0;
+    stopped = new AtomicBoolean( false );
+
+    try {
+
+      HttpClient client = null;
+
+      try {
+        client = SlaveConnectionManager.getInstance().createHttpClient();
+
+        client.getHttpConnectionManager().getParams().setConnectionTimeout( 0 );
+        client.getHttpConnectionManager().getParams().setSoTimeout( 0 );
+
+        HttpUtil.addCredentials(
+          client, new Variables(), connection.getHostname(), connection.getPort(), connection.getWebAppName(),
+          connection.getUsername(), connection.getPassword() );
+        HttpUtil.addProxy(
+          client, new Variables(), connection.getHostname(), connection.getProxyHostname(), connection
+            .getProxyPort(), connection.getNonProxyHosts() );
+
+        method = new PostMethod( urlString );
+
+        method.setDoAuthentication( true );
+        method.addRequestHeader( new Header( "SQL", ThinUtil.stripNewlines( sql ) ) );
+        method.addRequestHeader( new Header( "MaxRows", Integer.toString( statement.getMaxRows() ) ) );
+        method.getParams().setParameter( "http.socket.timeout", new Integer( 0 ) );
+
+        for ( Entry<String, String> arg : connection.getArguments().entrySet() ) {
+          method.addParameter( arg.getKey(), arg.getValue() );
+        }
+
+        int result = client.executeMethod( method );
+
+        if ( result == 500 ) {
+          String response = getErrorString( method.getResponseBodyAsStream() );
+          throw new KettleException( "Error 500 reading data from slave server, url='"
+            + urlString + "', response: " + response );
+        }
+        if ( result == 401 ) {
+          String response = getErrorString( method.getResponseBodyAsStream() );
+          throw new KettleException(
+            "Access denied error 401 received while attempting to read data from server, url='"
+              + urlString + "', response: " + response );
+        }
+        if ( result != 200 ) {
+          String response = getErrorString( method.getResponseBodyAsStream() );
+          throw new KettleException( "Error received while attempting to read data from server, url='"
+            + urlString + "', response: " + response );
+        }
+
+        dataInputStream = new DataInputStream( method.getResponseBodyAsStream() );
+
+        // Read the name of the service we're reading from
+        //
+        serviceName = dataInputStream.readUTF();
+
+        // Get some information about what's going on on the slave server
+        //
+        serviceTransName = dataInputStream.readUTF();
+        serviceObjectId = dataInputStream.readUTF();
+        sqlTransName = dataInputStream.readUTF();
+        sqlObjectId = dataInputStream.readUTF();
+
+        // Get the row metadata...
+        //
+        rowMeta = new RowMeta( dataInputStream );
+      } catch ( KettleEOFException eof ) {
+        close();
+      }
+    } catch ( Exception e ) {
+      throw new SQLException(
+        "Unable to get open query for SQL: " + sql + Const.CR + Const.getStackTracker( e ), e );
+    }
+  }
+
+  public synchronized void cancel() throws SQLException {
+
+    // Kill the service transformation on the server...
+    // Only ever try once.
+    //
+    if ( !stopped.get() ) {
+      stopped.set( true );
+      try {
+        String reply =
+          HttpUtil.execService(
+            new Variables(), connection.getHostname(), connection.getPort(), connection.getWebAppName(),
+            connection.getService()
+              + "/stopTrans" + "/?name=" + URLEncoder.encode( serviceTransName, "UTF-8" ) + "&id="
+              + Const.NVL( serviceObjectId, "" ) + "&xml=Y", connection.getUsername(), connection
+              .getPassword(), connection.getProxyHostname(), connection.getProxyPort(), connection
+              .getNonProxyHosts() );
+
+        WebResult webResult = new WebResult( XMLHandler.loadXMLString( reply, WebResult.XML_TAG ) );
+        if ( !"OK".equals( webResult.getResult() ) ) {
+          throw new SQLException( "Cancel on remote server failed: " + webResult.getMessage() );
+        }
+
+      } catch ( Exception e ) {
+        throw new SQLException( "Couldn't cancel SQL query on slave server", e );
+      }
+    }
+  }
+
+  private String getErrorString( InputStream inputStream ) throws IOException {
+    StringBuffer bodyBuffer = new StringBuffer();
+    int c;
+    while ( ( c = inputStream.read() ) != -1 ) {
+      bodyBuffer.append( (char) c );
+    }
+    return bodyBuffer.toString();
+
   }
 
   @Override
-  public boolean absolute( int index ) throws SQLException {
-    currentIndex = index;
+  public boolean absolute( int rowNr ) throws SQLException {
+    if ( rowNumber != rowNr ) {
+      throw new SQLException( "Scrolleable resultsets are not supported" );
+    }
     return true;
   }
 
   @Override
   public void afterLast() throws SQLException {
-    currentIndex = rows.size();
+    throw new SQLException( "Scrolleable resultsets are not supported" );
   }
 
   @Override
   public void beforeFirst() throws SQLException {
-    currentIndex = -1;
+    throw new SQLException( "Scrolleable resultsets are not supported" );
   }
 
   @Override
   public void cancelRowUpdates() throws SQLException {
+    throw new SQLException( "Scrolleable resultsets are not supported" );
   }
 
   @Override
   public void clearWarnings() throws SQLException {
   }
 
+  private void checkTransStatus( String transformationName, String transformationObjectId ) throws SQLException {
+    try {
+      String xml =
+        HttpUtil.execService( new Variables(), connection.getHostname(), connection.getPort(), connection
+          .getWebAppName(), connection.getService()
+          + "/transStatus/?name=" + URLEncoder.encode( transformationName, "UTF-8" ) + "&id="
+          + Const.NVL( transformationObjectId, "" ) + "&xml=Y", connection.getUsername(), connection
+          .getPassword(), connection.getProxyHostname(), connection.getProxyPort(), connection
+          .getNonProxyHosts() );
+      Document doc = XMLHandler.loadXMLString( xml );
+      Node resultNode = XMLHandler.getSubNode( doc, "transstatus", "result" );
+      Result result = new Result( resultNode );
+      String loggingString64 =
+        XMLHandler.getNodeValue( XMLHandler.getSubNode( doc, "transstatus", "logging_string" ) );
+      String log = "";
+      if ( !Const.isEmpty( loggingString64 ) ) {
+        String dataString64 =
+          loggingString64.substring( "<![CDATA[".length(), loggingString64.length() - "]]>".length() );
+        log = HttpUtil.decodeBase64ZippedString( dataString64 );
+      }
+
+      // Check for errors
+      //
+      if ( !result.getResult() || result.getNrErrors() > 0 ) {
+        throw new KettleException( "The SQL query transformation failed with the following log text:"
+          + Const.CR + log );
+      }
+
+      // See if the transformation was stopped remotely
+      //
+      boolean stopped = "Stopped".equalsIgnoreCase( XMLHandler.getTagValue( doc, "transstatus", "status_desc" ) );
+      if ( stopped ) {
+        throw new KettleException( "The SQL query transformation was stopped.  Logging text: " + Const.CR + log );
+      }
+
+      // All OK, only log the remote logging text if requested.
+      //
+      if ( connection.isDebuggingRemoteLog() ) {
+        LogChannel.GENERAL.logBasic( log );
+      }
+
+    } catch ( Exception e ) {
+      throw new SQLException( "Couldn't validate correct execution of SQL query for transformation ["
+        + transformationName + "]", e );
+    }
+
+  }
+
   @Override
   public void close() throws SQLException {
+
+    // Before we close this connection, let's verify if we got all records...
+    //
+    checkTransStatus( sqlTransName, sqlObjectId );
+
+    currentRow = null;
+    dataInputStream = null;
+    if ( method != null ) {
+      method.releaseConnection();
+    }
   }
 
   @Override
   public void deleteRow() throws SQLException {
+    throw new SQLException( "Scrolleable resultsets are not supported" );
   }
 
   @Override
-  public int findColumn( String name ) throws SQLException {
-    int index = rowMeta.indexOfValue( name ) + 1;
-    System.out.println( "findColumn(" + name + ") --> " + index );
-    return index;
+  public int findColumn( String column ) throws SQLException {
+    return rowMeta.indexOfValue( column ) + 1;
   }
 
   @Override
   public boolean first() throws SQLException {
-    currentIndex = 0;
+    if ( rowNumber != 0 ) {
+      throw new SQLException( "Scrolleable resultsets are not supported" );
+    }
     return true;
+  }
+
+  @Override
+  public int getConcurrency() throws SQLException {
+    return ResultSet.CONCUR_READ_ONLY;
+  }
+
+  @Override
+  public String getCursorName() throws SQLException {
+    return serviceName;
+  }
+
+  @Override
+  public int getFetchDirection() throws SQLException {
+    return ResultSet.FETCH_FORWARD;
+  }
+
+  @Override
+  public int getFetchSize() throws SQLException {
+    return 1;
+  }
+
+  @Override
+  public int getHoldability() throws SQLException {
+    return ResultSet.HOLD_CURSORS_OVER_COMMIT;
+  }
+
+  @Override
+  public ResultSetMetaData getMetaData() throws SQLException {
+    return new ThinResultSetMetaData( serviceName, rowMeta );
+  }
+
+  @Override
+  public int getRow() throws SQLException {
+    return rowNumber;
+  }
+
+  @Override
+  public Statement getStatement() throws SQLException {
+    return statement;
+  }
+
+  @Override
+  public int getType() throws SQLException {
+    return ResultSet.TYPE_FORWARD_ONLY;
+  }
+
+  @Override
+  public SQLWarning getWarnings() throws SQLException {
+    return null;
+  }
+
+  @Override
+  public void insertRow() throws SQLException {
+    throw new SQLException( "Updating resultsets are not supported" );
+  }
+
+  @Override
+  public boolean isAfterLast() throws SQLException {
+    throw new SQLException( "Scrolleable resultsets are not supported" );
+  }
+
+  @Override
+  public boolean isBeforeFirst() throws SQLException {
+    throw new SQLException( "Scrolleable resultsets are not supported" );
+  }
+
+  @Override
+  public boolean isClosed() throws SQLException {
+    return dataInputStream == null && currentRow == null;
+  }
+
+  @Override
+  public boolean isFirst() throws SQLException {
+    return rowNumber == 0;
+  }
+
+  @Override
+  public boolean isLast() throws SQLException {
+    return currentRow != null && dataInputStream == null;
+  }
+
+  @Override
+  public boolean last() throws SQLException {
+    throw new SQLException( "Scrolleable resultsets are not supported" );
+  }
+
+  @Override
+  public void moveToCurrentRow() throws SQLException {
+  }
+
+  @Override
+  public void moveToInsertRow() throws SQLException {
+    throw new SQLException( "Scrolleable resultsets are not supported" );
+  }
+
+  @Override
+  public boolean next() throws SQLException {
+    if ( dataInputStream == null ) {
+      return false;
+    }
+
+    try {
+      currentRow = rowMeta.readData( dataInputStream );
+      return true;
+    } catch ( KettleEOFException e ) {
+      dataInputStream = null;
+      return false;
+    } catch ( Exception e ) {
+      throw new SQLException( e );
+    }
+  }
+
+  @Override
+  public boolean previous() throws SQLException {
+    throw new SQLException( "Scrolleable resultsets are not supported" );
+  }
+
+  @Override
+  public void refreshRow() throws SQLException {
+  }
+
+  @Override
+  public boolean relative( int rowNumber ) throws SQLException {
+    if ( this.rowNumber != rowNumber ) {
+      throw new SQLException( "Scrolleable resultsets are not supported" );
+    }
+    return true;
+  }
+
+  @Override
+  public boolean rowDeleted() throws SQLException {
+    return false;
+  }
+
+  @Override
+  public boolean rowInserted() throws SQLException {
+    return false;
+  }
+
+  @Override
+  public boolean rowUpdated() throws SQLException {
+    return false;
+  }
+
+  @Override
+  public void setFetchDirection( int direction ) throws SQLException {
+  }
+
+  @Override
+  public void setFetchSize( int direction ) throws SQLException {
   }
 
   @Override
@@ -120,7 +477,7 @@ public class RowsResultSet implements ResultSet {
   @Override
   public Date getDate( int index ) throws SQLException {
     try {
-      java.util.Date date = rowMeta.getDate( rows.get( currentIndex ), index - 1 );
+      java.util.Date date = rowMeta.getDate( currentRow, index - 1 );
       if ( date == null ) {
         lastNull = true;
         return null;
@@ -134,7 +491,7 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public Date getDate( String columnName ) throws SQLException {
-    return getDate( rowMeta.indexOfValue( columnName ) + 1 );
+    return getDate( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
@@ -144,15 +501,16 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public Date getDate( String columnName, Calendar calendar ) throws SQLException {
-    return getDate( rowMeta.indexOfValue( columnName ) + 1 );
+    return getDate( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
   public double getDouble( int index ) throws SQLException {
     try {
-      Double d = rowMeta.getNumber( rows.get( currentIndex ), index - 1 );
+      Double d = rowMeta.getNumber( currentRow, index - 1 );
       if ( d == null ) {
         lastNull = true;
+        return 0.0;
       }
       lastNull = false;
       return d;
@@ -163,7 +521,7 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public double getDouble( String columnName ) throws SQLException {
-    return getDouble( rowMeta.indexOfValue( columnName ) + 1 );
+    return getDouble( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
@@ -189,9 +547,10 @@ public class RowsResultSet implements ResultSet {
   @Override
   public BigDecimal getBigDecimal( int index ) throws SQLException {
     try {
-      BigDecimal d = rowMeta.getBigNumber( rows.get( currentIndex ), index - 1 );
+      BigDecimal d = rowMeta.getBigNumber( currentRow, index - 1 );
       if ( d == null ) {
         lastNull = true;
+        return null;
       }
       lastNull = false;
       return d;
@@ -202,7 +561,7 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public BigDecimal getBigDecimal( String columnName ) throws SQLException {
-    return getBigDecimal( rowMeta.indexOfValue( columnName ) + 1 );
+    return getBigDecimal( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
@@ -214,7 +573,7 @@ public class RowsResultSet implements ResultSet {
   @Override
   @Deprecated
   public BigDecimal getBigDecimal( String columnName, int arg1 ) throws SQLException {
-    return getBigDecimal( rowMeta.indexOfValue( columnName ) + 1 );
+    return getBigDecimal( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
@@ -240,9 +599,10 @@ public class RowsResultSet implements ResultSet {
   @Override
   public boolean getBoolean( int index ) throws SQLException {
     try {
-      Boolean b = rowMeta.getBoolean( rows.get( currentIndex ), index - 1 );
+      Boolean b = rowMeta.getBoolean( currentRow, index - 1 );
       if ( b == null ) {
         lastNull = true;
+        return false;
       }
       lastNull = false;
       return b;
@@ -253,7 +613,7 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public boolean getBoolean( String columnName ) throws SQLException {
-    return getBoolean( rowMeta.indexOfValue( columnName ) + 1 );
+    return getBoolean( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
@@ -264,13 +624,13 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public byte getByte( String columnName ) throws SQLException {
-    return getByte( rowMeta.indexOfValue( columnName ) + 1 );
+    return getByte( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
   public byte[] getBytes( int index ) throws SQLException {
     try {
-      byte[] binary = rowMeta.getBinary( rows.get( currentIndex ), index - 1 );
+      byte[] binary = rowMeta.getBinary( currentRow, index - 1 );
       if ( binary == null ) {
         lastNull = true;
         return null;
@@ -284,7 +644,7 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public byte[] getBytes( String columnName ) throws SQLException {
-    return getBytes( rowMeta.indexOfValue( columnName ) + 1 );
+    return getBytes( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
@@ -327,15 +687,16 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public int getInt( String columnName ) throws SQLException {
-    return getInt( rowMeta.indexOfValue( columnName ) + 1 );
+    return getInt( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
   public long getLong( int index ) throws SQLException {
     try {
-      Long d = rowMeta.getInteger( rows.get( currentIndex ), index - 1 );
+      Long d = rowMeta.getInteger( currentRow, index - 1 );
       if ( d == null ) {
         lastNull = true;
+        return 0;
       }
       lastNull = false;
       return d;
@@ -346,7 +707,7 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public long getLong( String columnName ) throws SQLException {
-    return getLong( rowMeta.indexOfValue( columnName ) + 1 );
+    return getLong( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
@@ -381,12 +742,12 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public Object getObject( int index ) throws SQLException {
-    return rows.get( currentIndex )[index];
+    return currentRow[index - 1];
   }
 
   @Override
   public Object getObject( String columnName ) throws SQLException {
-    return getObject( rowMeta.indexOfValue( columnName ) + 1 );
+    return getObject( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
@@ -437,17 +798,18 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public short getShort( String columnName ) throws SQLException {
-    return getShort( rowMeta.indexOfValue( columnName ) + 1 );
+    return getShort( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
-  @Deprecated
   public String getString( int index ) throws SQLException {
     try {
-      Object value = rows.get( currentIndex )[ index - 1 ];
-      String string = value == null ? null : value.toString();
-      lastNull = ( string == null );
-      System.out.println( "getString(" + index + ") --> " + string );
+      String string = rowMeta.getString( currentRow, index - 1 );
+      if ( string == null ) {
+        lastNull = true;
+        return null;
+      }
+      lastNull = false;
       return string;
     } catch ( Exception e ) {
       throw new SQLException( e );
@@ -456,7 +818,7 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public String getString( String columnName ) throws SQLException {
-    return getString( rowMeta.indexOfValue( columnName ) + 1 );
+    return getString( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
@@ -490,7 +852,7 @@ public class RowsResultSet implements ResultSet {
 
   @Override
   public Timestamp getTimestamp( String columnName ) throws SQLException {
-    return getTimestamp( rowMeta.indexOfValue( columnName ) + 1 );
+    return getTimestamp( rowMeta.indexOfValue( columnName ) );
   }
 
   @Override
@@ -838,7 +1200,6 @@ public class RowsResultSet implements ResultSet {
   }
 
   @Override
-  @Deprecated
   public void updateNull( int arg0 ) throws SQLException {
     throw new SQLException( "Updates are not supported" );
   }
@@ -944,153 +1305,48 @@ public class RowsResultSet implements ResultSet {
   }
 
   @Override
-  public boolean isWrapperFor( Class<?> iface ) throws SQLException {
-    return false;
+  public boolean isWrapperFor( Class<?> arg0 ) throws SQLException {
+    throw new SQLException( "Wrapping not supperted" );
   }
 
   @Override
-  public <T> T unwrap( Class<T> iface ) throws SQLException {
-    return null;
+  public <T> T unwrap( Class<T> arg0 ) throws SQLException {
+    throw new SQLException( "Wrapping not supperted" );
   }
 
-  @Override
-  public int getConcurrency() throws SQLException {
-    return ResultSet.CONCUR_READ_ONLY;
+  /**
+   * @return the serviceName
+   */
+  public String getServiceName() {
+    return serviceName;
   }
 
-  @Override
-  public String getCursorName() throws SQLException {
-    return "rows";
+  /**
+   * @return the serviceTransName
+   */
+  public String getServiceTransName() {
+    return serviceTransName;
   }
 
-  @Override
-  public int getFetchDirection() throws SQLException {
-    return ResultSet.FETCH_FORWARD;
+  /**
+   * @return the serviceObjectId
+   */
+  public String getServiceObjectId() {
+    return serviceObjectId;
   }
 
-  @Override
-  public int getFetchSize() throws SQLException {
-    return 1;
+  /**
+   * @return the sqlTransName
+   */
+  public String getSqlTransName() {
+    return sqlTransName;
   }
 
-  @Override
-  public int getHoldability() throws SQLException {
-    return ResultSet.HOLD_CURSORS_OVER_COMMIT;
-  }
-
-  @Override
-  public ResultSetMetaData getMetaData() throws SQLException {
-    return new ThinResultSetMetaData( "rows", rowMeta );
-  }
-
-  @Override
-  public int getRow() throws SQLException {
-    return currentIndex;
-  }
-
-  @Override
-  public Statement getStatement() throws SQLException {
-    return null;
-  }
-
-  @Override
-  public int getType() throws SQLException {
-    return ResultSet.TYPE_FORWARD_ONLY;
-  }
-
-  @Override
-  public SQLWarning getWarnings() throws SQLException {
-    return null;
-  }
-
-  @Override
-  public void insertRow() throws SQLException {
-  }
-
-  @Override
-  public boolean isAfterLast() throws SQLException {
-    return currentIndex >= rows.size();
-  }
-
-  @Override
-  public boolean isBeforeFirst() throws SQLException {
-    return currentIndex < 0;
-  }
-
-  @Override
-  public boolean isClosed() throws SQLException {
-    return false;
-  }
-
-  @Override
-  public boolean isFirst() throws SQLException {
-    return currentIndex == 0;
-  }
-
-  @Override
-  public boolean isLast() throws SQLException {
-    return currentIndex == rows.size() - 1;
-  }
-
-  @Override
-  public boolean last() throws SQLException {
-    currentIndex = rows.size() - 1;
-    return false;
-  }
-
-  @Override
-  public void moveToCurrentRow() throws SQLException {
-  }
-
-  @Override
-  public void moveToInsertRow() throws SQLException {
-  }
-
-  @Override
-  public boolean next() throws SQLException {
-    currentIndex++;
-    boolean result = currentIndex < rows.size();
-    System.out.println( "next() --> " + result );
-    return result;
-  }
-
-  @Override
-  public boolean previous() throws SQLException {
-    currentIndex--;
-    return currentIndex >= 0;
-  }
-
-  @Override
-  public void refreshRow() throws SQLException {
-  }
-
-  @Override
-  public boolean relative( int rows ) throws SQLException {
-    currentIndex += rows;
-    return true;
-  }
-
-  @Override
-  public boolean rowDeleted() throws SQLException {
-    return false;
-  }
-
-  @Override
-  public boolean rowInserted() throws SQLException {
-    return false;
-  }
-
-  @Override
-  public boolean rowUpdated() throws SQLException {
-    return false;
-  }
-
-  @Override
-  public void setFetchDirection( int direction ) throws SQLException {
-  }
-
-  @Override
-  public void setFetchSize( int rows ) throws SQLException {
+  /**
+   * @return the sqlObjectId
+   */
+  public String getSqlObjectId() {
+    return sqlObjectId;
   }
 
   public <T> T getObject( int columnIndex, Class<T> type ) throws SQLException {
@@ -1100,5 +1356,4 @@ public class RowsResultSet implements ResultSet {
   public <T> T getObject( String columnLabel, Class<T> type ) throws SQLException {
     throw new SQLException( "Method not supported" );
   }
-
 }

@@ -20,7 +20,9 @@
  *
  ******************************************************************************/
 
-package org.pentaho.di.core.jdbc;
+package org.pentaho.di.trans.dataservice.jdbc;
+
+import org.pentaho.di.core.jdbc.ThinUtil;
 
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;

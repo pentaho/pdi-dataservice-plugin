@@ -20,7 +20,7 @@
  *
  ******************************************************************************/
 
-package org.pentaho.di.core.jdbc;
+package org.pentaho.di.trans.dataservice.jdbc;
 
 import java.math.BigDecimal;
 import java.sql.ResultSetMetaData;
