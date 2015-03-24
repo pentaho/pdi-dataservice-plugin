@@ -44,6 +44,7 @@ import java.util.concurrent.Executor;
 
 import org.pentaho.di.cluster.HttpUtil;
 import org.pentaho.di.core.variables.Variables;
+import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 
 public class ThinConnection implements Connection {
 
@@ -54,6 +55,9 @@ public class ThinConnection implements Connection {
   public static final String ARG_NONPROXYHOSTS = "nonproxyhosts";
   public static final String ARG_DEBUGTRANS = "debugtrans";
   public static final String ARG_DEBUGLOG = "debuglog";
+  public static final String ARG_LOCAL = "local";
+
+  public static DataServiceClientService localClient;
 
   private String url;
   private String slaveBaseAddress;
@@ -71,6 +75,8 @@ public class ThinConnection implements Connection {
   private String debugTransFilename;
   private boolean debuggingRemoteLog;
 
+  private boolean isLocal;
+
   private String service;
 
   public ThinConnection( String url, String username, String password ) throws SQLException {
@@ -80,14 +86,6 @@ public class ThinConnection implements Connection {
   }
 
   public void testConnection() throws SQLException {
-    // Example URLs :
-    //
-    // jdbc:pdi://slaveserver:8181/kettle/?webappname=pdi&proxyserver=proxy1&parameter_area=EAST
-    //
-    // converts to:
-    //
-    // http://cluster:cluster@slaveserver:8181/kettle/?webappname=pdi&proxyserver=proxy1&parameter_area=EAST
-    //
 
     try {
       int portColonIndex = url.indexOf( ':', ThinDriver.BASE_URL.length() );
@@ -128,16 +126,34 @@ public class ThinConnection implements Connection {
       nonProxyHosts = arguments.get( ARG_NONPROXYHOSTS );
       debugTransFilename = arguments.get( ARG_DEBUGTRANS );
       debuggingRemoteLog = "true".equalsIgnoreCase( arguments.get( ARG_DEBUGLOG ) );
+      isLocal = "true".equalsIgnoreCase( arguments.get( ARG_LOCAL ) );
 
-      // Try to get a status from the carte server to see if the connection works...
-      //
-      HttpUtil.execService(
-        new Variables(), hostname, port, webAppName, service + "/status/", username, password, proxyHostname,
-        proxyPort, nonProxyHosts );
-
+      // If the connection is local do this
+      if ( !isLocal() ) {
+        testRemoteConnection();
+      }
     } catch ( Exception e ) {
       throw new SQLException( "Unable to de-compose slave server address for URL: " + slaveBaseAddress, e );
     }
+  }
+
+  private void testRemoteConnection() throws Exception {
+
+    // Example URLs :
+    //
+    // jdbc:pdi://slaveserver:8181/kettle/?webappname=pdi&proxyserver=proxy1&parameter_area=EAST
+    //
+    // converts to:
+    //
+    // http://cluster:cluster@slaveserver:8181/kettle/?webappname=pdi&proxyserver=proxy1&parameter_area=EAST
+    //
+
+    // Try to get a status from the carte server to see if the connection works...
+    //
+    HttpUtil.execService(
+      new Variables(), hostname, port, webAppName, service + "/status/", username, password, proxyHostname,
+      proxyPort, nonProxyHosts );
+
   }
 
   @Override
@@ -527,6 +543,18 @@ public class ThinConnection implements Connection {
 
   public int getNetworkTimeout() throws SQLException {
     return 0;
+  }
+
+  public boolean isLocal() {
+    if ( ThinConnection.localClient == null ) {
+      return false;
+    }
+
+    return isLocal;
+  }
+
+  public DataServiceClientService getLocalClient() {
+    return ThinConnection.localClient;
   }
 
 }
