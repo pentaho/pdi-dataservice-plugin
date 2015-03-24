@@ -8,4 +8,13 @@
     <bean id="KettleDatabaseType" class="org.pentaho.di.trans.dataservice.client.DataServiceClientPlugin" scope="prototype">
         <pen:di-plugin type="org.pentaho.di.core.plugins.DatabasePluginType" />
     </bean>
+
+    <reference id="dataServiceClientService"  interface="org.pentaho.di.trans.dataservice.client.DataServiceClientService" availability="optional">
+        <reference-listener ref="KettleLifecycleListener" bind-method="bind" unbind-method="unbind" />
+    </reference>
+
+    <bean id="KettleLifecycleListener" class="org.pentaho.di.trans.dataservice.client.DataServiceLifecycleListener">
+        <pen:di-plugin type="org.pentaho.di.core.plugins.LifecyclePluginType" />
+    </bean>
+
 </blueprint>

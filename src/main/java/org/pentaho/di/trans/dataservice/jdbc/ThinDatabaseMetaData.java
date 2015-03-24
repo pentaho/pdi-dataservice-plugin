@@ -587,31 +587,44 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
   }
 
   public List<ThinServiceInformation> getServiceInformation() throws SQLException {
-    try {
-      String xml =
-        HttpUtil.execService( new Variables(), connection.getHostname(), connection.getPort(), connection
-          .getWebAppName(), serviceUrl, connection.getUsername(), connection.getPassword(), connection
-          .getProxyHostname(), connection.getProxyPort(), connection.getNonProxyHosts() );
 
-      List<ThinServiceInformation> services = new ArrayList<ThinServiceInformation>();
+    List<ThinServiceInformation> services = null;
 
-      Document doc = XMLHandler.loadXMLString( xml );
-      Node servicesNode = XMLHandler.getSubNode( doc, "services" );
-      List<Node> serviceNodes = XMLHandler.getNodes( servicesNode, "service" );
-      for ( Node serviceNode : serviceNodes ) {
-
-        String name = XMLHandler.getTagValue( serviceNode, "name" );
-        Node rowMetaNode = XMLHandler.getSubNode( serviceNode, RowMeta.XML_META_TAG );
-        RowMetaInterface serviceFields = new RowMeta( rowMetaNode );
-        ThinServiceInformation service = new ThinServiceInformation( name, serviceFields );
-        services.add( service );
+    if ( connection.isLocal() ) {
+      services = connection.getLocalClient().getServiceInformation();
+    } else {
+      try {
+        services = getRemoteServiceInformation();
+      } catch ( Exception e ) {
+        throw new SQLException( "Unable to get service information from server", e );
       }
-
-      return services;
-    } catch ( Exception e ) {
-      throw new SQLException( "Unable to get service information from server", e );
     }
 
+    return services;
+  }
+
+  private List<ThinServiceInformation> getRemoteServiceInformation() throws Exception {
+
+    String xml =
+      HttpUtil.execService( new Variables(), connection.getHostname(), connection.getPort(), connection
+        .getWebAppName(), serviceUrl, connection.getUsername(), connection.getPassword(), connection
+        .getProxyHostname(), connection.getProxyPort(), connection.getNonProxyHosts() );
+
+    List<ThinServiceInformation> services = new ArrayList<ThinServiceInformation>();
+
+    Document doc = XMLHandler.loadXMLString( xml );
+    Node servicesNode = XMLHandler.getSubNode( doc, "services" );
+    List<Node> serviceNodes = XMLHandler.getNodes( servicesNode, "service" );
+    for ( Node serviceNode : serviceNodes ) {
+
+      String name = XMLHandler.getTagValue( serviceNode, "name" );
+      Node rowMetaNode = XMLHandler.getSubNode( serviceNode, RowMeta.XML_META_TAG );
+      RowMetaInterface serviceFields = new RowMeta( rowMetaNode );
+      ThinServiceInformation service = new ThinServiceInformation( name, serviceFields );
+      services.add( service );
+    }
+
+    return services;
   }
 
   @Override

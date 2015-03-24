@@ -93,12 +93,45 @@ public class ThinResultSet implements ResultSet {
   private AtomicBoolean stopped;
 
   public ThinResultSet( ThinStatement statement, String urlString, String username, String password, String sql ) throws SQLException {
+
     this.statement = statement;
     this.connection = (ThinConnection) statement.getConnection();
 
     rowNumber = 0;
     stopped = new AtomicBoolean( false );
 
+    if ( connection.isLocal() ) {
+      dataInputStream = connection.getLocalClient().query( ThinUtil.stripNewlines( sql ), statement.getMaxRows() );
+    } else {
+      remoteQuery( urlString, sql );
+    }
+
+    try {
+      // Read the name of the service we're reading from
+      //
+      serviceName = dataInputStream.readUTF();
+
+      // Get some information about what's going on on the slave server
+      //
+      serviceTransName = dataInputStream.readUTF();
+      serviceObjectId = dataInputStream.readUTF();
+      sqlTransName = dataInputStream.readUTF();
+      sqlObjectId = dataInputStream.readUTF();
+
+      // Get the row metadata...
+      //
+      rowMeta = new RowMeta( dataInputStream );
+    } catch ( KettleEOFException e ) {
+      close();
+      throw new SQLException(
+        "Unable to get open query for SQL: " + sql + Const.CR + Const.getStackTracker( e ), e );
+    } catch ( Exception e ) {
+      throw new SQLException(
+        "Unable to get open query for SQL: " + sql + Const.CR + Const.getStackTracker( e ), e );
+    }
+  }
+
+  private void remoteQuery( String urlString, String sql ) throws SQLException {
     try {
 
       HttpClient client = null;
@@ -148,20 +181,6 @@ public class ThinResultSet implements ResultSet {
 
         dataInputStream = new DataInputStream( method.getResponseBodyAsStream() );
 
-        // Read the name of the service we're reading from
-        //
-        serviceName = dataInputStream.readUTF();
-
-        // Get some information about what's going on on the slave server
-        //
-        serviceTransName = dataInputStream.readUTF();
-        serviceObjectId = dataInputStream.readUTF();
-        sqlTransName = dataInputStream.readUTF();
-        sqlObjectId = dataInputStream.readUTF();
-
-        // Get the row metadata...
-        //
-        rowMeta = new RowMeta( dataInputStream );
       } catch ( KettleEOFException eof ) {
         close();
       }
@@ -286,6 +305,10 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public void close() throws SQLException {
+
+    if ( connection.isLocal() ) {
+      return;
+    }
 
     // Before we close this connection, let's verify if we got all records...
     //
