@@ -41,7 +41,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
-
 import org.pentaho.di.cluster.HttpUtil;
 import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
@@ -49,7 +48,6 @@ import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 public class ThinConnection implements Connection {
 
   public static final String ARG_WEBAPPNAME = "webappname";
-
   public static final String ARG_PROXYHOSTNAME = "proxyhostname";
   public static final String ARG_PROXYPORT = "proxyport";
   public static final String ARG_NONPROXYHOSTS = "nonproxyhosts";
@@ -83,22 +81,20 @@ public class ThinConnection implements Connection {
     this.url = url;
     this.username = username;
     this.password = password;
+    parseUrl( url );
   }
 
-  public void testConnection() throws SQLException {
-
+  private void parseUrl( String url ) throws SQLException {
     try {
       int portColonIndex = url.indexOf( ':', ThinDriver.BASE_URL.length() );
+      int kettleIndex = url.indexOf( ThinDriver.SERVICE_NAME, portColonIndex );
 
       hostname = url.substring( ThinDriver.BASE_URL.length(), portColonIndex );
-      int kettleIndex = url.indexOf( ThinDriver.SERVICE_NAME, portColonIndex );
       port = url.substring( portColonIndex + 1, kettleIndex );
 
       int startIndex = url.indexOf( '?', kettleIndex ) + 1;
       arguments = new HashMap<String, String>();
       if ( startIndex > 0 ) {
-        // Correct the path, exclude the arguments
-        //
         String path = url.substring( startIndex );
         String[] args = path.split( "\\&" );
         for ( String arg : args ) {
@@ -109,51 +105,34 @@ public class ThinConnection implements Connection {
         }
       }
 
-      // Determine the web app name
-      //
-      webAppName = arguments.get( ARG_WEBAPPNAME );
-
-      // if (Const.isEmpty(webAppName)) {
       service = ThinDriver.SERVICE_NAME;
-      // } else {
-      // service = "/"+webAppName+ThinDriver.SERVICE_NAME;
-      // }
-
       slaveBaseAddress = "http://" + hostname + ":" + port + service;
 
+      webAppName = arguments.get( ARG_WEBAPPNAME );
       proxyHostname = arguments.get( ARG_PROXYHOSTNAME );
       proxyPort = arguments.get( ARG_PROXYPORT );
       nonProxyHosts = arguments.get( ARG_NONPROXYHOSTS );
       debugTransFilename = arguments.get( ARG_DEBUGTRANS );
       debuggingRemoteLog = "true".equalsIgnoreCase( arguments.get( ARG_DEBUGLOG ) );
       isLocal = "true".equalsIgnoreCase( arguments.get( ARG_LOCAL ) );
+    } catch ( Exception e ) {
+      throw new SQLException( "Invalid connection URL." );
+    }
+  }
 
-      // If the connection is local do this
+  public void testConnection() throws SQLException {
+    try {
       if ( !isLocal() ) {
         testRemoteConnection();
       }
     } catch ( Exception e ) {
-      throw new SQLException( "Unable to de-compose slave server address for URL: " + slaveBaseAddress, e );
+      throw new SQLException( e.getMessage().trim() );
     }
   }
 
   private void testRemoteConnection() throws Exception {
-
-    // Example URLs :
-    //
-    // jdbc:pdi://slaveserver:8181/kettle/?webappname=pdi&proxyserver=proxy1&parameter_area=EAST
-    //
-    // converts to:
-    //
-    // http://cluster:cluster@slaveserver:8181/kettle/?webappname=pdi&proxyserver=proxy1&parameter_area=EAST
-    //
-
-    // Try to get a status from the carte server to see if the connection works...
-    //
-    HttpUtil.execService(
-      new Variables(), hostname, port, webAppName, service + "/status/", username, password, proxyHostname,
-      proxyPort, nonProxyHosts );
-
+    HttpUtil.execService( new Variables(), hostname, port, webAppName, service + "/status/", username, password,
+        proxyHostname, proxyPort, nonProxyHosts );
   }
 
   @Override

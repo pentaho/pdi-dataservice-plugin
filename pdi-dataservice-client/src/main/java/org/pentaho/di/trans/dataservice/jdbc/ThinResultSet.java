@@ -23,7 +23,6 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import java.io.DataInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -44,16 +43,16 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.pentaho.di.cluster.HttpUtil;
-import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.Result;
 import org.pentaho.di.core.exception.KettleEOFException;
@@ -92,7 +91,8 @@ public class ThinResultSet implements ResultSet {
   private String sqlObjectId;
   private AtomicBoolean stopped;
 
-  public ThinResultSet( ThinStatement statement, String urlString, String username, String password, String sql ) throws SQLException {
+  public ThinResultSet( ThinStatement statement, String urlString, String sql )
+      throws SQLException {
 
     this.statement = statement;
     this.connection = (ThinConnection) statement.getConnection();
@@ -100,13 +100,13 @@ public class ThinResultSet implements ResultSet {
     rowNumber = 0;
     stopped = new AtomicBoolean( false );
 
-    if ( connection.isLocal() ) {
-      dataInputStream = connection.getLocalClient().query( ThinUtil.stripNewlines( sql ), statement.getMaxRows() );
-    } else {
-      remoteQuery( urlString, sql );
-    }
-
     try {
+      if ( connection.isLocal() ) {
+        dataInputStream = connection.getLocalClient().query( ThinUtil.stripNewlines( sql ), statement.getMaxRows() );
+      } else {
+        dataInputStream = remoteQuery( urlString, sql );
+      }
+
       // Read the name of the service we're reading from
       //
       serviceName = dataInputStream.readUTF();
@@ -123,71 +123,29 @@ public class ThinResultSet implements ResultSet {
       rowMeta = new RowMeta( dataInputStream );
     } catch ( KettleEOFException e ) {
       close();
-      throw new SQLException(
-        "Unable to get open query for SQL: " + sql + Const.CR + Const.getStackTracker( e ), e );
     } catch ( Exception e ) {
       throw new SQLException(
-        "Unable to get open query for SQL: " + sql + Const.CR + Const.getStackTracker( e ), e );
+          "Unable to get open query for SQL: " + sql + Const.CR + Const.getStackTracker( e ), e );
     }
   }
 
-  private void remoteQuery( String urlString, String sql ) throws SQLException {
-    try {
+  private DataInputStream remoteQuery( String urlString, String sql ) throws Exception {
 
-      HttpClient client = null;
+    List<Header> headers = new ArrayList<Header>();
+    headers.add( new Header( "SQL", ThinUtil.stripNewlines( sql ) ) );
+    headers.add( new Header( "MaxRows", Integer.toString( statement.getMaxRows() ) ) );
 
-      try {
-        client = SlaveConnectionManager.getInstance().createHttpClient();
+    Map<String, Object> parameters = new HashMap<String, Object>();
+    parameters.put( "http.socket.timeout", 0 );
 
-        client.getHttpConnectionManager().getParams().setConnectionTimeout( 0 );
-        client.getHttpConnectionManager().getParams().setSoTimeout( 0 );
+    method =
+        HttpUtil
+            .execService( new Variables(), connection.getHostname(), connection.getPort(), connection.getWebAppName(),
+                urlString, connection.getUsername(), connection.getPassword(), connection.getProxyHostname(),
+                connection.getProxyPort(), connection.getNonProxyHosts(), headers, parameters,
+                connection.getArguments() );
 
-        HttpUtil.addCredentials(
-          client, new Variables(), connection.getHostname(), connection.getPort(), connection.getWebAppName(),
-          connection.getUsername(), connection.getPassword() );
-        HttpUtil.addProxy(
-          client, new Variables(), connection.getHostname(), connection.getProxyHostname(), connection
-            .getProxyPort(), connection.getNonProxyHosts() );
-
-        method = new PostMethod( urlString );
-
-        method.setDoAuthentication( true );
-        method.addRequestHeader( new Header( "SQL", ThinUtil.stripNewlines( sql ) ) );
-        method.addRequestHeader( new Header( "MaxRows", Integer.toString( statement.getMaxRows() ) ) );
-        method.getParams().setParameter( "http.socket.timeout", new Integer( 0 ) );
-
-        for ( Entry<String, String> arg : connection.getArguments().entrySet() ) {
-          method.addParameter( arg.getKey(), arg.getValue() );
-        }
-
-        int result = client.executeMethod( method );
-
-        if ( result == 500 ) {
-          String response = getErrorString( method.getResponseBodyAsStream() );
-          throw new KettleException( "Error 500 reading data from slave server, url='"
-            + urlString + "', response: " + response );
-        }
-        if ( result == 401 ) {
-          String response = getErrorString( method.getResponseBodyAsStream() );
-          throw new KettleException(
-            "Access denied error 401 received while attempting to read data from server, url='"
-              + urlString + "', response: " + response );
-        }
-        if ( result != 200 ) {
-          String response = getErrorString( method.getResponseBodyAsStream() );
-          throw new KettleException( "Error received while attempting to read data from server, url='"
-            + urlString + "', response: " + response );
-        }
-
-        dataInputStream = new DataInputStream( method.getResponseBodyAsStream() );
-
-      } catch ( KettleEOFException eof ) {
-        close();
-      }
-    } catch ( Exception e ) {
-      throw new SQLException(
-        "Unable to get open query for SQL: " + sql + Const.CR + Const.getStackTracker( e ), e );
-    }
+    return new DataInputStream( method.getResponseBodyAsStream() );
   }
 
   public synchronized void cancel() throws SQLException {
@@ -199,13 +157,13 @@ public class ThinResultSet implements ResultSet {
       stopped.set( true );
       try {
         String reply =
-          HttpUtil.execService(
-            new Variables(), connection.getHostname(), connection.getPort(), connection.getWebAppName(),
-            connection.getService()
-              + "/stopTrans" + "/?name=" + URLEncoder.encode( serviceTransName, "UTF-8" ) + "&id="
-              + Const.NVL( serviceObjectId, "" ) + "&xml=Y", connection.getUsername(), connection
-              .getPassword(), connection.getProxyHostname(), connection.getProxyPort(), connection
-              .getNonProxyHosts() );
+            HttpUtil.execService(
+                new Variables(), connection.getHostname(), connection.getPort(), connection.getWebAppName(),
+                connection.getService()
+                    + "/stopTrans" + "/?name=" + URLEncoder.encode( serviceTransName, "UTF-8" ) + "&id="
+                    + Const.NVL( serviceObjectId, "" ) + "&xml=Y", connection.getUsername(), connection
+                    .getPassword(), connection.getProxyHostname(), connection.getProxyPort(), connection
+                    .getNonProxyHosts() );
 
         WebResult webResult = new WebResult( XMLHandler.loadXMLString( reply, WebResult.XML_TAG ) );
         if ( !"OK".equals( webResult.getResult() ) ) {
@@ -216,16 +174,6 @@ public class ThinResultSet implements ResultSet {
         throw new SQLException( "Couldn't cancel SQL query on slave server", e );
       }
     }
-  }
-
-  private String getErrorString( InputStream inputStream ) throws IOException {
-    StringBuffer bodyBuffer = new StringBuffer();
-    int c;
-    while ( ( c = inputStream.read() ) != -1 ) {
-      bodyBuffer.append( (char) c );
-    }
-    return bodyBuffer.toString();
-
   }
 
   @Override
@@ -258,21 +206,21 @@ public class ThinResultSet implements ResultSet {
   private void checkTransStatus( String transformationName, String transformationObjectId ) throws SQLException {
     try {
       String xml =
-        HttpUtil.execService( new Variables(), connection.getHostname(), connection.getPort(), connection
-          .getWebAppName(), connection.getService()
-          + "/transStatus/?name=" + URLEncoder.encode( transformationName, "UTF-8" ) + "&id="
-          + Const.NVL( transformationObjectId, "" ) + "&xml=Y", connection.getUsername(), connection
-          .getPassword(), connection.getProxyHostname(), connection.getProxyPort(), connection
-          .getNonProxyHosts() );
+          HttpUtil.execService( new Variables(), connection.getHostname(), connection.getPort(), connection
+              .getWebAppName(), connection.getService()
+              + "/transStatus/?name=" + URLEncoder.encode( transformationName, "UTF-8" ) + "&id="
+              + Const.NVL( transformationObjectId, "" ) + "&xml=Y", connection.getUsername(), connection
+              .getPassword(), connection.getProxyHostname(), connection.getProxyPort(), connection
+              .getNonProxyHosts() );
       Document doc = XMLHandler.loadXMLString( xml );
       Node resultNode = XMLHandler.getSubNode( doc, "transstatus", "result" );
       Result result = new Result( resultNode );
       String loggingString64 =
-        XMLHandler.getNodeValue( XMLHandler.getSubNode( doc, "transstatus", "logging_string" ) );
+          XMLHandler.getNodeValue( XMLHandler.getSubNode( doc, "transstatus", "logging_string" ) );
       String log = "";
       if ( !Const.isEmpty( loggingString64 ) ) {
         String dataString64 =
-          loggingString64.substring( "<![CDATA[".length(), loggingString64.length() - "]]>".length() );
+            loggingString64.substring( "<![CDATA[".length(), loggingString64.length() - "]]>".length() );
         log = HttpUtil.decodeBase64ZippedString( dataString64 );
       }
 
@@ -280,7 +228,7 @@ public class ThinResultSet implements ResultSet {
       //
       if ( !result.getResult() || result.getNrErrors() > 0 ) {
         throw new KettleException( "The SQL query transformation failed with the following log text:"
-          + Const.CR + log );
+            + Const.CR + log );
       }
 
       // See if the transformation was stopped remotely
@@ -298,7 +246,7 @@ public class ThinResultSet implements ResultSet {
 
     } catch ( Exception e ) {
       throw new SQLException( "Couldn't validate correct execution of SQL query for transformation ["
-        + transformationName + "]", e );
+          + transformationName + "]", e );
     }
 
   }
@@ -319,6 +267,7 @@ public class ThinResultSet implements ResultSet {
     if ( method != null ) {
       method.releaseConnection();
     }
+
   }
 
   @Override
