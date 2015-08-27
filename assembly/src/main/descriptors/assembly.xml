@@ -21,7 +21,16 @@
   <formats>
     <format>zip</format>
   </formats>
+
   <baseDirectory>pdi-dataservice-client</baseDirectory>
+  <fileSets>
+    <fileSet>
+      <directory>${project.basedir}</directory>
+      <includes>
+        <include>README.txt</include>
+      </includes>
+    </fileSet>
+  </fileSets>
 
   <dependencySets>
     <dependencySet>
