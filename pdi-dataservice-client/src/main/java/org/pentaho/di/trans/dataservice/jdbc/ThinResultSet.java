@@ -254,7 +254,7 @@ public class ThinResultSet implements ResultSet {
   @Override
   public void close() throws SQLException {
 
-    if ( connection.isLocal() ) {
+    if ( connection.isLocal() || Const.isEmpty( sqlTransName ) ) {
       return;
     }
 
