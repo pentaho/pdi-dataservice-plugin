@@ -42,7 +42,7 @@ import java.util.Map;
 
 @DatabaseMetaPlugin(
   type = "KettleThin",
-  typeDescription = "Pentaho Data Integration"
+  typeDescription = "Pentaho Data Services"
 )
 public class DataServiceClientPlugin extends BaseDatabaseMeta implements DatabaseInterface {
   public static final String DEFAULT_WEBAPPNAME = "pentaho-di";
