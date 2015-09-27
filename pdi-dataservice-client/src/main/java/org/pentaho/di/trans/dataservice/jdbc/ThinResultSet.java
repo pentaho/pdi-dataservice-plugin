@@ -73,8 +73,8 @@ public class ThinResultSet implements ResultSet {
   private ThinConnection connection;
 
   private DataInputStream dataInputStream;
-  private RowMetaInterface rowMeta;
-  private Object[] currentRow;
+  protected RowMetaInterface rowMeta;
+  protected Object[] currentRow;
   private int rowNumber;
   private boolean lastNull;
 
@@ -127,6 +127,9 @@ public class ThinResultSet implements ResultSet {
       throw new SQLException(
           "Unable to get open query for SQL: " + sql + Const.CR + Const.getStackTracker( e ), e );
     }
+  }
+
+  protected ThinResultSet() {
   }
 
   private DataInputStream remoteQuery( String urlString, String sql ) throws Exception {
@@ -448,6 +451,7 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public Date getDate( int index ) throws SQLException {
+    validateIndex( index );
     try {
       java.util.Date date = rowMeta.getDate( currentRow, index - 1 );
       if ( date == null ) {
@@ -463,7 +467,7 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public Date getDate( String columnName ) throws SQLException {
-    return getDate( rowMeta.indexOfValue( columnName ) );
+    return getDate( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
@@ -473,11 +477,12 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public Date getDate( String columnName, Calendar calendar ) throws SQLException {
-    return getDate( rowMeta.indexOfValue( columnName ) );
+    return getDate( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
   public double getDouble( int index ) throws SQLException {
+    validateIndex( index );
     try {
       Double d = rowMeta.getNumber( currentRow, index - 1 );
       if ( d == null ) {
@@ -493,7 +498,7 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public double getDouble( String columnName ) throws SQLException {
-    return getDouble( rowMeta.indexOfValue( columnName ) );
+    return getDouble( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
@@ -518,6 +523,7 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public BigDecimal getBigDecimal( int index ) throws SQLException {
+    validateIndex( index );
     try {
       BigDecimal d = rowMeta.getBigNumber( currentRow, index - 1 );
       if ( d == null ) {
@@ -533,7 +539,7 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public BigDecimal getBigDecimal( String columnName ) throws SQLException {
-    return getBigDecimal( rowMeta.indexOfValue( columnName ) );
+    return getBigDecimal( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
@@ -545,7 +551,7 @@ public class ThinResultSet implements ResultSet {
   @Override
   @Deprecated
   public BigDecimal getBigDecimal( String columnName, int arg1 ) throws SQLException {
-    return getBigDecimal( rowMeta.indexOfValue( columnName ) );
+    return getBigDecimal( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
@@ -570,6 +576,7 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public boolean getBoolean( int index ) throws SQLException {
+    validateIndex( index );
     try {
       Boolean b = rowMeta.getBoolean( currentRow, index - 1 );
       if ( b == null ) {
@@ -585,7 +592,7 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public boolean getBoolean( String columnName ) throws SQLException {
-    return getBoolean( rowMeta.indexOfValue( columnName ) );
+    return getBoolean( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
@@ -596,11 +603,12 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public byte getByte( String columnName ) throws SQLException {
-    return getByte( rowMeta.indexOfValue( columnName ) );
+    return getByte( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
   public byte[] getBytes( int index ) throws SQLException {
+    validateIndex( index );
     try {
       byte[] binary = rowMeta.getBinary( currentRow, index - 1 );
       if ( binary == null ) {
@@ -616,7 +624,7 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public byte[] getBytes( String columnName ) throws SQLException {
-    return getBytes( rowMeta.indexOfValue( columnName ) );
+    return getBytes( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
@@ -659,11 +667,12 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public int getInt( String columnName ) throws SQLException {
-    return getInt( rowMeta.indexOfValue( columnName ) );
+    return getInt( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
   public long getLong( int index ) throws SQLException {
+    validateIndex( index );
     try {
       Long d = rowMeta.getInteger( currentRow, index - 1 );
       if ( d == null ) {
@@ -679,7 +688,7 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public long getLong( String columnName ) throws SQLException {
-    return getLong( rowMeta.indexOfValue( columnName ) );
+    return getLong( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
@@ -714,12 +723,13 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public Object getObject( int index ) throws SQLException {
+    validateIndex( index );
     return currentRow[index - 1];
   }
 
   @Override
   public Object getObject( String columnName ) throws SQLException {
-    return getObject( rowMeta.indexOfValue( columnName ) );
+    return getObject( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
@@ -770,11 +780,12 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public short getShort( String columnName ) throws SQLException {
-    return getShort( rowMeta.indexOfValue( columnName ) );
+    return getShort( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
   public String getString( int index ) throws SQLException {
+    validateIndex( index );
     try {
       String string = rowMeta.getString( currentRow, index - 1 );
       if ( string == null ) {
@@ -790,7 +801,7 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public String getString( String columnName ) throws SQLException {
-    return getString( rowMeta.indexOfValue( columnName ) );
+    return getString( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
@@ -824,7 +835,7 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public Timestamp getTimestamp( String columnName ) throws SQLException {
-    return getTimestamp( rowMeta.indexOfValue( columnName ) );
+    return getTimestamp( rowMeta.indexOfValue( columnName ) + 1 );
   }
 
   @Override
@@ -1327,5 +1338,11 @@ public class ThinResultSet implements ResultSet {
 
   public <T> T getObject( String columnLabel, Class<T> type ) throws SQLException {
     throw new SQLException( "Method not supported" );
+  }
+
+  private void validateIndex( int index ) throws SQLException {
+    if ( index < 1 || rowMeta.size() < index ) {
+      throw new SQLException( "Invalid column reference." );
+    }
   }
 }
