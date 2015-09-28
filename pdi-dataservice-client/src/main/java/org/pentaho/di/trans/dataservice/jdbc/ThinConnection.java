@@ -59,7 +59,6 @@ public class ThinConnection implements Connection {
   public static DataServiceClientService localClient;
 
   private String url;
-  private String slaveBaseAddress;
   private String username;
   private String password;
   private String hostname;
@@ -108,8 +107,6 @@ public class ThinConnection implements Connection {
       }
 
       service = ThinDriver.SERVICE_NAME;
-      slaveBaseAddress = "http://" + hostname + ":" + port + service;
-
       webAppName = arguments.get( ARG_WEBAPPNAME );
       proxyHostname = arguments.get( ARG_PROXYHOSTNAME );
       proxyPort = arguments.get( ARG_PROXYPORT );
@@ -391,21 +388,6 @@ public class ThinConnection implements Connection {
    */
   public String getUrl() {
     return url;
-  }
-
-  /**
-   * @return the slaveBaseAddress
-   */
-  public String getSlaveBaseAddress() {
-    return slaveBaseAddress;
-  }
-
-  /**
-   * @param slaveBaseAddress
-   *          the slaveBaseAddress to set
-   */
-  public void setSlaveBaseAddress( String slaveBaseAddress ) {
-    this.slaveBaseAddress = slaveBaseAddress;
   }
 
   /**
