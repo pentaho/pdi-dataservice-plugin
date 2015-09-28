@@ -53,6 +53,7 @@ public class ThinConnection implements Connection {
   public static final String ARG_NONPROXYHOSTS = "nonproxyhosts";
   public static final String ARG_DEBUGTRANS = "debugtrans";
   public static final String ARG_DEBUGLOG = "debuglog";
+  public static final String ARG_ISSECURE = "secure";
   public static final String ARG_LOCAL = "local";
 
   public static DataServiceClientService localClient;
@@ -69,6 +70,7 @@ public class ThinConnection implements Connection {
   private String proxyHostname;
   private String proxyPort;
   private String nonProxyHosts;
+  private boolean isSecure;
 
   private String debugTransFilename;
   private boolean debuggingRemoteLog;
@@ -114,6 +116,7 @@ public class ThinConnection implements Connection {
       nonProxyHosts = arguments.get( ARG_NONPROXYHOSTS );
       debugTransFilename = arguments.get( ARG_DEBUGTRANS );
       debuggingRemoteLog = "true".equalsIgnoreCase( arguments.get( ARG_DEBUGLOG ) );
+      isSecure = "true".equalsIgnoreCase( arguments.get( ARG_ISSECURE ) );
       isLocal = "true".equalsIgnoreCase( arguments.get( ARG_LOCAL ) );
     } catch ( Exception e ) {
       throw new SQLException( "Invalid connection URL." );
@@ -132,7 +135,7 @@ public class ThinConnection implements Connection {
 
   private void testRemoteConnection() throws Exception {
     HttpUtil.execService( new Variables(), hostname, port, webAppName, service + "/status/", username, password,
-        proxyHostname, proxyPort, nonProxyHosts );
+        proxyHostname, proxyPort, nonProxyHosts, isSecure );
   }
 
   @Override
@@ -530,6 +533,14 @@ public class ThinConnection implements Connection {
     }
 
     return isLocal;
+  }
+
+  public boolean isSecure() {
+    return isSecure;
+  }
+
+  public void setIsSecure( boolean isSecure ) {
+    this.isSecure = isSecure;
   }
 
   public DataServiceClientService getLocalClient() {
