@@ -116,7 +116,7 @@ public class ThinStatement implements Statement {
     try {
       String url =
         HttpUtil.constructUrl( new Variables(), connection.getHostname(), connection.getPort(), connection
-          .getWebAppName(), connection.getService() + "/sql/" );
+          .getWebAppName(), connection.getService() + "/sql/", connection.isSecure() );
       resultSet = new ThinResultSet( this, url, sql );
       return resultSet;
     } catch ( Exception e ) {
