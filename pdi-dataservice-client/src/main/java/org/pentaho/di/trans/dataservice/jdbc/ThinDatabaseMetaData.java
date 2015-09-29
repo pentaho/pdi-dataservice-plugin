@@ -22,15 +22,6 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.RowIdLifetime;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import org.pentaho.di.cluster.HttpUtil;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.jdbc.ThinUtil;
@@ -44,6 +35,15 @@ import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.version.BuildVersion;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
+
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.RowIdLifetime;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class ThinDatabaseMetaData implements DatabaseMetaData {
 
@@ -297,7 +297,7 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public int getDatabaseMajorVersion() throws SQLException {
-    return 5;
+    return 6;
   }
 
   @Override
@@ -322,7 +322,7 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public int getDriverMajorVersion() {
-    return 5;
+    return 6;
   }
 
   @Override
@@ -332,12 +332,12 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public String getDriverName() throws SQLException {
-    return "Kettle thin JDBC driver";
+    return "PDI Data Services JDBC driver";
   }
 
   @Override
   public String getDriverVersion() throws SQLException {
-    return "5.0";
+    return "6.0";
   }
 
   @Override
