@@ -22,6 +22,8 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import org.pentaho.di.core.KettleClientEnvironment;
+
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -30,8 +32,6 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 import java.util.logging.Logger;
-
-import org.pentaho.di.core.KettleClientEnvironment;
 
 public class ThinDriver implements Driver {
 
@@ -71,12 +71,12 @@ public class ThinDriver implements Driver {
 
   @Override
   public int getMajorVersion() {
-    return 0;
+    return 6;
   }
 
   @Override
   public int getMinorVersion() {
-    return 1;
+    return 0;
   }
 
   @Override
