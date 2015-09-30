@@ -24,4 +24,26 @@
     <plugin.org.apache.maven.plugins.maven-assembly-plugin.version>2.4</plugin.org.apache.maven.plugins.maven-assembly-plugin.version>
     <junit.version>4.4</junit.version>
   </properties>
+
+  <!-- this is for bootstrapping only; you should really just add this to your settings.xml -->
+  <repositories>
+    <repository>
+      <id>pentaho.resolve.repo</id>
+      <name>Pentaho Group Resolve Repository</name>
+      <url>http://nexus.pentaho.org/content/groups/omni/</url>
+      <releases>
+        <updatePolicy>always</updatePolicy>
+        <checksumPolicy>fail</checksumPolicy>
+      </releases>
+      <snapshots>
+        <updatePolicy>always</updatePolicy>
+        <checksumPolicy>fail</checksumPolicy>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>repo.pentaho.org</id>
+      <name>repo.pentaho.org</name>
+      <url>http://repository.pentaho.org/artifactory/pentaho</url>
+    </repository>
+  </repositories>
 </project>
