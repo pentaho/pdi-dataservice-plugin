@@ -24,46 +24,74 @@ package org.pentaho.di.trans.dataservice.jdbc;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.util.Properties;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.when;
 
+@RunWith( MockitoJUnitRunner.class )
 public class ThinDriverTest {
 
+  public static final String URL = "jdbc:pdi://slaveserver:8181/kettle/?webappname=pdi";
   private ThinDriver driver;
+  private @Mock ThinConnection connection;
+  private Properties properties;
 
   @Before
   public void setUp() throws Exception {
-    driver = new ThinDriver();
+    driver = new ThinDriver() {
+      @Override protected ThinConnection createConnection( String url, Properties properties ) throws SQLException {
+        super.createConnection( url, properties );
+        return connection;
+      }
+    };
+
+    properties = new Properties();
+    properties.setProperty( "user", "user" );
+    properties.setProperty( "password", "password" );
   }
 
   @Test
   public void testAcceptsURL() throws Exception {
-    assertTrue( driver.acceptsURL( "jdbc:pdi://slaveserver:8181/kettle/?webappname=pdi" ) );
+    assertTrue( driver.acceptsURL( URL ) );
     assertFalse( driver.acceptsURL( "jdbc:mysql://localhost" ) );
   }
 
   @Test
   public void testConnectNull() throws Exception {
-    Properties properties = new Properties();
-    properties.setProperty( "user", "user" );
-    properties.setProperty( "password", "password" );
     assertNull( driver.connect( "jdbc:mysql://localhost", properties ) );
   }
 
   @Test
-  public void testConnectError() {
-    Properties properties = new Properties();
-    properties.setProperty( "user", "user" );
-    properties.setProperty( "password", "password" );
+  public void testConnect() throws Exception {
+    when( connection.isValid( anyInt() ) ).thenReturn( true );
+
+    assertThat( driver.connect( URL, properties ), sameInstance( (Connection) connection ) );
+  }
+
+  @Test
+  public void testConnectError() throws Exception {
+    SQLWarning expected = new SQLWarning( "expected" );
+    when( connection.isValid( anyInt() ) ).thenReturn( false );
+    when( connection.getWarnings() ).thenReturn( expected );
     try {
-      driver.connect( "jdbc:pdi://localhost", properties );
+      driver.connect( URL, properties );
+      fail( "Expected exception" );
     } catch ( SQLException e ) {
-      // Expected exception
-      return;
+      assertThat( e, sameInstance( (SQLException) expected ) );
     }
-    fail();
   }
 }

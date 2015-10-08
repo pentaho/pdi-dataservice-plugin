@@ -31,8 +31,8 @@ import java.sql.SQLException;
 import java.util.List;
 
 public interface DataServiceClientService {
-  public void setMetaStore( IMetaStore metaStore );
-  public void setRepository( Repository repository );
-  public DataInputStream query( String sql, final int maxRows ) throws SQLException;
-  public List<ThinServiceInformation> getServiceInformation() throws SQLException;
+  void setMetaStore( IMetaStore metaStore );
+  void setRepository( Repository repository );
+  DataInputStream query( String sql, int maxRows ) throws SQLException;
+  List<ThinServiceInformation> getServiceInformation() throws SQLException;
 }
