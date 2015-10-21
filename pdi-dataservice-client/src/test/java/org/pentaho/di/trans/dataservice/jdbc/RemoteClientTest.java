@@ -24,6 +24,7 @@ package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
 import org.apache.commons.httpclient.HttpClient;
@@ -40,10 +41,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.sql.SQLException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -89,24 +87,33 @@ public class RemoteClientTest {
 
   @Test
   public void testQuery() throws Exception {
-    String url = "http://localhost:9080/pentaho-di/kettle/sql";
     String sql = "SELECT * FROM myService\nWHERE id = 3";
+    String debugTrans = "/tmp/genTrans.ktr";
     int maxRows = 200;
+
+    when( connection.getDebugTransFilename() ).thenReturn( debugTrans );
+    when( connection.getParameters() ).thenReturn( ImmutableMap.of("PARAMETER_ECHO", "hello world") );
+    when( connection.isDebuggingRemoteLog() ).thenReturn( true );
 
     when( httpClient.executeMethod( isA( PostMethod.class ) ) ).thenReturn( 200 );
 
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    new DataOutputStream( outputStream ).writeUTF( "Query Response" );
+    MockDataInput mockDataInput = new MockDataInput();
+    mockDataInput.writeUTF( "Query Response" );
 
-    when( execMethod.getResponseBodyAsStream() ).thenReturn( new ByteArrayInputStream( outputStream.toByteArray() ) );
+    when( execMethod.getResponseBodyAsStream() ).thenReturn( mockDataInput.toDataInputStream() );
 
     DataInputStream queryResponse = remoteClient.query( sql, maxRows );
 
     verify( httpClient ).executeMethod( httpMethodCaptor.capture() );
-    HttpMethod httpMethod = httpMethodCaptor.getValue();
-    assertThat( httpMethod.getURI().toString(), equalTo( url ) );
+    PostMethod httpMethod = (PostMethod) httpMethodCaptor.getValue();
+
+    assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:9080/pentaho-di/kettle/sql" ) );
     assertThat( httpMethod.getRequestHeader( "SQL" ).getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
     assertThat( httpMethod.getRequestHeader( "MaxRows" ).getValue(), equalTo( "200" ) );
+
+    assertThat( httpMethod.getParameter( "debugtrans" ).getValue(), equalTo( debugTrans ) );
+    assertThat( httpMethod.getParameter( "debuglog" ).getValue(), equalTo( "true" ) );
+    assertThat( httpMethod.getParameter( "PARAMETER_ECHO" ).getValue(), equalTo( "hello world" ) );
 
     assertThat( queryResponse.readUTF(), equalTo( "Query Response" ) );
   }
