@@ -22,6 +22,18 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
+import com.google.common.collect.Maps;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.auth.AuthScope;
+import org.pentaho.di.cluster.HttpUtil;
+import org.pentaho.di.cluster.SlaveConnectionManager;
+import org.pentaho.di.core.Const;
+import org.pentaho.di.core.variables.Variables;
+import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
+
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -32,18 +44,15 @@ import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
-import org.pentaho.di.cluster.HttpUtil;
-import org.pentaho.di.core.variables.Variables;
-import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 
 public class ThinConnection implements Connection {
 
@@ -57,13 +66,13 @@ public class ThinConnection implements Connection {
   public static final String ARG_LOCAL = "local";
 
   public static DataServiceClientService localClient;
+  public DataServiceClientService clientService;
 
   private String url;
   private String username;
   private String password;
   private String hostname;
   private String port;
-  private Map<String, String> arguments;
 
   private String webAppName;
   private String proxyHostname;
@@ -75,64 +84,19 @@ public class ThinConnection implements Connection {
   private boolean debuggingRemoteLog;
 
   private boolean isLocal;
+  private SQLWarning warning;
 
-  private String service;
-
-  public ThinConnection( String url, String username, String password ) throws SQLException {
-    this.url = url;
-    this.username = username;
-    this.password = password;
-    parseUrl( url );
+  private ThinConnection() {
   }
 
-  private void parseUrl( String url ) throws SQLException {
+  protected String constructUrl( String serviceAndArguments ) throws SQLException {
     try {
-      int portColonIndex = url.indexOf( ':', ThinDriver.BASE_URL.length() );
-      int kettleIndex = url.indexOf( ThinDriver.SERVICE_NAME, portColonIndex );
-
-      hostname = url.substring( ThinDriver.BASE_URL.length(), portColonIndex );
-      port = url.substring( portColonIndex + 1, kettleIndex );
-
-      int startIndex = url.indexOf( '?', kettleIndex ) + 1;
-      arguments = new HashMap<String, String>();
-      if ( startIndex > 0 ) {
-        String path = url.substring( startIndex );
-        String[] args = path.split( "\\&" );
-        for ( String arg : args ) {
-          String[] parts = arg.split( "=" );
-          if ( parts.length == 2 ) {
-            arguments.put( parts[0], parts[1] );
-          }
-        }
-      }
-
-      service = ThinDriver.SERVICE_NAME;
-      webAppName = arguments.get( ARG_WEBAPPNAME );
-      proxyHostname = arguments.get( ARG_PROXYHOSTNAME );
-      proxyPort = arguments.get( ARG_PROXYPORT );
-      nonProxyHosts = arguments.get( ARG_NONPROXYHOSTS );
-      debugTransFilename = arguments.get( ARG_DEBUGTRANS );
-      debuggingRemoteLog = "true".equalsIgnoreCase( arguments.get( ARG_DEBUGLOG ) );
-      isSecure = "true".equalsIgnoreCase( arguments.get( ARG_ISSECURE ) );
-      isLocal = "true".equalsIgnoreCase( arguments.get( ARG_LOCAL ) );
+      return HttpUtil.constructUrl( new Variables(), hostname, port, webAppName,
+        ThinDriver.SERVICE_NAME + serviceAndArguments, isSecure );
     } catch ( Exception e ) {
-      throw new SQLException( "Invalid connection URL." );
+      Throwables.propagateIfPossible( e, SQLException.class );
+      throw new SQLException( e );
     }
-  }
-
-  public void testConnection() throws SQLException {
-    try {
-      if ( !isLocal() ) {
-        testRemoteConnection();
-      }
-    } catch ( Exception e ) {
-      throw new SQLException( e.getMessage().trim() );
-    }
-  }
-
-  private void testRemoteConnection() throws Exception {
-    HttpUtil.execService( new Variables(), hostname, port, webAppName, service + "/status/", username, password,
-        proxyHostname, proxyPort, nonProxyHosts, isSecure );
   }
 
   @Override
@@ -147,6 +111,7 @@ public class ThinConnection implements Connection {
 
   @Override
   public void clearWarnings() throws SQLException {
+    warning = null;
   }
 
   @Override
@@ -192,12 +157,12 @@ public class ThinConnection implements Connection {
 
   @Override
   public Statement createStatement( int resultSetType, int resultSetConcurrency ) throws SQLException {
-    return new ThinStatement( this, resultSetType, resultSetConcurrency );
+    return new ThinStatement( this );
   }
 
   @Override
   public Statement createStatement( int resultSetType, int resultSetConcurrency, int resultSetHoldability ) throws SQLException {
-    return new ThinStatement( this, resultSetType, resultSetConcurrency, resultSetHoldability );
+    return new ThinStatement( this );
   }
 
   @Override
@@ -248,8 +213,7 @@ public class ThinConnection implements Connection {
 
   @Override
   public SQLWarning getWarnings() throws SQLException {
-    // TODO
-    return null;
+    return warning;
   }
 
   @Override
@@ -264,9 +228,19 @@ public class ThinConnection implements Connection {
   }
 
   @Override
-  public boolean isValid( int arg0 ) throws SQLException {
-    // TODO Auto-generated method stub
-    return false;
+  public boolean isValid( int timeout ) throws SQLException {
+    try {
+      // Execute dummy query to ensure data services are working
+      Statement statement = createStatement();
+      try {
+        return statement.executeQuery( "SELECT *" ).next();
+      } finally {
+        statement.close();
+      }
+    } catch ( Exception e ) {
+      warning = new SQLWarning( e );
+      return false;
+    }
   }
 
   @Override
@@ -398,29 +372,6 @@ public class ThinConnection implements Connection {
   }
 
   /**
-   * @param username
-   *          the username to set
-   */
-  public void setUsername( String username ) {
-    this.username = username;
-  }
-
-  /**
-   * @return the password
-   */
-  public String getPassword() {
-    return password;
-  }
-
-  /**
-   * @param password
-   *          the password to set
-   */
-  public void setPassword( String password ) {
-    this.password = password;
-  }
-
-  /**
    * @return the hostname
    */
   public String getHostname() {
@@ -432,13 +383,6 @@ public class ThinConnection implements Connection {
    */
   public String getPort() {
     return port;
-  }
-
-  /**
-   * @return the arguments
-   */
-  public Map<String, String> getArguments() {
-    return arguments;
   }
 
   /**
@@ -470,13 +414,6 @@ public class ThinConnection implements Connection {
   }
 
   /**
-   * @return the service
-   */
-  public String getService() {
-    return service;
-  }
-
-  /**
    * @return the debugTransFilename
    */
   public String getDebugTransFilename() {
@@ -491,42 +428,146 @@ public class ThinConnection implements Connection {
   }
 
   public void setSchema( String schema ) throws SQLException {
-    throw new SQLException( "Method not supported" );
   }
 
   public String getSchema() throws SQLException {
-    throw new SQLException( "Method not supported" );
+    return null;
   }
 
+  @Override
   public void abort( Executor executor ) throws SQLException {
-    throw new SQLException( "Method not supported" );
+    throw new SQLFeatureNotSupportedException( "Abort Connection not supported" );
   }
 
+  @Override
   public void setNetworkTimeout( Executor executor, int milliseconds ) throws SQLException {
+    throw new SQLFeatureNotSupportedException( "Network Timeout not supported" );
   }
 
+  @Override
   public int getNetworkTimeout() throws SQLException {
-    return 0;
+    throw new SQLFeatureNotSupportedException( "Network Timeout not supported" );
   }
 
   public boolean isLocal() {
-    if ( ThinConnection.localClient == null ) {
-      return false;
-    }
-
     return isLocal;
+  }
+
+  public void setLocal( boolean isLocal ) {
+    this.isLocal = isLocal;
   }
 
   public boolean isSecure() {
     return isSecure;
   }
 
-  public void setIsSecure( boolean isSecure ) {
-    this.isSecure = isSecure;
-  }
-
-  public DataServiceClientService getLocalClient() {
+  public static DataServiceClientService getLocalClient() throws SQLException {
+    if ( localClient == null ) {
+      throw new SQLException( "Local client service is not installed" );
+    }
     return ThinConnection.localClient;
   }
 
+  public DataServiceClientService getClientService() {
+    return clientService;
+  }
+
+  private void addCredentials( HttpClient client ) {
+    UsernamePasswordCredentials credentials = new UsernamePasswordCredentials( username, password );
+    AuthScope scope;
+    if ( Strings.isNullOrEmpty( webAppName ) ) {
+      scope = new AuthScope( hostname, Const.toInt( port, 80 ), "Kettle" );
+    } else {
+      scope = AuthScope.ANY;
+      client.getParams().setAuthenticationPreemptive( true );
+    }
+    client.getState().setCredentials( scope, credentials );
+  }
+
+  private void setProxy( HttpClient client ) {
+    if ( !Const.isEmpty( proxyHostname ) && !Const.isEmpty( proxyPort ) ) {
+      // skip applying proxy if non-proxy host matches
+      if ( !Const.isEmpty( nonProxyHosts ) && !Const.isEmpty( hostname ) && hostname.matches( nonProxyHosts ) ) {
+        return;
+      }
+      client.getHostConfiguration().setProxy( proxyHostname, Integer.parseInt( proxyPort ) );
+    }
+  }
+
+  public static class Builder {
+    private final SlaveConnectionManager connectionManager;
+    private final ThinConnection connection;
+
+    public Builder( SlaveConnectionManager connectionManager ) {
+      connection = new ThinConnection();
+      this.connectionManager = connectionManager;
+    }
+
+    public Builder parseUrl(String url) throws SQLException {
+      connection.url = url;
+      try {
+        int portColonIndex = url.indexOf( ':', ThinDriver.BASE_URL.length() );
+        int kettleIndex = url.indexOf( ThinDriver.SERVICE_NAME, portColonIndex );
+
+        connection.hostname = url.substring( ThinDriver.BASE_URL.length(), portColonIndex );
+        connection.port = url.substring( portColonIndex + 1, kettleIndex );
+
+        int startIndex = url.indexOf( '?', kettleIndex ) + 1;
+        Map<String, String> arguments = Maps.newHashMap();
+        if ( startIndex > 0 ) {
+          String path = url.substring( startIndex );
+          String[] args = path.split( "&" );
+          for ( String arg : args ) {
+            String[] parts = arg.split( "=" );
+            if ( parts.length == 2 ) {
+              arguments.put( parts[0], parts[1] );
+            }
+          }
+        }
+
+        extractProperties( arguments );
+      } catch ( Exception e ) {
+        throw new SQLException( "Invalid connection URL.", e );
+      }
+
+      return this;
+    }
+
+    public Builder readProperties( Properties properties ) {
+      connection.username = properties.getProperty( "user" );
+      connection.password = properties.getProperty( "password" );
+      return this;
+    }
+
+    private void extractProperties( Map<String, String> arguments ) {
+      connection.webAppName = arguments.get( ARG_WEBAPPNAME );
+      connection.proxyHostname = arguments.get( ARG_PROXYHOSTNAME );
+      connection.proxyPort = arguments.get( ARG_PROXYPORT );
+      connection.nonProxyHosts = arguments.get( ARG_NONPROXYHOSTS );
+      connection.debugTransFilename = arguments.get( ARG_DEBUGTRANS );
+      connection.debuggingRemoteLog = "true".equalsIgnoreCase( arguments.get( ARG_DEBUGLOG ) );
+      connection.isSecure = "true".equalsIgnoreCase( arguments.get( ARG_ISSECURE ) );
+      connection.isLocal = "true".equalsIgnoreCase( arguments.get( ARG_LOCAL ) );
+    }
+
+    private RemoteClient createRemoteClient() {
+      HttpClient client = connectionManager.createHttpClient();
+      connection.addCredentials( client );
+      connection.setProxy( client );
+
+      client.getHttpConnectionManager().getParams().setConnectionTimeout( 0 );
+      client.getHttpConnectionManager().getParams().setSoTimeout( 0 );
+
+      return new RemoteClient( connection, client );
+    }
+
+    public ThinConnection build( DataServiceClientService clientService ) throws SQLException {
+      connection.clientService = clientService;
+      return connection;
+    }
+
+    public ThinConnection build() throws SQLException {
+      return build( connection.isLocal ? ThinConnection.getLocalClient() : createRemoteClient() );
+    }
+  }
 }

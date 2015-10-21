@@ -37,6 +37,7 @@ import java.util.Date;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 public class ThinResultSetTest  {
 
@@ -46,7 +47,7 @@ public class ThinResultSetTest  {
 
   @Before
   public void setUp() throws Exception {
-    thinResultSet = new ThinResultSet();
+    thinResultSet = new ThinResultSet( mock( ThinStatement.class ) );
     thinResultSet.rowMeta = rowMeta;
   }
 

@@ -22,7 +22,15 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import org.pentaho.di.core.Const;
+import org.pentaho.di.core.KettleClientEnvironment;
+import org.pentaho.di.core.exception.KettleEOFException;
+import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.row.RowMeta;
+import org.pentaho.di.core.row.RowMetaInterface;
+
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -43,34 +51,14 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.pentaho.di.cluster.HttpUtil;
-import org.pentaho.di.core.Const;
-import org.pentaho.di.core.Result;
-import org.pentaho.di.core.exception.KettleEOFException;
-import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.core.jdbc.ThinUtil;
-import org.pentaho.di.core.logging.LogChannel;
-import org.pentaho.di.core.row.RowMeta;
-import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.core.variables.Variables;
-import org.pentaho.di.core.xml.XMLHandler;
-import org.pentaho.di.www.WebResult;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-
 public class ThinResultSet implements ResultSet {
 
-  private ThinStatement statement;
-  private ThinConnection connection;
+  private final ThinStatement statement;
+  private final AtomicBoolean stopped = new AtomicBoolean( false );
 
   private DataInputStream dataInputStream;
   protected RowMetaInterface rowMeta;
@@ -80,102 +68,64 @@ public class ThinResultSet implements ResultSet {
 
   private String serviceName;
 
-  private PostMethod method;
-
   private String serviceTransName;
 
   private String serviceObjectId;
 
   private String sqlTransName;
-
   private String sqlObjectId;
-  private AtomicBoolean stopped;
 
-  public ThinResultSet( ThinStatement statement, String urlString, String sql )
-      throws SQLException {
-
+  protected ThinResultSet( ThinStatement statement ) {
     this.statement = statement;
-    this.connection = (ThinConnection) statement.getConnection();
+  }
 
-    rowNumber = 0;
-    stopped = new AtomicBoolean( false );
+  protected ThinResultSet loadFromInputStream( DataInputStream dataInputStream ) throws IOException, KettleException {
+    this.dataInputStream = dataInputStream;
+    // Read the name of the service we're reading from
+    //
+    serviceName = dataInputStream.readUTF();
 
-    try {
-      if ( connection.isLocal() ) {
-        dataInputStream = connection.getLocalClient().query( ThinUtil.stripNewlines( sql ), statement.getMaxRows() );
-      } else {
-        dataInputStream = remoteQuery( urlString, sql );
-      }
+    // Get some information about what's going on on the slave server
+    //
+    serviceTransName = dataInputStream.readUTF();
+    serviceObjectId = dataInputStream.readUTF();
+    sqlTransName = dataInputStream.readUTF();
+    sqlObjectId = dataInputStream.readUTF();
 
-      // Read the name of the service we're reading from
-      //
-      serviceName = dataInputStream.readUTF();
-
-      // Get some information about what's going on on the slave server
-      //
-      serviceTransName = dataInputStream.readUTF();
-      serviceObjectId = dataInputStream.readUTF();
-      sqlTransName = dataInputStream.readUTF();
-      sqlObjectId = dataInputStream.readUTF();
-
-      // Get the row metadata...
-      //
-      rowMeta = new RowMeta( dataInputStream );
-    } catch ( KettleEOFException e ) {
-      close();
-    } catch ( Exception e ) {
-      throw new SQLException(
-          "Unable to get open query for SQL: " + sql + Const.CR + Const.getStackTracker( e ), e );
+    // Get the row metadata...
+    //
+    if ( !KettleClientEnvironment.isInitialized() ) {
+      KettleClientEnvironment.init();
     }
+    rowMeta = new RowMeta( dataInputStream );
+
+    return this;
   }
 
-  protected ThinResultSet() {
+  static void stopService( RemoteClient remoteClient, String serviceObjectId, String serviceTransName ) throws Exception {
+    final String stopTrans = "/stopTrans" + "/?name=" + URLEncoder.encode( serviceTransName, "UTF-8" ) + "&id="
+      + Const.NVL( serviceObjectId, "" ) + "&xml=Y";
+    String reply = remoteClient.execService( stopTrans );
   }
 
-  private DataInputStream remoteQuery( String urlString, String sql ) throws Exception {
-
-    List<Header> headers = new ArrayList<Header>();
-    headers.add( new Header( "SQL", ThinUtil.stripNewlines( sql ) ) );
-    headers.add( new Header( "MaxRows", Integer.toString( statement.getMaxRows() ) ) );
-
-    Map<String, Object> parameters = new HashMap<String, Object>();
-    parameters.put( "http.socket.timeout", 0 );
-
-    method =
-        HttpUtil
-            .execService( new Variables(), connection.getHostname(), connection.getPort(), connection.getWebAppName(),
-                urlString, connection.getUsername(), connection.getPassword(), connection.getProxyHostname(),
-                connection.getProxyPort(), connection.getNonProxyHosts(), headers, parameters,
-                connection.getArguments() );
-
-    return new DataInputStream( method.getResponseBodyAsStream() );
-  }
-
-  public synchronized void cancel() throws SQLException {
+  public void cancel() throws SQLException {
 
     // Kill the service transformation on the server...
     // Only ever try once.
     //
-    if ( !stopped.get() ) {
-      stopped.set( true );
-      try {
-        String reply =
-            HttpUtil.execService(
-                new Variables(), connection.getHostname(), connection.getPort(), connection.getWebAppName(),
-                connection.getService()
-                    + "/stopTrans" + "/?name=" + URLEncoder.encode( serviceTransName, "UTF-8" ) + "&id="
-                    + Const.NVL( serviceObjectId, "" ) + "&xml=Y", connection.getUsername(), connection
-                    .getPassword(), connection.getProxyHostname(), connection.getProxyPort(), connection
-                    .getNonProxyHosts() );
-
-        WebResult webResult = new WebResult( XMLHandler.loadXMLString( reply, WebResult.XML_TAG ) );
-        if ( !"OK".equals( webResult.getResult() ) ) {
-          throw new SQLException( "Cancel on remote server failed: " + webResult.getMessage() );
-        }
-
-      } catch ( Exception e ) {
-        throw new SQLException( "Couldn't cancel SQL query on slave server", e );
+    try {
+      if ( dataInputStream != null ) {
+        dataInputStream.close();
       }
+      if ( stopped.compareAndSet( false, true ) ) {
+        // TODO issue stop to serviceTrans: http://jira.pentaho.com/browse/BACKLOG-4594
+        ThinDriver.logger.warning( "Need to stop " + serviceTransName );
+      }
+    } catch ( IOException e ) {
+      throw new SQLException( e );
+    } finally {
+      dataInputStream = null;
+      currentRow = null;
     }
   }
 
@@ -206,71 +156,13 @@ public class ThinResultSet implements ResultSet {
   public void clearWarnings() throws SQLException {
   }
 
-  private void checkTransStatus( String transformationName, String transformationObjectId ) throws SQLException {
-    try {
-      String xml =
-          HttpUtil.execService( new Variables(), connection.getHostname(), connection.getPort(), connection
-              .getWebAppName(), connection.getService()
-              + "/transStatus/?name=" + URLEncoder.encode( transformationName, "UTF-8" ) + "&id="
-              + Const.NVL( transformationObjectId, "" ) + "&xml=Y", connection.getUsername(), connection
-              .getPassword(), connection.getProxyHostname(), connection.getProxyPort(), connection
-              .getNonProxyHosts() );
-      Document doc = XMLHandler.loadXMLString( xml );
-      Node resultNode = XMLHandler.getSubNode( doc, "transstatus", "result" );
-      Result result = new Result( resultNode );
-      String loggingString64 =
-          XMLHandler.getNodeValue( XMLHandler.getSubNode( doc, "transstatus", "logging_string" ) );
-      String log = "";
-      if ( !Const.isEmpty( loggingString64 ) ) {
-        String dataString64 =
-            loggingString64.substring( "<![CDATA[".length(), loggingString64.length() - "]]>".length() );
-        log = HttpUtil.decodeBase64ZippedString( dataString64 );
-      }
-
-      // Check for errors
-      //
-      if ( !result.getResult() || result.getNrErrors() > 0 ) {
-        throw new KettleException( "The SQL query transformation failed with the following log text:"
-            + Const.CR + log );
-      }
-
-      // See if the transformation was stopped remotely
-      //
-      boolean stopped = "Stopped".equalsIgnoreCase( XMLHandler.getTagValue( doc, "transstatus", "status_desc" ) );
-      if ( stopped ) {
-        throw new KettleException( "The SQL query transformation was stopped.  Logging text: " + Const.CR + log );
-      }
-
-      // All OK, only log the remote logging text if requested.
-      //
-      if ( connection.isDebuggingRemoteLog() ) {
-        LogChannel.GENERAL.logBasic( log );
-      }
-
-    } catch ( Exception e ) {
-      throw new SQLException( "Couldn't validate correct execution of SQL query for transformation ["
-          + transformationName + "]", e );
-    }
-
-  }
-
   @Override
-  public void close() throws SQLException {
-
-    if ( connection.isLocal() || Const.isEmpty( sqlTransName ) ) {
-      return;
+  public void close() {
+    try {
+      cancel();
+    } catch ( SQLException e ) {
+      ThinDriver.logger.warning( e.getMessage() );
     }
-
-    // Before we close this connection, let's verify if we got all records...
-    //
-    checkTransStatus( sqlTransName, sqlObjectId );
-
-    currentRow = null;
-    dataInputStream = null;
-    if ( method != null ) {
-      method.releaseConnection();
-    }
-
   }
 
   @Override
@@ -387,12 +279,13 @@ public class ThinResultSet implements ResultSet {
 
   @Override
   public boolean next() throws SQLException {
-    if ( dataInputStream == null ) {
+    if ( dataInputStream == null || stopped.get() ) {
       return false;
     }
 
     try {
       currentRow = rowMeta.readData( dataInputStream );
+      rowNumber++;
       return true;
     } catch ( KettleEOFException e ) {
       dataInputStream = null;

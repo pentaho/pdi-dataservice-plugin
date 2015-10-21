@@ -22,14 +22,13 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
-import org.pentaho.di.core.KettleClientEnvironment;
+import org.pentaho.di.cluster.SlaveConnectionManager;
 
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -37,36 +36,48 @@ public class ThinDriver implements Driver {
 
   public static final String BASE_URL = "jdbc:pdi://";
   public static final String SERVICE_NAME = "/kettle";
+  public static final String NAME = "PDI Data Services JDBC driver";
+
+  protected static Logger logger = Logger.getLogger( NAME );
 
   static {
+    new ThinDriver().register();
+  }
+
+  public ThinDriver() {
+  }
+
+  private void register() {
     try {
-      KettleClientEnvironment.init();
-      DriverManager.registerDriver( new ThinDriver() );
-    } catch ( Exception e ) {
-      throw new RuntimeException( "Something went wrong registering the thin Kettle JDBC driver", e );
+      DriverManager.registerDriver( this );
+    } catch ( SQLException e ) {
+      logger.throwing( DriverManager.class.getName(), "registerDriver", e );
     }
   }
 
-  public ThinDriver() throws SQLException {
-  }
-
   @Override
-  public boolean acceptsURL( String url ) throws SQLException {
+  public boolean acceptsURL( String url ) {
     return url.startsWith( BASE_URL );
   }
 
   @Override
   public Connection connect( String url, Properties properties ) throws SQLException {
-    String username = properties.getProperty( "user" );
-    String password = properties.getProperty( "password" );
-
     if ( acceptsURL( url ) ) {
-      ThinConnection connection = new ThinConnection( url, username, password );
-      connection.testConnection();
-      return connection;
-    } else {
-      return null;
+      ThinConnection connection = createConnection( url, properties );
+      if ( connection.isValid( 0 ) ) {
+        return connection;
+      } else {
+        throw connection.getWarnings();
+      }
     }
+    return null;
+  }
+
+  protected ThinConnection createConnection( String url, Properties properties ) throws SQLException {
+    return new ThinConnection.Builder( SlaveConnectionManager.getInstance() )
+      .parseUrl( url )
+      .readProperties( properties )
+      .build();
   }
 
   @Override
@@ -89,7 +100,7 @@ public class ThinDriver implements Driver {
     return false;
   }
 
-  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+  public Logger getParentLogger() {
     return null;
   }
 

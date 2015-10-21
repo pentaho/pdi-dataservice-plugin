@@ -22,7 +22,6 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
-import org.pentaho.di.cluster.HttpUtil;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.jdbc.ThinUtil;
 import org.pentaho.di.core.row.RowDataUtil;
@@ -30,11 +29,7 @@ import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMeta;
 import org.pentaho.di.core.row.ValueMetaInterface;
-import org.pentaho.di.core.variables.Variables;
-import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.version.BuildVersion;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -45,16 +40,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.pentaho.di.trans.dataservice.jdbc.ThinDriver.logger;
+
 public class ThinDatabaseMetaData implements DatabaseMetaData {
 
   public static final String SCHEMA_NAME_KETTLE = "Kettle";
 
-  private ThinConnection connection;
-  private String serviceUrl;
+  private final ThinConnection connection;
 
   public ThinDatabaseMetaData( ThinConnection connection ) {
     this.connection = connection;
-    serviceUrl = connection.getService() + "/listServices/";
   }
 
   @Override
@@ -587,44 +582,7 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
   }
 
   public List<ThinServiceInformation> getServiceInformation() throws SQLException {
-
-    List<ThinServiceInformation> services = null;
-
-    if ( connection.isLocal() ) {
-      services = connection.getLocalClient().getServiceInformation();
-    } else {
-      try {
-        services = getRemoteServiceInformation();
-      } catch ( Exception e ) {
-        throw new SQLException( "Unable to get service information from server", e );
-      }
-    }
-
-    return services;
-  }
-
-  private List<ThinServiceInformation> getRemoteServiceInformation() throws Exception {
-
-    String xml =
-      HttpUtil.execService( new Variables(), connection.getHostname(), connection.getPort(), connection
-        .getWebAppName(), serviceUrl, connection.getUsername(), connection.getPassword(), connection
-        .getProxyHostname(), connection.getProxyPort(), connection.getNonProxyHosts() );
-
-    List<ThinServiceInformation> services = new ArrayList<ThinServiceInformation>();
-
-    Document doc = XMLHandler.loadXMLString( xml );
-    Node servicesNode = XMLHandler.getSubNode( doc, "services" );
-    List<Node> serviceNodes = XMLHandler.getNodes( servicesNode, "service" );
-    for ( Node serviceNode : serviceNodes ) {
-
-      String name = XMLHandler.getTagValue( serviceNode, "name" );
-      Node rowMetaNode = XMLHandler.getSubNode( serviceNode, RowMeta.XML_META_TAG );
-      RowMetaInterface serviceFields = new RowMeta( rowMetaNode );
-      ThinServiceInformation service = new ThinServiceInformation( name, serviceFields );
-      services.add( service );
-    }
-
-    return services;
+    return connection.getClientService().getServiceInformation();
   }
 
   @Override
@@ -1197,29 +1155,6 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
   @Override
   public boolean usesLocalFiles() throws SQLException {
     return false;
-  }
-
-  /**
-   * @return the serviceUrl
-   */
-  public String getServiceUrl() {
-    return serviceUrl;
-  }
-
-  /**
-   * @param serviceUrl
-   *          the serviceUrl to set
-   */
-  public void setServiceUrl( String serviceUrl ) {
-    this.serviceUrl = serviceUrl;
-  }
-
-  /**
-   * @param connection
-   *          the connection to set
-   */
-  public void setConnection( ThinConnection connection ) {
-    this.connection = connection;
   }
 
   public ResultSet getPseudoColumns( String catalog, String schemaPattern, String tableNamePattern,

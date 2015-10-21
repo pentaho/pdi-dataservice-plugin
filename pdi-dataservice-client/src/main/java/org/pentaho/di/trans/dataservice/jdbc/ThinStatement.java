@@ -22,6 +22,9 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import com.google.common.base.Throwables;
+
+import java.io.DataInputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,23 +32,12 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
-import org.pentaho.di.cluster.HttpUtil;
-import org.pentaho.di.core.variables.Variables;
-
 public class ThinStatement implements Statement {
 
   protected ThinConnection connection;
   protected ThinResultSet resultSet;
 
   protected int maxRows;
-
-  public ThinStatement( ThinConnection connection, int resultSetType, int resultSetConcurrency ) {
-    this( connection );
-  }
-
-  public ThinStatement( ThinConnection connection, int rsType, int rsConcurrency, int rsHoldability ) {
-    this( connection );
-  }
 
   public ThinStatement( ThinConnection connection ) {
     this.connection = connection;
@@ -114,12 +106,11 @@ public class ThinStatement implements Statement {
   @Override
   public ResultSet executeQuery( String sql ) throws SQLException {
     try {
-      String url =
-        HttpUtil.constructUrl( new Variables(), connection.getHostname(), connection.getPort(), connection
-          .getWebAppName(), connection.getService() + "/sql/", connection.isSecure() );
-      resultSet = new ThinResultSet( this, url, sql );
+      DataInputStream dataInputStream = connection.getClientService().query( sql, maxRows );
+      resultSet = new ThinResultSet( this ).loadFromInputStream( dataInputStream );
       return resultSet;
     } catch ( Exception e ) {
+      Throwables.propagateIfPossible( e, SQLException.class );
       throw new SQLException( "Unable to execute query: ", e );
     }
   }
