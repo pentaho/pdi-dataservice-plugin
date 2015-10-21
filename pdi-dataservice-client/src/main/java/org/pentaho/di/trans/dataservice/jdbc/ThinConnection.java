@@ -22,8 +22,12 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import com.google.common.base.Charsets;
+import com.google.common.base.Predicate;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
@@ -33,7 +37,10 @@ import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
+import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -42,10 +49,10 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.NClob;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
@@ -54,7 +61,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-public class ThinConnection implements Connection {
+import static com.google.common.base.Preconditions.checkNotNull;
+
+public class ThinConnection extends ThinBase implements Connection {
 
   public static final String ARG_WEBAPPNAME = "webappname";
   public static final String ARG_PROXYHOSTNAME = "proxyhostname";
@@ -66,13 +75,14 @@ public class ThinConnection implements Connection {
   public static final String ARG_LOCAL = "local";
 
   public static DataServiceClientService localClient;
-  public DataServiceClientService clientService;
+  protected DataServiceClientService clientService;
 
-  private String url;
+  private final String url;
+  private final String hostname;
+  private final String port;
+
   private String username;
   private String password;
-  private String hostname;
-  private String port;
 
   private String webAppName;
   private String proxyHostname;
@@ -83,10 +93,14 @@ public class ThinConnection implements Connection {
   private String debugTransFilename;
   private boolean debuggingRemoteLog;
 
-  private boolean isLocal;
-  private SQLWarning warning;
+  private ImmutableMap<String, String> parameters = ImmutableMap.of();
 
-  private ThinConnection() {
+  private boolean isLocal;
+
+  protected ThinConnection( String url, String hostname, String port ) {
+    this.url = url;
+    this.hostname = hostname;
+    this.port = port;
   }
 
   protected String constructUrl( String serviceAndArguments ) throws SQLException {
@@ -100,54 +114,38 @@ public class ThinConnection implements Connection {
   }
 
   @Override
-  public boolean isWrapperFor( Class<?> arg0 ) throws SQLException {
-    return false;
-  }
-
-  @Override
-  public <T> T unwrap( Class<T> arg0 ) throws SQLException {
-    return null;
-  }
-
-  @Override
-  public void clearWarnings() throws SQLException {
-    warning = null;
-  }
-
-  @Override
   public void close() throws SQLException {
     // TODO
-
   }
 
-  @Override
+  @Override @NotSupported
   public void commit() throws SQLException {
-    throw new SQLException( "Transactions are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Transactions are not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public Array createArrayOf( String arg0, Object[] arg1 ) throws SQLException {
-    throw new SQLException( "Arrays are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Arrays are not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public Blob createBlob() throws SQLException {
-    throw new SQLException( "Creating BLOBs is not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Creating BLOBs is not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public Clob createClob() throws SQLException {
-    throw new SQLException( "Creating CLOBs is not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Creating CLOBs is not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public NClob createNClob() throws SQLException {
-    throw new SQLException( "Creating NCLOBs is not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Creating NCLOBs is not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public SQLXML createSQLXML() throws SQLException {
-    throw new SQLException( "Creating SQL XML is not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Creating SQL XML is not supported by the thin Kettle JDBC driver" );
   }
 
   @Override
@@ -165,9 +163,9 @@ public class ThinConnection implements Connection {
     return new ThinStatement( this );
   }
 
-  @Override
+  @Override @NotSupported
   public Struct createStruct( String arg0, Object[] arg1 ) throws SQLException {
-    throw new SQLException( "Creating structs is not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Creating structs is not supported by the thin Kettle JDBC driver" );
   }
 
   @Override
@@ -182,17 +180,17 @@ public class ThinConnection implements Connection {
 
   @Override
   public Properties getClientInfo() throws SQLException {
-    return null;
+    return new Properties();
   }
 
-  @Override
+  @Override @NotSupported
   public String getClientInfo( String arg0 ) throws SQLException {
-    return null;
+    throw new SQLFeatureNotSupportedException( "Client Info is not supported by the thin Kettle JDBC driver" );
   }
 
   @Override
   public int getHoldability() throws SQLException {
-    return 0;
+    return ResultSet.CLOSE_CURSORS_AT_COMMIT;
   }
 
   @Override
@@ -209,11 +207,6 @@ public class ThinConnection implements Connection {
   public Map<String, Class<?>> getTypeMap() throws SQLException {
     // TODO
     return null;
-  }
-
-  @Override
-  public SQLWarning getWarnings() throws SQLException {
-    return warning;
   }
 
   @Override
@@ -238,29 +231,30 @@ public class ThinConnection implements Connection {
         statement.close();
       }
     } catch ( Exception e ) {
-      warning = new SQLWarning( e );
+      setWarning( e );
       return false;
     }
   }
 
-  @Override
+  @Override @NotSupported
   public String nativeSQL( String arg0 ) throws SQLException {
-    throw new SQLException( "Native SQL statements are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException(
+      "Native SQL statements are not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public CallableStatement prepareCall( String arg0 ) throws SQLException {
-    throw new SQLException( "Perpared calls are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Perpared calls are not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public CallableStatement prepareCall( String arg0, int arg1, int arg2 ) throws SQLException {
-    throw new SQLException( "Perpared calls are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Perpared calls are not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public CallableStatement prepareCall( String arg0, int arg1, int arg2, int arg3 ) throws SQLException {
-    throw new SQLException( "Perpared calls are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Perpared calls are not supported by the thin Kettle JDBC driver" );
   }
 
   @Override
@@ -294,19 +288,19 @@ public class ThinConnection implements Connection {
     return new ThinPreparedStatement( this, sql );
   }
 
-  @Override
+  @Override @NotSupported
   public void releaseSavepoint( Savepoint arg0 ) throws SQLException {
-    throw new SQLException( "Transactions are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Transactions are not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public void rollback() throws SQLException {
-    throw new SQLException( "Transactions are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Transactions are not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public void rollback( Savepoint arg0 ) throws SQLException {
-    throw new SQLException( "Transactions are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Transactions are not supported by the thin Kettle JDBC driver" );
   }
 
   @Override
@@ -329,6 +323,7 @@ public class ThinConnection implements Connection {
 
   @Override
   public void setHoldability( int arg0 ) throws SQLException {
+    // ignored
   }
 
   @Override
@@ -336,19 +331,19 @@ public class ThinConnection implements Connection {
     // Ignore, always read-only
   }
 
-  @Override
+  @Override @NotSupported
   public Savepoint setSavepoint() throws SQLException {
-    throw new SQLException( "Safepoints calls are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Safepoints calls are not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public Savepoint setSavepoint( String arg0 ) throws SQLException {
-    throw new SQLException( "Safepoints calls are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Safepoints calls are not supported by the thin Kettle JDBC driver" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setTransactionIsolation( int arg0 ) throws SQLException {
-    throw new SQLException( "Transactions are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Transactions are not supported by the thin Kettle JDBC driver" );
   }
 
   @Override
@@ -427,6 +422,10 @@ public class ThinConnection implements Connection {
     return debuggingRemoteLog;
   }
 
+  ImmutableMap<String, String> getParameters() {
+    return parameters;
+  }
+
   public void setSchema( String schema ) throws SQLException {
   }
 
@@ -434,17 +433,17 @@ public class ThinConnection implements Connection {
     return null;
   }
 
-  @Override
+  @Override @NotSupported
   public void abort( Executor executor ) throws SQLException {
     throw new SQLFeatureNotSupportedException( "Abort Connection not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setNetworkTimeout( Executor executor, int milliseconds ) throws SQLException {
     throw new SQLFeatureNotSupportedException( "Network Timeout not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public int getNetworkTimeout() throws SQLException {
     throw new SQLFeatureNotSupportedException( "Network Timeout not supported" );
   }
@@ -469,7 +468,7 @@ public class ThinConnection implements Connection {
   }
 
   public DataServiceClientService getClientService() {
-    return clientService;
+    return checkNotNull( clientService, "Client Service not set for connection" );
   }
 
   private void addCredentials( HttpClient client ) {
@@ -494,63 +493,77 @@ public class ThinConnection implements Connection {
     }
   }
 
+  private ThinConnection extractProperties( Map<String, String> arguments ) {
+    webAppName = arguments.get( ARG_WEBAPPNAME );
+    proxyHostname = arguments.get( ARG_PROXYHOSTNAME );
+    proxyPort = arguments.get( ARG_PROXYPORT );
+    nonProxyHosts = arguments.get( ARG_NONPROXYHOSTS );
+    debugTransFilename = arguments.get( ARG_DEBUGTRANS );
+    debuggingRemoteLog = "true".equalsIgnoreCase( arguments.get( ARG_DEBUGLOG ) );
+    isSecure = "true".equalsIgnoreCase( arguments.get( ARG_ISSECURE ) );
+    isLocal = "true".equalsIgnoreCase( arguments.get( ARG_LOCAL ) );
+
+    parameters = ImmutableMap.copyOf( Maps.filterKeys( arguments, new Predicate<String>() {
+      @Override public boolean apply( String input ) {
+        return input.startsWith( "PARAMETER_" );
+      }
+    } ) );
+
+    username = arguments.get( "user" );
+    password = arguments.get( "password" );
+
+    return this;
+  }
+
   public static class Builder {
     private final SlaveConnectionManager connectionManager;
-    private final ThinConnection connection;
+    private final Map<String, String> arguments = Maps.newHashMap();
+    private String url;
+    private String hostname;
+    private String port;
 
     public Builder( SlaveConnectionManager connectionManager ) {
-      connection = new ThinConnection();
       this.connectionManager = connectionManager;
     }
 
     public Builder parseUrl(String url) throws SQLException {
-      connection.url = url;
+      this.url = url;
       try {
         int portColonIndex = url.indexOf( ':', ThinDriver.BASE_URL.length() );
+        if ( portColonIndex < 0 ) {
+          throw new SQLException( "Port is not defined: " + url );
+        }
         int kettleIndex = url.indexOf( ThinDriver.SERVICE_NAME, portColonIndex );
 
-        connection.hostname = url.substring( ThinDriver.BASE_URL.length(), portColonIndex );
-        connection.port = url.substring( portColonIndex + 1, kettleIndex );
+        hostname = url.substring( ThinDriver.BASE_URL.length(), portColonIndex );
+        port = url.substring( portColonIndex + 1, kettleIndex );
 
         int startIndex = url.indexOf( '?', kettleIndex ) + 1;
-        Map<String, String> arguments = Maps.newHashMap();
         if ( startIndex > 0 ) {
           String path = url.substring( startIndex );
-          String[] args = path.split( "&" );
-          for ( String arg : args ) {
-            String[] parts = arg.split( "=" );
-            if ( parts.length == 2 ) {
-              arguments.put( parts[0], parts[1] );
-            }
+          Map<String, String> queryParameters = Splitter.on( '&' ).withKeyValueSeparator( '=' ).split( path );
+          for ( Map.Entry<String, String> parameterEntry : queryParameters.entrySet() ) {
+            arguments.put( decode( parameterEntry.getKey() ), decode( parameterEntry.getValue() ) );
           }
         }
-
-        extractProperties( arguments );
       } catch ( Exception e ) {
-        throw new SQLException( "Invalid connection URL.", e );
+        Throwables.propagateIfPossible( e, SQLException.class );
+        throw new SQLException( "Invalid connection URL: " + url, e );
       }
 
       return this;
     }
 
+    static String decode( String s ) throws UnsupportedEncodingException {
+      return URLDecoder.decode( s, Charsets.UTF_8.name() );
+    }
+
     public Builder readProperties( Properties properties ) {
-      connection.username = properties.getProperty( "user" );
-      connection.password = properties.getProperty( "password" );
+      arguments.putAll( Maps.fromProperties( properties ) );
       return this;
     }
 
-    private void extractProperties( Map<String, String> arguments ) {
-      connection.webAppName = arguments.get( ARG_WEBAPPNAME );
-      connection.proxyHostname = arguments.get( ARG_PROXYHOSTNAME );
-      connection.proxyPort = arguments.get( ARG_PROXYPORT );
-      connection.nonProxyHosts = arguments.get( ARG_NONPROXYHOSTS );
-      connection.debugTransFilename = arguments.get( ARG_DEBUGTRANS );
-      connection.debuggingRemoteLog = "true".equalsIgnoreCase( arguments.get( ARG_DEBUGLOG ) );
-      connection.isSecure = "true".equalsIgnoreCase( arguments.get( ARG_ISSECURE ) );
-      connection.isLocal = "true".equalsIgnoreCase( arguments.get( ARG_LOCAL ) );
-    }
-
-    private RemoteClient createRemoteClient() {
+    private RemoteClient createRemoteClient( ThinConnection connection ) {
       HttpClient client = connectionManager.createHttpClient();
       connection.addCredentials( client );
       connection.setProxy( client );
@@ -561,13 +574,10 @@ public class ThinConnection implements Connection {
       return new RemoteClient( connection, client );
     }
 
-    public ThinConnection build( DataServiceClientService clientService ) throws SQLException {
-      connection.clientService = clientService;
-      return connection;
-    }
-
     public ThinConnection build() throws SQLException {
-      return build( connection.isLocal ? ThinConnection.getLocalClient() : createRemoteClient() );
+      ThinConnection connection = new ThinConnection( url, hostname, port ).extractProperties( arguments );
+      connection.clientService = connection.isLocal ? ThinConnection.getLocalClient() : createRemoteClient( connection );
+      return connection;
     }
   }
 }

@@ -23,6 +23,7 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import org.apache.commons.httpclient.Header;
@@ -46,6 +47,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author nhudak
@@ -70,6 +72,16 @@ class RemoteClient implements DataServiceClientService {
       method.addRequestHeader( new Header( "MaxRows", Integer.toString( maxRows ) ) );
 
       method.getParams().setParameter( "http.socket.timeout", 0 );
+
+      for ( Map.Entry<String, String> parameterEntry : connection.getParameters().entrySet() ) {
+        method.addParameter( parameterEntry.getKey(), parameterEntry.getValue() );
+      }
+      if ( !Strings.isNullOrEmpty( connection.getDebugTransFilename() ) ) {
+        method.addParameter( ThinConnection.ARG_DEBUGTRANS, connection.getDebugTransFilename() );
+      }
+      if ( connection.isDebuggingRemoteLog() ) {
+        method.addParameter( ThinConnection.ARG_DEBUGLOG, "true" );
+      }
 
       return new DataInputStream( execMethod( method ).getResponseBodyAsStream() );
     } catch ( Exception e ) {
