@@ -29,15 +29,17 @@ import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Wrapper;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.anything;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -87,9 +89,9 @@ public abstract class JDBCTestBase<C> {
       }
       assertThat( wrapper.isWrapperFor( SecretInterface.class ), is( false ) );
       try {
-        fail( "Unexpected result from unwrap(SecretInterface)" + wrapper.unwrap( SecretInterface.class ) );
-      } catch ( SQLException ignored ) {
-        // SQL Exception expected
+        assertThat( wrapper.unwrap( SecretInterface.class ), not( anything() ) );
+      } catch ( Exception e ) {
+        assertThat( e.getMessage(), containsString( SecretInterface.class.getName() ) );
       }
     }
   }
