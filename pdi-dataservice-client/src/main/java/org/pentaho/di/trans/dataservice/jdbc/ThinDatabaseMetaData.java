@@ -42,7 +42,7 @@ import java.util.List;
 
 import static org.pentaho.di.trans.dataservice.jdbc.ThinDriver.logger;
 
-public class ThinDatabaseMetaData implements DatabaseMetaData {
+public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
 
   public static final String SCHEMA_NAME_KETTLE = "Kettle";
 
@@ -50,16 +50,6 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
 
   public ThinDatabaseMetaData( ThinConnection connection ) {
     this.connection = connection;
-  }
-
-  @Override
-  public boolean isWrapperFor( Class<?> arg0 ) throws SQLException {
-    return false;
-  }
-
-  @Override
-  public <T> T unwrap( Class<T> arg0 ) throws SQLException {
-    throw new SQLException( "Unwrap is not supported" );
   }
 
   @Override
@@ -188,7 +178,7 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getColumns( String catalog, String schemaPattern, String tableNamePattern,
     String columnNamePattern ) throws SQLException {
 
-    System.out.println( "getColumns("
+    logger.info( "getColumns("
       + catalog + ", " + schemaPattern + ", " + tableNamePattern + ", " + columnNamePattern + ")" );
 
     try {
@@ -239,24 +229,24 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
               row[index++] = SCHEMA_NAME_KETTLE; // TABLE_SCHEM - TYPE_STRING
               row[index++] = service.getName(); // TABLE_NAME - TYPE_STRING
               row[index++] = valueMeta.getName(); // COLUMN_NAME - TYPE_STRING
-              row[index++] = Long.valueOf( ThinUtil.getSqlType( valueMeta ) ); // DATA_TYPE - TYPE_INTEGER
+              row[index++] = (long) ThinUtil.getSqlType( valueMeta ); // DATA_TYPE - TYPE_INTEGER
               row[index++] = ThinUtil.getSqlTypeDesc( valueMeta ); // TYPE_NAME - TYPE_STRING
-              row[index++] = Long.valueOf( valueMeta.getLength() ); // COLUMN_SIZE - TYPE_INTEGER
+              row[index++] = (long) valueMeta.getLength(); // COLUMN_SIZE - TYPE_INTEGER
               row[index++] = null; // BUFFER_LENGTH
-              row[index++] = Long.valueOf( valueMeta.getPrecision() ); // DECIMAL_DIGITS
-              row[index++] = Long.valueOf( 10 ); // NUM_PREC_RADIX
+              row[index++] = (long) valueMeta.getPrecision(); // DECIMAL_DIGITS
+              row[index++] = (long) 10; // NUM_PREC_RADIX
               row[index++] = DatabaseMetaData.columnNullableUnknown; // NULLABLE
               row[index++] = valueMeta.getComments(); // REMARKS
               row[index++] = null; // COLUMN_DEF
               row[index++] = null; // SQL_DATA_TYPE
               row[index++] = null; // SQL_DATATIME_SUB_
-              row[index++] = Long.valueOf( valueMeta.getLength() ); // CHAR_OCTET_LENGTH
-              row[index++] = Long.valueOf( ordinal ); // ORDINAL_POSITION
+              row[index++] = (long) valueMeta.getLength(); // CHAR_OCTET_LENGTH
+              row[index++] = (long) ordinal; // ORDINAL_POSITION
               row[index++] = ""; // IS_NULLABLE
               row[index++] = null; // SCOPE_CATALOG
               row[index++] = null; // SCOPE_SCHEMA
               row[index++] = null; // SCOPE_TABLE
-              row[index++] = valueMeta.getTypeDesc(); // SOURCE_DATA_TYPE
+              row[index] = valueMeta.getTypeDesc(); // SOURCE_DATA_TYPE
               rows.add( row );
             }
             ordinal++;
@@ -327,7 +317,7 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public String getDriverName() throws SQLException {
-    return "PDI Data Services JDBC driver";
+    return ThinDriver.NAME;
   }
 
   @Override
@@ -523,7 +513,7 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public int getResultSetHoldability() throws SQLException {
-    return 0;
+    return ResultSet.CLOSE_CURSORS_AT_COMMIT;
   }
 
   @Override
@@ -602,9 +592,9 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
       Object[] row = RowDataUtil.allocateRowData( rowMeta.size() );
       int index = 0;
       row[index++] = SCHEMA_NAME_KETTLE; // TABLE_SCHEM
-      row[index++] = null; // TABLE_CATALOG
+      row[index] = null; // TABLE_CATALOG
 
-      System.out.println( "!!!!!!!-----> reporting one schema: " + SCHEMA_NAME_KETTLE );
+      logger.info( "!!!!!!!-----> reporting one schema: " + SCHEMA_NAME_KETTLE );
 
       rows.add( row );
     }
@@ -616,15 +606,15 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getTables( String catalog, String schemaPattern, String tableNamePattern, String[] types ) throws SQLException {
 
     if ( !Const.isEmpty( types ) && Const.indexOfString( "TABLE", types ) < 0 ) {
-      System.out.println( "-------------> Requesting table types: " + Arrays.toString( types ) );
-      System.out.println( "-------------> We only serve up table information, it's all we have!" );
+      logger.info( "-------------> Requesting table types: " + Arrays.toString( types ) );
+      logger.info( "-------------> We only serve up table information, it's all we have!" );
       return new RowsResultSet( new RowMeta(), new ArrayList<Object[]>() );
     }
 
     if ( Const.isEmpty( tableNamePattern ) ) {
-      System.out.println( "-------------> Listing all tables!" );
+      logger.info( "-------------> Listing all tables!" );
     } else {
-      System.out.println( "-------------> Looking for table " + tableNamePattern );
+      logger.info( "-------------> Looking for table " + tableNamePattern );
     }
 
     try {
@@ -659,12 +649,12 @@ public class ThinDatabaseMetaData implements DatabaseMetaData {
           row[index++] = null; // TYPE_SCHEM
           row[index++] = null; // TYPE_NAME
           row[index++] = null; // SELF_REFERENCING_COL_NAME
-          row[index++] = null; // REF_GENERATION
+          row[index] = null; // REF_GENERATION
           rows.add( row );
         }
       }
 
-      System.out.println( "-------------> Found " + rows.size() + " tables for the rows resultset." );
+      logger.info( "-------------> Found " + rows.size() + " tables for the rows resultset." );
 
       return new RowsResultSet( rowMeta, rows );
     } catch ( Exception e ) {
