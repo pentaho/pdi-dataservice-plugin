@@ -92,7 +92,7 @@ public class ThinDriver implements Driver {
 
   @Override
   public DriverPropertyInfo[] getPropertyInfo( String arg0, Properties arg1 ) throws SQLException {
-    return null;
+    return new DriverPropertyInfo[0];
   }
 
   @Override
@@ -101,7 +101,7 @@ public class ThinDriver implements Driver {
   }
 
   public Logger getParentLogger() {
-    return null;
+    return logger;
   }
 
 }

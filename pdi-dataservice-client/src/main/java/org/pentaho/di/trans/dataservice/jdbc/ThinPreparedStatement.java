@@ -22,6 +22,12 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import org.pentaho.di.core.exception.KettleSQLException;
+import org.pentaho.di.core.jdbc.ThinUtil;
+import org.pentaho.di.core.row.ValueMeta;
+import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -38,6 +44,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -45,11 +52,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-
-import org.pentaho.di.core.exception.KettleSQLException;
-import org.pentaho.di.core.jdbc.ThinUtil;
-import org.pentaho.di.core.row.ValueMeta;
-import org.pentaho.di.core.row.ValueMetaInterface;
 
 public class ThinPreparedStatement extends ThinStatement implements PreparedStatement {
 
@@ -176,9 +178,9 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
     throw new SQLException( "Update operations are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public ResultSetMetaData getMetaData() throws SQLException {
-    return resultSet.getMetaData();
+    throw new SQLFeatureNotSupportedException( "Prepared statement meta data is not available" );
   }
 
   @Override

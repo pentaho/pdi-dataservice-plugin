@@ -33,6 +33,11 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.Properties;
 
+import static org.hamcrest.Matchers.emptyArray;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -40,6 +45,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
@@ -54,7 +61,13 @@ public class ThinDriverTest {
   public void setUp() throws Exception {
     driver = new ThinDriver() {
       @Override protected ThinConnection createConnection( String url, Properties properties ) throws SQLException {
+        assertThat( url, is( URL ) );
+        assertThat( properties, equalTo( ThinDriverTest.this.properties ) );
+
+        // Ensure no exceptions thrown by real method
         super.createConnection( url, properties );
+
+        // Inject mock
         return connection;
       }
     };
@@ -73,6 +86,16 @@ public class ThinDriverTest {
   @Test
   public void testConnectNull() throws Exception {
     assertNull( driver.connect( "jdbc:mysql://localhost", properties ) );
+    verify( connection, never() ).isValid( anyInt() );
+  }
+
+  @Test
+  public void testDriverProperties() throws Exception {
+    assertThat( driver.getMajorVersion(), greaterThan( 0 ) );
+    assertThat( driver.getMinorVersion(), greaterThanOrEqualTo( 0 ) );
+    assertThat( driver.getPropertyInfo( URL, properties ), emptyArray() );
+    assertThat( driver.jdbcCompliant(), is( false ) );
+    assertThat( driver.getParentLogger(), sameInstance( ThinDriver.logger ) );
   }
 
   @Test

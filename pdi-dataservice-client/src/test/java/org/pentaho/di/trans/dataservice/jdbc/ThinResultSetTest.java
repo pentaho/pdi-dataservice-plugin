@@ -42,13 +42,13 @@ import static org.mockito.Mockito.mock;
 public class ThinResultSetTest  {
 
   public static final String INVALID_COLUMN_REFERENCE = "Invalid column reference.";
-  RowMeta rowMeta = new RowMeta();
+  RowMeta rowMeta;
   ThinResultSet thinResultSet;
 
   @Before
   public void setUp() throws Exception {
     thinResultSet = new ThinResultSet( mock( ThinStatement.class ) );
-    thinResultSet.rowMeta = rowMeta;
+    thinResultSet.rowMeta = rowMeta = new RowMeta();
   }
 
   @Test public void testGetDate() throws Exception {
@@ -128,10 +128,12 @@ public class ThinResultSetTest  {
   }
 
   @Test public void testGetTimestamp() throws Exception {
-    thinResultSet.currentRow = new Object[] { "2010/01/01 10:10:10.000", "foo" };
-    rowMeta.addValueMeta( new ValueMetaString( "col" ) );
+    Timestamp timestamp = new Timestamp( 1262358610000l );
+    ValueMetaString col = new ValueMetaString( "col" );
+    rowMeta.addValueMeta( col );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    assertThat( thinResultSet.getTimestamp( "col" ), equalTo( new Timestamp( 1262358610000l ) ) );
+    thinResultSet.currentRow = new Object[] { col.getDateFormat().format( timestamp ), "foo" };
+    assertThat( thinResultSet.getTimestamp( "col" ), equalTo( timestamp ) );
   }
 
   @Test

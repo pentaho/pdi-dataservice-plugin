@@ -23,18 +23,18 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.base.Throwables;
+import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 
 import java.io.DataInputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLWarning;
 import java.sql.Statement;
 
-public class ThinStatement implements Statement {
+public class ThinStatement extends ThinBase implements Statement {
 
-  protected ThinConnection connection;
+  protected final ThinConnection connection;
   protected ThinResultSet resultSet;
 
   protected int maxRows;
@@ -43,18 +43,13 @@ public class ThinStatement implements Statement {
     this.connection = connection;
   }
 
-  @Override
-  public boolean isWrapperFor( Class<?> iface ) throws SQLException {
-    return false;
+  protected ThinResultSet createResultSet() {
+    return new ThinResultSet( this );
   }
 
-  @Override
-  public <T> T unwrap( Class<T> iface ) throws SQLException {
-    return null;
-  }
-
-  @Override
+  @Override @NotSupported
   public void addBatch( String arg0 ) throws SQLException {
+    throw new SQLFeatureNotSupportedException( "Batches not supported" );
   }
 
   @Override
@@ -64,23 +59,19 @@ public class ThinStatement implements Statement {
     }
   }
 
-  @Override
+  @Override @NotSupported
   public void clearBatch() throws SQLException {
-    throw new SQLException( "Batch update statements are not supported by the thin Kettle JDBC driver" );
-  }
-
-  @Override
-  public void clearWarnings() throws SQLException {
+    throw new SQLFeatureNotSupportedException( "Batch update statements are not supported by the thin Kettle JDBC driver" );
   }
 
   @Override
   public void close() throws SQLException {
-    // Nothing to close
+    cancel();
   }
 
   @Override
   public boolean execute( String sql ) throws SQLException {
-    return execute( sql, 0 );
+    return executeQuery( sql ) != null;
   }
 
   @Override
@@ -98,16 +89,16 @@ public class ThinStatement implements Statement {
     return executeQuery( sql ) != null;
   }
 
-  @Override
+  @Override @NotSupported
   public int[] executeBatch() throws SQLException {
-    throw new SQLException( "Batch update statements are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( "Batch update statements are not supported by the thin Kettle JDBC driver" );
   }
 
   @Override
   public ResultSet executeQuery( String sql ) throws SQLException {
     try {
       DataInputStream dataInputStream = connection.getClientService().query( sql, maxRows );
-      resultSet = new ThinResultSet( this ).loadFromInputStream( dataInputStream );
+      resultSet = createResultSet().loadFromInputStream( dataInputStream );
       return resultSet;
     } catch ( Exception e ) {
       Throwables.propagateIfPossible( e, SQLException.class );
@@ -115,22 +106,22 @@ public class ThinStatement implements Statement {
     }
   }
 
-  @Override
+  @Override @NotSupported
   public int executeUpdate( String sql ) throws SQLException {
-    throw new SQLException( "The thin Kettle JDBC driver is read-only" );
+    throw new SQLFeatureNotSupportedException( "The thin Kettle JDBC driver is read-only" );
   }
 
-  @Override
+  @Override @NotSupported
   public int executeUpdate( String sql, int arg1 ) throws SQLException {
     return executeUpdate( sql );
   }
 
-  @Override
+  @Override @NotSupported
   public int executeUpdate( String sql, int[] arg1 ) throws SQLException {
     return executeUpdate( sql );
   }
 
-  @Override
+  @Override @NotSupported
   public int executeUpdate( String sql, String[] arg1 ) throws SQLException {
     return executeUpdate( sql );
   }
@@ -150,9 +141,9 @@ public class ThinStatement implements Statement {
     return 1;
   }
 
-  @Override
+  @Override @NotSupported
   public ResultSet getGeneratedKeys() throws SQLException {
-    throw new SQLException( "The thin Kettle JDBC driver is read-only" );
+    throw new SQLFeatureNotSupportedException( "The thin Kettle JDBC driver is read-only" );
   }
 
   @Override
@@ -211,11 +202,6 @@ public class ThinStatement implements Statement {
   }
 
   @Override
-  public SQLWarning getWarnings() throws SQLException {
-    return null;
-  }
-
-  @Override
   public boolean isClosed() throws SQLException {
     return resultSet.isClosed();
   }
@@ -225,28 +211,36 @@ public class ThinStatement implements Statement {
     return false;
   }
 
-  @Override
+  @Override @NotSupported
   public void setCursorName( String arg0 ) throws SQLException {
+    throw new SQLFeatureNotSupportedException( "Named cursors not supported" );
   }
 
   @Override
   public void setEscapeProcessing( boolean arg0 ) throws SQLException {
+    // ignored
   }
 
   @Override
-  public void setFetchDirection( int arg0 ) throws SQLException {
+  public void setFetchDirection( int direction ) throws SQLException {
+    if ( direction != ResultSet.FETCH_FORWARD ) {
+      throw new SQLFeatureNotSupportedException( "Only FETCH_FORWARD direction is supported" );
+    }
   }
 
   @Override
   public void setFetchSize( int arg0 ) throws SQLException {
+    // ignored
   }
 
   @Override
   public void setMaxFieldSize( int arg0 ) throws SQLException {
+    // ignored
   }
 
   @Override
   public void setPoolable( boolean arg0 ) throws SQLException {
+    // ignored
   }
 
   @Override
