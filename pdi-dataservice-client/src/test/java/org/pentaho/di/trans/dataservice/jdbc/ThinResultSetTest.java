@@ -25,25 +25,29 @@ package org.pentaho.di.trans.dataservice.jdbc;
 import org.junit.Before;
 import org.junit.Test;
 import org.pentaho.di.core.row.RowMeta;
+import org.pentaho.di.core.row.value.ValueMetaBoolean;
 import org.pentaho.di.core.row.value.ValueMetaDate;
 import org.pentaho.di.core.row.value.ValueMetaInteger;
 import org.pentaho.di.core.row.value.ValueMetaNumber;
 import org.pentaho.di.core.row.value.ValueMetaString;
 
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.Date;
 
-import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
-public class ThinResultSetTest  {
+public class ThinResultSetTest extends JDBCTestBase<ThinResultSet> {
 
-  public static final String INVALID_COLUMN_REFERENCE = "Invalid column reference.";
+  public static final String INVALID_COLUMN_REFERENCE = "Invalid column reference: ";
   RowMeta rowMeta;
   ThinResultSet thinResultSet;
+
+  public ThinResultSetTest() {
+    super( ThinResultSet.class );
+  }
 
   @Before
   public void setUp() throws Exception {
@@ -51,12 +55,21 @@ public class ThinResultSetTest  {
     thinResultSet.rowMeta = rowMeta = new RowMeta();
   }
 
+  @Test public void testGetBoolean() throws Exception {
+    thinResultSet.currentRow = new Object[] { false, "foo" };
+    rowMeta.addValueMeta( new ValueMetaBoolean( "bool" ) );
+    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
+    assertThat( thinResultSet.getBoolean( "bool" ), equalTo( false ) );
+  }
+
   @Test public void testGetDate() throws Exception {
     ValueMetaDate valueMetaDate = new ValueMetaDate( "foo" );
-    Date date = new Date();
-    thinResultSet.currentRow = new Object[] { new Date() };
+    long time = System.currentTimeMillis();
+    thinResultSet.currentRow = new Object[] { new Date( time ) };
     rowMeta.addValueMeta( valueMetaDate );
-    assertThat( thinResultSet.getDate( "foo" ), equalTo( date ) );
+    assertThat( thinResultSet.getDate( "foo" ), equalTo( new java.sql.Date( time ) ) );
+    assertThat( thinResultSet.getTimestamp( "foo" ), equalTo( new java.sql.Timestamp( time ) ) );
+    assertThat( thinResultSet.getTime( "foo" ), equalTo( new java.sql.Time( time ) ) );
   }
 
   @Test public void testGetDouble() throws Exception {
@@ -64,6 +77,7 @@ public class ThinResultSetTest  {
     rowMeta.addValueMeta( new ValueMetaNumber( "number" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
     assertThat( thinResultSet.getDouble( "number" ), equalTo( 1.1 ) );
+    assertThat( thinResultSet.getFloat( "number" ), equalTo( 1.1f ) );
   }
 
   @Test public void testGetBigDecimal() throws Exception {
@@ -109,6 +123,7 @@ public class ThinResultSetTest  {
     rowMeta.addValueMeta( new ValueMetaInteger( "col" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
     assertThat( thinResultSet.getLong( "col" ), equalTo( 1l ) );
+    assertThat( thinResultSet.getInt( "col" ), equalTo( 1 ) );
   }
 
   @Test public void testGetShort() throws Exception {
@@ -125,15 +140,7 @@ public class ThinResultSetTest  {
     rowMeta.addValueMeta( new ValueMetaString( "col" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
     assertThat( thinResultSet.getString( "col" ), equalTo( "a string" ) );
-  }
-
-  @Test public void testGetTimestamp() throws Exception {
-    Timestamp timestamp = new Timestamp( 1262358610000l );
-    ValueMetaString col = new ValueMetaString( "col" );
-    rowMeta.addValueMeta( col );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.currentRow = new Object[] { col.getDateFormat().format( timestamp ), "foo" };
-    assertThat( thinResultSet.getTimestamp( "col" ), equalTo( timestamp ) );
+    assertThat( thinResultSet.getObject( "col", String.class ), equalTo( "a string" ) );
   }
 
   @Test
@@ -144,7 +151,7 @@ public class ThinResultSetTest  {
     try {
       thinResultSet.getDouble( "nonesuch" );
     } catch ( SQLException e ) {
-      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE ) );
+      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE + "nonesuch" ) );
       return;
     }
     fail();
@@ -158,7 +165,7 @@ public class ThinResultSetTest  {
     try {
       thinResultSet.getString( "nonesuch" );
     } catch ( SQLException e ) {
-      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE ) );
+      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE + "nonesuch" ) );
       return;
     }
     fail();
@@ -172,7 +179,7 @@ public class ThinResultSetTest  {
     try {
       thinResultSet.getString( 4 );
     } catch ( SQLException e ) {
-      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE ) );
+      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE + 4 ) );
       return;
     }
     fail();
@@ -186,9 +193,13 @@ public class ThinResultSetTest  {
     try {
       thinResultSet.getObject( "nonesuch" );
     } catch ( SQLException e ) {
-      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE ) );
+      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE + "nonesuch" ) );
       return;
     }
     fail();
+  }
+
+  @Override protected ThinResultSet getTestObject() {
+    return thinResultSet;
   }
 }
