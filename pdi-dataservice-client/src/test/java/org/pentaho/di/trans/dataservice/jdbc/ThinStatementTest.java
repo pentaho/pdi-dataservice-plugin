@@ -45,7 +45,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyInt;
@@ -67,6 +66,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
   @Mock ThinConnection connection;
   @Mock ThinResultSet resultSet;
   @Mock DataServiceClientService clientService;
+  @Mock ThinResultFactory resultFactory;
   ThinStatement statement;
 
   public ThinStatementTest() {
@@ -75,14 +75,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
 
   @Before
   public void setUp() throws Exception {
-    statement = new ThinStatement( connection ) {
-      ThinStatementTest test = ThinStatementTest.this;
-
-      @Override protected ThinResultSet createResultSet() {
-        assertThat( super.createResultSet(), notNullValue() );
-        return test.resultSet;
-      }
-    };
+    statement = new ThinStatement( connection, resultFactory );
     assertThat( statement.getConnection(), sameInstance( (Connection) connection ) );
 
     when( clientService.query( anyString(), anyInt() ) ).then( new Answer<DataInputStream>() {
@@ -92,7 +85,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
     } );
 
     when( connection.getClientService() ).thenReturn( clientService );
-    when( resultSet.loadFromInputStream( any( DataInputStream.class ) ) ).thenReturn( resultSet );
+    when( resultFactory.loadResultSet( any( DataInputStream.class ) ) ).thenReturn( resultSet );
   }
 
   @Test
@@ -115,9 +108,8 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
     assertThat( statement.getMaxRows(), equalTo( 32 ) );
 
     assertThat( statement.executeQuery( SQL ), sameInstance( (ResultSet) resultSet ) );
-    verify( resultSet ).loadFromInputStream( inputStream );
-
     assertThat( statement.getResultSet(), sameInstance( (ResultSet) resultSet ) );
+    verify( resultSet ).setStatement( statement );
 
     when( resultSet.getConcurrency() ).thenReturn( ResultSet.CONCUR_READ_ONLY );
     when( resultSet.getHoldability() ).thenReturn( ResultSet.HOLD_CURSORS_OVER_COMMIT );
@@ -127,7 +119,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
     assertThat( statement.isClosed(), is( false ) );
 
     statement.close();
-    verify( resultSet ).cancel();
+    verify( resultSet ).close();
   }
 
   @Test
