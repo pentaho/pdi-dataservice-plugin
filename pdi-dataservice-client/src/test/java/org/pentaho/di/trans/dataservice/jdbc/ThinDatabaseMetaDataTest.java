@@ -39,7 +39,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
@@ -101,10 +100,7 @@ public class ThinDatabaseMetaDataTest extends JDBCTestBase<ThinDatabaseMetaData>
 
     for ( Method method : DatabaseMetaData.class.getMethods() ) {
       if ( emptySetMethods.contains( method.getName() ) ) {
-        assertThat( invoke( metaData, method ), allOf(
-            hasProperty( "beforeFirst", is( true ) ),
-            hasProperty( "last", is( true ) ) )
-        );
+        assertThat( invoke( metaData, method ), hasProperty( "afterLast", is( true ) ) );
       }
     }
   }

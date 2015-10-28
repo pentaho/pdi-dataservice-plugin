@@ -23,21 +23,22 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import org.pentaho.di.core.exception.KettleEOFException;
+import org.pentaho.di.core.exception.KettleFileException;
 
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ThinResultSet extends BaseResultSet {
 
   private final ThinResultHeader thinResultHeader;
   private final AtomicBoolean stopped = new AtomicBoolean( false );
-  private ThinStatement statement;
   private DataInputStream dataInputStream;
+  private int size = 1;
 
   public ThinResultSet( ThinResultHeader header, DataInputStream dataInputStream ) {
     super( header.getRowMeta() );
@@ -63,11 +64,6 @@ public class ThinResultSet extends BaseResultSet {
     } finally {
       dataInputStream = null;
     }
-  }
-
-  @Override
-  public int getConcurrency() throws SQLException {
-    return ResultSet.CONCUR_READ_ONLY;
   }
 
   @Override
@@ -111,15 +107,6 @@ public class ThinResultSet extends BaseResultSet {
     return new ThinResultSetMetaData( thinResultHeader.getServiceName(), getRowMeta() );
   }
 
-  protected void setStatement( ThinStatement statement ) {
-    this.statement = statement;
-  }
-
-  @Override
-  public Statement getStatement() throws SQLException {
-    return statement;
-  }
-
   public ThinResultHeader getHeader() {
     return thinResultHeader;
   }
@@ -130,18 +117,30 @@ public class ThinResultSet extends BaseResultSet {
   }
 
   @Override protected Object[] retrieveRow( int i ) throws Exception {
-    if ( i == getRow() ) {
+    if ( isAfterLast() ? i > size() : i == getRow() ) {
       return getCurrentRow();
     } else if ( i == getRow() + 1 ) {
-      try {
-        return getRowMeta().readData( dataInputStream );
-      } catch ( KettleEOFException e ) {
-        close();
-        return null;
-      }
+      return readData();
     } else {
       throw new SQLFeatureNotSupportedException( "Scrollable result sets are not supported" );
     }
+  }
+
+  private Object[] readData() throws KettleFileException, SQLException, IOException {
+    try {
+      Object[] data = getRowMeta().readData( dataInputStream );
+      size += 1;
+      return data;
+    } catch ( KettleEOFException e ) {
+      size = getRow();
+      dataInputStream.close();
+      return null;
+    }
+  }
+
+  @Override
+  protected int size() throws SQLException {
+    return size;
   }
 
 }

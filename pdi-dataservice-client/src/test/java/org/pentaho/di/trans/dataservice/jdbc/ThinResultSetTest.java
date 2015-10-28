@@ -26,33 +26,28 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.pentaho.di.core.exception.KettleEOFException;
-import org.pentaho.di.core.row.RowMeta;
-import org.pentaho.di.core.row.value.ValueMetaBoolean;
-import org.pentaho.di.core.row.value.ValueMetaDate;
-import org.pentaho.di.core.row.value.ValueMetaInteger;
-import org.pentaho.di.core.row.value.ValueMetaNumber;
 import org.pentaho.di.core.row.value.ValueMetaString;
 
 import java.io.DataInputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
-import java.util.Date;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.hamcrest.Matchers.anything;
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -63,14 +58,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @RunWith( MockitoJUnitRunner.class )
-public class ThinResultSetTest extends JDBCTestBase<ThinResultSet> {
+public class ThinResultSetTest extends BaseResultSetTest {
 
-  public static final String INVALID_COLUMN_REFERENCE = "Invalid column reference: ";
-  ThinResultHeader resultHeader;
   ThinResultSet thinResultSet;
+  ThinResultHeader resultHeader;
   @Mock DataInputStream dataInputStream;
-  @Spy RowMeta rowMeta;
-  Object[] currentRow = new Object[0];
+  Object[] nextRow = new Object[0];
 
   public ThinResultSetTest() {
     super( ThinResultSet.class );
@@ -82,7 +75,7 @@ public class ThinResultSetTest extends JDBCTestBase<ThinResultSet> {
     thinResultSet = new ThinResultSet( resultHeader, dataInputStream );
     doAnswer( new Answer() {
       @Override public Object[] answer( InvocationOnMock invocation ) throws Throwable {
-        return currentRow;
+        return nextRow;
       }
     } ).when( rowMeta ).readData( dataInputStream );
     assertThat( thinResultSet.getHeader(), equalTo( resultHeader ) );
@@ -105,25 +98,34 @@ public class ThinResultSetTest extends JDBCTestBase<ThinResultSet> {
   }
 
   @Test
-  public void testEndOfResultSet() throws Exception {
-    assertThat( thinResultSet.isBeforeFirst(), is( true ) );
-    for ( int i = 0; i < 3; i++ ) {
-      assertThat( thinResultSet.next(), is( true ) );
-    }
-    assertThat( thinResultSet.getRow(), is( 3 ) );
-    assertThat( thinResultSet.isBeforeFirst(), is( false ) );
+  public void testResultSetIteration() throws Exception {
+    verifyState( "beforeFirst" );
 
-    assertThat( thinResultSet.absolute( 3 ), is( true ) );
+    assertThat( thinResultSet.next(), is( true ) );
+    assertThat( thinResultSet.getRow(), is( 1 ) );
+    verifyState( "first" );
+
+    assertThat( thinResultSet.next(), is( true ) );
+    assertThat( thinResultSet.getRow(), is( 2 ) );
+    verifyState();
+
+    assertThat( thinResultSet.relative( 0 ), is( true ) );
+    assertThat( thinResultSet.getRow(), is( 2 ) );
+    verifyState();
+
+    doThrow( new KettleEOFException() ).when( rowMeta ).readData( dataInputStream );
+
+    assertThat( thinResultSet.next(), is( false ) );
+    assertThat( thinResultSet.getRow(), is( 0 ) );
+    verifyState( "afterLast" );
+
+    assertThat( thinResultSet.next(), is( false ) );
+
     try {
       assertThat( thinResultSet.previous(), not( anything() ) );
     } catch ( SQLException e ) {
       assertThat( e, instanceOf( SQLFeatureNotSupportedException.class ) );
     }
-
-    doThrow( new KettleEOFException() ).when( rowMeta ).readData( dataInputStream );
-    assertThat( thinResultSet.next(), is( false ) );
-    assertThat( thinResultSet.isAfterLast(), is( true ) );
-    assertThat( thinResultSet.isClosed(), is( true ) );
     verify( dataInputStream ).close();
   }
 
@@ -131,9 +133,9 @@ public class ThinResultSetTest extends JDBCTestBase<ThinResultSet> {
   public void testEmptyResultSet() throws Exception {
     doThrow( new KettleEOFException() ).when( rowMeta ).readData( dataInputStream );
 
+    verifyState( "beforeFirst" );
     assertThat( thinResultSet.next(), is( false ) );
-    assertThat( thinResultSet.isBeforeFirst(), is( true ) );
-    assertThat( thinResultSet.isClosed(), is( true ) );
+    verifyState( "afterLast" );
 
     verify( rowMeta ).readData( dataInputStream );
     assertThat( thinResultSet.next(), is( false ) );
@@ -142,182 +144,24 @@ public class ThinResultSetTest extends JDBCTestBase<ThinResultSet> {
 
   @Test
   public void testClose() throws Exception {
+    verifyState( "beforeFirst" );
     assertThat( thinResultSet.isClosed(), is( false ) );
 
     thinResultSet.close();
 
     assertThat( thinResultSet.isClosed(), is( true ) );
-    assertThat( thinResultSet.isBeforeFirst(), is( true ) );
 
     thinResultSet.close();
 
     verify( dataInputStream ).close();
-  }
 
-  @Test public void testGetBoolean() throws Exception {
-    currentRow = new Object[] { false, "foo" };
-    rowMeta.addValueMeta( new ValueMetaBoolean( "bool" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    assertThat( thinResultSet.getBoolean( "bool" ), equalTo( false ) );
-  }
-
-  @Test public void testGetNull() throws Exception {
-    currentRow = new Object[] { null };
-    rowMeta.addValueMeta( new ValueMetaString( "foo" ) );
-    thinResultSet.next();
-    assertThat( thinResultSet.getString( "foo" ), nullValue() );
-    assertThat( thinResultSet.wasNull(), is( true ) );
-  }
-
-  @Test public void testGetDate() throws Exception {
-    long time = System.currentTimeMillis();
-    currentRow = new Object[] { new Date( time ) };
-    rowMeta.addValueMeta( new ValueMetaDate( "foo" ) );
-    thinResultSet.next();
-    assertThat( thinResultSet.getDate( "foo" ), equalTo( new java.sql.Date( time ) ) );
-    assertThat( thinResultSet.getTimestamp( "foo" ), equalTo( new java.sql.Timestamp( time ) ) );
-    assertThat( thinResultSet.getTime( "foo" ), equalTo( new java.sql.Time( time ) ) );
-  }
-
-  @Test public void testGetDouble() throws Exception {
-    currentRow = new Object[] { 1.1, "foo" };
-    rowMeta.addValueMeta( new ValueMetaNumber( "number" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    assertThat( thinResultSet.getDouble( "number" ), equalTo( 1.1 ) );
-    assertThat( thinResultSet.getFloat( "number" ), equalTo( 1.1f ) );
-  }
-
-  @Test public void testGetBigDecimal() throws Exception {
-    currentRow = new Object[] { 1.1, "foo" };
-    rowMeta.addValueMeta( new ValueMetaNumber( "number" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    assertThat( thinResultSet.getBigDecimal( "number" ).doubleValue(), equalTo( 1.1 ) );
-  }
-
-  @Test public void testGetByte() throws Exception {
-    byte b = 'a';
-    currentRow = new Object[] { new Byte( b ).longValue(), "foo" };
-    rowMeta.addValueMeta( new ValueMetaInteger( "byte" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    assertThat( thinResultSet.getByte( "byte" ), equalTo( b ) );
-  }
-
-  @Test public void testGetBytes() throws Exception {
-    currentRow = new Object[] { "b", "foo" };
-    rowMeta.addValueMeta( new ValueMetaString( "bytes" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    assertThat( thinResultSet.getBytes( "bytes" ), equalTo( new byte[] { 'b' } ) );
-
-  }
-
-  @Test public void testGetFloat() throws Exception {
-    currentRow = new Object[] { 1.1, "foo" };
-    rowMeta.addValueMeta( new ValueMetaNumber( "col" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    assertThat( thinResultSet.getFloat( "col" ), equalTo( 1.1f ) );
-  }
-
-  @Test public void testGetInt() throws Exception {
-    currentRow = new Object[] { 1l, "foo" };
-    rowMeta.addValueMeta( new ValueMetaInteger( "col" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    assertThat( thinResultSet.getInt( "col" ), equalTo( 1 ) );
-
-  }
-
-  @Test public void testGetLong() throws Exception {
-    currentRow = new Object[] { 1l, "foo" };
-    rowMeta.addValueMeta( new ValueMetaInteger( "col" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    assertThat( thinResultSet.getLong( "col" ), equalTo( 1l ) );
-    assertThat( thinResultSet.getInt( "col" ), equalTo( 1 ) );
-  }
-
-  @Test public void testGetShort() throws Exception {
-    currentRow = new Object[] { 1l, "foo" };
-    rowMeta.addValueMeta( new ValueMetaInteger( "col" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    short s = 1;
-    thinResultSet.next();
-    assertThat( thinResultSet.getShort( "col" ), equalTo( s ) );
-
-  }
-
-  @Test public void testGetString() throws Exception {
-    currentRow = new Object[] { "a string", "foo" };
-    rowMeta.addValueMeta( new ValueMetaString( "col" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    assertThat( thinResultSet.getString( "col" ), equalTo( "a string" ) );
-    assertThat( thinResultSet.getObject( "col", String.class ), equalTo( "a string" ) );
-  }
-
-  @Test
-  public void testGetColumnNotPresentDouble() throws Exception {
-    currentRow = new Object[] { 1.1, "foo" };
-    rowMeta.addValueMeta( new ValueMetaNumber( "number" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    try {
-      thinResultSet.getDouble( "nonesuch" );
-    } catch ( SQLException e ) {
-      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE + "nonesuch" ) );
-      return;
+    for ( Method method : STATES.values() ) {
+      try {
+        assertThat( invoke( thinResultSet, method ), not( anything() ) );
+      } catch ( InvocationTargetException e ) {
+        assertThat( e.getCause().getMessage(), containsStringIgnoringCase( "closed" ) );
+      }
     }
-    fail();
-  }
-
-  @Test
-  public void testGetColumnNotPresentString() throws Exception {
-    currentRow = new Object[] { 1.1, "foo" };
-    rowMeta.addValueMeta( new ValueMetaNumber( "number" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    try {
-      thinResultSet.getString( "nonesuch" );
-    } catch ( SQLException e ) {
-      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE + "nonesuch" ) );
-      return;
-    }
-    fail();
-  }
-
-  @Test
-  public void testGetColumnIndexNotPresentString() throws Exception {
-    currentRow = new Object[] { 1.1, "foo" };
-    rowMeta.addValueMeta( new ValueMetaNumber( "number" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    try {
-      thinResultSet.getString( 4 );
-    } catch ( SQLException e ) {
-      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE + 4 ) );
-      return;
-    }
-    fail();
-  }
-
-  @Test
-  public void testGetColumnNotPresentObject() throws Exception {
-    currentRow = new Object[] { 1.1, "foo" };
-    rowMeta.addValueMeta( new ValueMetaNumber( "number" ) );
-    rowMeta.addValueMeta( new ValueMetaString( "string" ) );
-    thinResultSet.next();
-    try {
-      thinResultSet.getObject( "nonesuch" );
-    } catch ( SQLException e ) {
-      assertThat( e.getMessage(), equalTo( INVALID_COLUMN_REFERENCE + "nonesuch" ) );
-      return;
-    }
-    fail();
   }
 
   @Test
@@ -345,5 +189,9 @@ public class ThinResultSetTest extends JDBCTestBase<ThinResultSet> {
 
   @Override protected ThinResultSet getTestObject() {
     return thinResultSet;
+  }
+
+  public void setNextRow( Object[] nextRow ) {
+    this.nextRow = nextRow;
   }
 }

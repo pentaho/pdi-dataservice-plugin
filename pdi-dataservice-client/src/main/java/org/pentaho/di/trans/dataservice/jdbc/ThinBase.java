@@ -53,7 +53,7 @@ public class ThinBase implements Wrapper {
     return warning;
   }
 
-  protected SQLWarning setWarning( Exception e ) {
-    return warning = new SQLWarning( e );
+  protected void setWarning( Exception e ) {
+    warning = new SQLWarning( e );
   }
 }

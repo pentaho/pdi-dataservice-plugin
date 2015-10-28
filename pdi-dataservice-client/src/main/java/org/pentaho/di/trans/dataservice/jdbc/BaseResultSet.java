@@ -41,6 +41,7 @@ import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLXML;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
@@ -52,12 +53,17 @@ import java.util.Map;
 public abstract class BaseResultSet extends ThinBase implements ResultSet {
   private final RowMetaInterface rowMeta;
   private Object[] currentRow;
-  protected int rowNumber = 0;
+  private int rowNumber = 0;
   private boolean lastNull;
+  private ThinStatement statement;
 
   public BaseResultSet( RowMetaInterface rowMeta ) {
     this.rowMeta = rowMeta;
   }
+
+  protected abstract Object[] retrieveRow( int i ) throws Exception;
+
+  protected abstract int size() throws SQLException;
 
   @Override @NotSupported
   public boolean rowDeleted() throws SQLException {
@@ -912,28 +918,33 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
   }
 
   @Override
+  public int getConcurrency() throws SQLException {
+    return ResultSet.CONCUR_READ_ONLY;
+  }
+
+  @Override
   public int getRow() throws SQLException {
-    return rowNumber;
+    return currentRow == null ? 0 : rowNumber;
   }
 
   @Override
   public boolean isAfterLast() throws SQLException {
-    return currentRow == null;
+    return verifyOpen() && rowNumber > size() || size() == 0;
   }
 
   @Override
   public boolean isBeforeFirst() throws SQLException {
-    return rowNumber == 0;
+    return verifyOpen() && rowNumber == 0;
   }
 
   @Override
   public boolean isFirst() throws SQLException {
-    return rowNumber == 1;
+    return verifyOpen() && currentRow != null && rowNumber == 1;
   }
 
-  @Override @NotSupported
+  @Override
   public boolean isLast() throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Last row is unknown" );
+    return verifyOpen() && currentRow != null && rowNumber == size();
   }
 
   @Override
@@ -956,15 +967,17 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
 
   @Override
   public boolean next() throws SQLException {
-    return !isClosed() && absolute( rowNumber + 1 );
+    return !isClosed() && relative( 1 );
   }
 
   @Override public boolean absolute( int row ) throws SQLException {
+    verifyOpen();
+    while ( row < 0 ) {
+      row += size();
+    }
     try {
       currentRow = retrieveRow( row );
-      if ( currentRow != null ) {
-        rowNumber = row;
-      }
+      rowNumber = currentRow != null ? row : row > size() ? size() + 1 : 0;
       return currentRow != null;
     } catch ( Exception e ) {
       Throwables.propagateIfPossible( e, SQLException.class );
@@ -977,14 +990,13 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
     throw new SQLFeatureNotSupportedException( "Updates are not supported" );
   }
 
-  @Override @NotSupported
+  @Override
   public void afterLast() throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Last row is unknown" );
+    absolute( size() + 1 );
   }
 
   @Override
   public void beforeFirst() throws SQLException {
-    verifyOpen();
     absolute( 0 );
   }
 
@@ -1002,7 +1014,7 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
 
   @Override
   public boolean first() throws SQLException {
-    return verifyOpen() && absolute( 1 );
+    return absolute( 1 );
   }
 
   @Override
@@ -1016,14 +1028,21 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
 
   @Override
   public boolean last() throws SQLException {
-    return verifyOpen() && absolute( -1 );
+    return absolute( -1 );
   }
 
-  protected abstract Object[] retrieveRow( int i ) throws Exception;
+  protected void setStatement( ThinStatement statement ) {
+    this.statement = statement;
+  }
+
+  @Override
+  public Statement getStatement() throws SQLException {
+    return statement;
+  }
 
   @Override
   public boolean previous() throws SQLException {
-    return verifyOpen() && absolute( rowNumber - 1 );
+    return relative( -1 );
   }
 
   @Override
@@ -1032,7 +1051,7 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
 
   @Override
   public boolean relative( int rows ) throws SQLException {
-    return verifyOpen() && absolute( rowNumber + rows );
+    return absolute( rowNumber + rows );
   }
 
   public Object[] getCurrentRow() {

@@ -22,6 +22,7 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
@@ -49,9 +50,9 @@ import static org.mockito.Mockito.mock;
  */
 public abstract class JDBCTestBase<C> {
 
-  protected final Class<C> type;
+  protected final Class<? extends C> type;
 
-  public JDBCTestBase( Class<C> type ) {
+  public JDBCTestBase( Class<? extends C> type ) {
     this.type = type;
   }
 
@@ -93,6 +94,14 @@ public abstract class JDBCTestBase<C> {
       } catch ( Exception e ) {
         assertThat( e.getMessage(), containsString( SecretInterface.class.getName() ) );
       }
+    }
+  }
+
+  protected Method getMethod( String name, Class<?>... parameterTypes ) {
+    try {
+      return type.getMethod( name, parameterTypes );
+    } catch ( NoSuchMethodException e ) {
+      throw Throwables.propagate( e );
     }
   }
 
