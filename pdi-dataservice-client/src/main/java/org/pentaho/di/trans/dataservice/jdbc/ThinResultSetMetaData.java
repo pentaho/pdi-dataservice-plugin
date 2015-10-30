@@ -22,14 +22,14 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMetaInterface;
+
 import java.math.BigDecimal;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
-import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.core.row.ValueMetaInterface;
-
-public class ThinResultSetMetaData implements ResultSetMetaData {
+public class ThinResultSetMetaData extends ThinBase implements ResultSetMetaData {
 
   private String serviceName;
   private RowMetaInterface rowMeta;
@@ -37,16 +37,6 @@ public class ThinResultSetMetaData implements ResultSetMetaData {
   public ThinResultSetMetaData( String serviceName, RowMetaInterface rowMeta ) {
     this.serviceName = serviceName;
     this.rowMeta = rowMeta;
-  }
-
-  @Override
-  public boolean isWrapperFor( Class<?> iface ) throws SQLException {
-    throw new SQLException( "Wrapping is not supported" );
-  }
-
-  @Override
-  public <T> T unwrap( Class<T> iface ) throws SQLException {
-    throw new SQLException( "Wrapping is not supported" );
   }
 
   @Override
@@ -167,7 +157,7 @@ public class ThinResultSetMetaData implements ResultSetMetaData {
 
   @Override
   public int isNullable( int column ) throws SQLException {
-    return 0;
+    return columnNullableUnknown;
   }
 
   @Override

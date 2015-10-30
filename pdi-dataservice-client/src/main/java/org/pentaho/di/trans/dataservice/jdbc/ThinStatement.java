@@ -22,7 +22,6 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
-import com.google.common.base.Throwables;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 
 import java.io.DataInputStream;
@@ -35,16 +34,18 @@ import java.sql.Statement;
 public class ThinStatement extends ThinBase implements Statement {
 
   protected final ThinConnection connection;
+  private final ThinResultFactory resultFactory;
   protected ThinResultSet resultSet;
 
   protected int maxRows;
 
   public ThinStatement( ThinConnection connection ) {
-    this.connection = connection;
+    this( connection, new ThinResultFactory() );
   }
 
-  protected ThinResultSet createResultSet() {
-    return new ThinResultSet( this );
+  public ThinStatement( ThinConnection connection, ThinResultFactory resultFactory ) {
+    this.connection = connection;
+    this.resultFactory = resultFactory;
   }
 
   @Override @NotSupported
@@ -55,7 +56,7 @@ public class ThinStatement extends ThinBase implements Statement {
   @Override
   public void cancel() throws SQLException {
     if ( resultSet != null ) {
-      resultSet.cancel();
+      resultSet.close();
     }
   }
 
@@ -96,14 +97,10 @@ public class ThinStatement extends ThinBase implements Statement {
 
   @Override
   public ResultSet executeQuery( String sql ) throws SQLException {
-    try {
-      DataInputStream dataInputStream = connection.getClientService().query( sql, maxRows );
-      resultSet = createResultSet().loadFromInputStream( dataInputStream );
-      return resultSet;
-    } catch ( Exception e ) {
-      Throwables.propagateIfPossible( e, SQLException.class );
-      throw new SQLException( "Unable to execute query: ", e );
-    }
+    DataInputStream dataInputStream = connection.getClientService().query( sql, maxRows );
+    resultSet = resultFactory.loadResultSet( dataInputStream );
+    resultSet.setStatement( this );
+    return resultSet;
   }
 
   @Override @NotSupported

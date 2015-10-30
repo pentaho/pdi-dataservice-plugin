@@ -22,10 +22,16 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import com.google.common.base.Throwables;
 import org.pentaho.di.core.exception.KettleSQLException;
 import org.pentaho.di.core.jdbc.ThinUtil;
-import org.pentaho.di.core.row.ValueMeta;
 import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.core.row.value.ValueMetaBigNumber;
+import org.pentaho.di.core.row.value.ValueMetaBoolean;
+import org.pentaho.di.core.row.value.ValueMetaDate;
+import org.pentaho.di.core.row.value.ValueMetaInteger;
+import org.pentaho.di.core.row.value.ValueMetaNumber;
+import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 
 import java.io.InputStream;
@@ -35,7 +41,6 @@ import java.net.URL;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
-import java.sql.Date;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -51,11 +56,13 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 public class ThinPreparedStatement extends ThinStatement implements PreparedStatement {
 
-  private String sql; // contains ? placeholders
+  public static final SimpleDateFormat FORMAT = new SimpleDateFormat( "'['yyyy/MM/dd HH:mm:ss.SSS']'" );
+  private final String sql; // contains ? placeholders
 
   protected List<Integer> placeholderIndexes;
   protected ValueMetaInterface[] paramMeta;
@@ -88,10 +95,11 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
       paramMeta = new ValueMetaInterface[placeholderIndexes.size()];
       // Null Strings is the default.
       for ( int i = 0; i < placeholderIndexes.size(); i++ ) {
-        paramMeta[i] = new ValueMeta( "param-" + ( i + 1 ), ValueMetaInterface.TYPE_STRING );
+        paramMeta[i] = new ValueMetaString( "param-" + ( i + 1 ) );
       }
 
     } catch ( Exception e ) {
+      Throwables.propagateIfPossible( e, SQLException.class );
       throw new SQLException( e );
     }
   }
@@ -109,33 +117,34 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
         String replacement = null;
         if ( valueMeta.isNull( paramData[i] ) ) {
           replacement = "NULL";
-        }
-        switch ( valueMeta.getType() ) {
-          case ValueMetaInterface.TYPE_STRING:
-            replacement = "'" + valueMeta.getString( paramData[i] ) + "'";
-            break;
-          case ValueMetaInterface.TYPE_NUMBER:
-            double d = valueMeta.getNumber( paramData[i] );
-            replacement = Double.toString( d );
-            break;
-          case ValueMetaInterface.TYPE_INTEGER:
-            long l = valueMeta.getInteger( paramData[i] );
-            replacement = Long.toString( l );
-            break;
-          case ValueMetaInterface.TYPE_DATE:
-            java.util.Date date = valueMeta.getDate( paramData[i] );
-            replacement = new SimpleDateFormat( "'['yyyy/MM/dd HH:mm:ss.SSS']'" ).format( date );
-            break;
-          case ValueMetaInterface.TYPE_BIGNUMBER:
-            BigDecimal bd = valueMeta.getBigNumber( paramData[i] );
-            replacement = bd.toString();
-            break;
-          case ValueMetaInterface.TYPE_BOOLEAN:
-            boolean b = valueMeta.getBoolean( paramData[i] );
-            replacement = b ? "TRUE" : "FALSE";
-            break;
-          default:
-            break;
+        } else {
+          switch ( valueMeta.getType() ) {
+            case ValueMetaInterface.TYPE_STRING:
+              replacement = "'" + valueMeta.getString( paramData[i] ) + "'";
+              break;
+            case ValueMetaInterface.TYPE_NUMBER:
+              double d = valueMeta.getNumber( paramData[i] );
+              replacement = Double.toString( d );
+              break;
+            case ValueMetaInterface.TYPE_INTEGER:
+              long l = valueMeta.getInteger( paramData[i] );
+              replacement = Long.toString( l );
+              break;
+            case ValueMetaInterface.TYPE_DATE:
+              java.util.Date date = valueMeta.getDate( paramData[i] );
+              replacement = FORMAT.format( date );
+              break;
+            case ValueMetaInterface.TYPE_BIGNUMBER:
+              BigDecimal bd = valueMeta.getBigNumber( paramData[i] );
+              replacement = bd.toString();
+              break;
+            case ValueMetaInterface.TYPE_BOOLEAN:
+              boolean b = valueMeta.getBoolean( paramData[i] );
+              replacement = b ? "TRUE" : "FALSE";
+              break;
+            default:
+              break;
+          }
         }
         if ( replacement == null ) {
           throw new KettleSQLException( "Unhandled data type: "
@@ -153,9 +162,9 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
     }
   }
 
-  @Override
+  @Override @NotSupported
   public void addBatch() throws SQLException {
-    throw new SQLException( "Batch operations are not supported" );
+    throw new SQLFeatureNotSupportedException( "Batch operations are not supported" );
   }
 
   @Override
@@ -173,9 +182,9 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
     return executeQuery( replaceSql() );
   }
 
-  @Override
+  @Override @NotSupported
   public int executeUpdate() throws SQLException {
-    throw new SQLException( "Update operations are not supported" );
+    throw new SQLFeatureNotSupportedException( "Update operations are not supported" );
   }
 
   @Override @NotSupported
@@ -188,192 +197,180 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
     return new ThinParameterMetaData( this );
   }
 
-  @Override
+  @Override @NotSupported
   public void setArray( int nr, Array value ) throws SQLException {
-    throw new SQLException( "Arrays are not supported" );
+    throw new SQLFeatureNotSupportedException( "Arrays are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setAsciiStream( int nr, InputStream value ) throws SQLException {
-    throw new SQLException( "ASCII Streams are not supported" );
+    throw new SQLFeatureNotSupportedException( "ASCII Streams are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setAsciiStream( int nr, InputStream value, int arg2 ) throws SQLException {
-    throw new SQLException( "ASCII Streams are not supported" );
+    throw new SQLFeatureNotSupportedException( "ASCII Streams are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setAsciiStream( int nr, InputStream value, long arg2 ) throws SQLException {
-    throw new SQLException( "ASCII Streams are not supported" );
+    throw new SQLFeatureNotSupportedException( "ASCII Streams are not supported" );
   }
 
   @Override
   public void setBigDecimal( int nr, BigDecimal value ) throws SQLException {
-    paramData[nr - 1] = value;
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_BIGNUMBER );
+    setValue( nr, value, new ValueMetaBigNumber( "param-" + nr ) );
   }
 
-  @Override
+  @Override @NotSupported
   public void setBinaryStream( int nr, InputStream value ) throws SQLException {
-    throw new SQLException( "Binary Streams are not supported" );
+    throw new SQLFeatureNotSupportedException( "Binary Streams are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setBinaryStream( int nr, InputStream value, int arg2 ) throws SQLException {
-    throw new SQLException( "Binary Streams are not supported" );
+    throw new SQLFeatureNotSupportedException( "Binary Streams are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setBinaryStream( int nr, InputStream value, long arg2 ) throws SQLException {
-    throw new SQLException( "Binary Streams are not supported" );
+    throw new SQLFeatureNotSupportedException( "Binary Streams are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setBlob( int nr, Blob value ) throws SQLException {
-    throw new SQLException( "BLOB parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "BLOB parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setBlob( int nr, InputStream value ) throws SQLException {
-    throw new SQLException( "BLOB parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "BLOB parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setBlob( int nr, InputStream value, long arg2 ) throws SQLException {
-    throw new SQLException( "BLOB parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "BLOB parameters are not supported" );
   }
 
   @Override
   public void setBoolean( int nr, boolean value ) throws SQLException {
-    paramData[nr - 1] = Boolean.valueOf( value );
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_BOOLEAN );
+    setValue( nr, value, new ValueMetaBoolean( "param-" + nr ) );
   }
 
   @Override
   public void setByte( int nr, byte value ) throws SQLException {
-    paramData[nr - 1] = Long.valueOf( value );
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_INTEGER );
+    setValue( nr, (long) value, new ValueMetaInteger( "param-" + nr ) );
   }
 
-  @Override
+  @Override @NotSupported
   public void setBytes( int nr, byte[] value ) throws SQLException {
-    throw new SQLException( "Binary parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "Binary parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setCharacterStream( int nr, Reader value ) throws SQLException {
-    throw new SQLException( "Character stream parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "Character stream parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setCharacterStream( int nr, Reader value, int arg2 ) throws SQLException {
-    throw new SQLException( "Character stream parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "Character stream parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setCharacterStream( int nr, Reader value, long arg2 ) throws SQLException {
-    throw new SQLException( "Character stream parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "Character stream parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setClob( int nr, Clob value ) throws SQLException {
-    throw new SQLException( "CLOB parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "CLOB parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setClob( int nr, Reader value ) throws SQLException {
-    throw new SQLException( "CLOB parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "CLOB parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setClob( int nr, Reader value, long arg2 ) throws SQLException {
-    throw new SQLException( "CLOB parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "CLOB parameters are not supported" );
   }
 
   @Override
-  public void setDate( int nr, Date value ) throws SQLException {
-    paramData[nr - 1] = new java.util.Date( value.getTime() );
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_DATE );
+  public void setDate( int nr, java.sql.Date value ) throws SQLException {
+    setDate( nr, value, Calendar.getInstance() );
   }
 
   @Override
-  public void setDate( int nr, Date value, Calendar calendar ) throws SQLException {
-    // TODO: investigate the calendar parameter functionality with regards to time zones.
-    //
-    paramData[nr - 1] = new java.util.Date( value.getTime() );
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_DATE );
+  public void setDate( int nr, java.sql.Date value, Calendar calendar ) throws SQLException {
+    setTimeValue( nr, value, calendar );
   }
 
   @Override
   public void setDouble( int nr, double value ) throws SQLException {
-    paramData[nr - 1] = Double.valueOf( value );
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_NUMBER );
+    setValue( nr, value, new ValueMetaNumber( "param-" + nr ) );
   }
 
   @Override
   public void setFloat( int nr, float value ) throws SQLException {
-    paramData[nr - 1] = Double.valueOf( value );
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_NUMBER );
+    setDouble( nr, value );
   }
 
   @Override
   public void setInt( int nr, int value ) throws SQLException {
-    paramData[nr - 1] = Long.valueOf( value );
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_INTEGER );
+    setValue( nr, (long) value, new ValueMetaInteger( "param-" + nr ) );
   }
 
   @Override
   public void setLong( int nr, long value ) throws SQLException {
-    paramData[nr - 1] = Long.valueOf( value );
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_INTEGER );
+    setValue( nr, value, new ValueMetaInteger( "param-" + nr ) );
   }
 
-  @Override
+  @Override @NotSupported
   public void setNCharacterStream( int nr, Reader value ) throws SQLException {
-    throw new SQLException( "NCharacter stream parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "NCharacter stream parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setNCharacterStream( int nr, Reader value, long arg2 ) throws SQLException {
-    throw new SQLException( "NCharacter stream parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "NCharacter stream parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setNClob( int nr, NClob value ) throws SQLException {
-    throw new SQLException( "NCLOB parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "NCLOB parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setNClob( int nr, Reader value ) throws SQLException {
-    throw new SQLException( "NCLOB parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "NCLOB parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setNClob( int nr, Reader value, long arg2 ) throws SQLException {
-    throw new SQLException( "NCLOB parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "NCLOB parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setNString( int nr, String value ) throws SQLException {
-    throw new SQLException( "NString parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "NString parameters are not supported" );
   }
 
   @Override
   public void setNull( int nr, int sqlType ) throws SQLException {
-    paramData[nr - 1] = null;
-    paramMeta[nr - 1] = ThinUtil.getValueMeta( "param-" + nr, sqlType );
+    setValue( nr, null, ThinUtil.getValueMeta( "param-" + nr, sqlType ) );
   }
 
   @Override
-  public void setNull( int nr, int value, String arg2 ) throws SQLException {
+  public void setNull( int nr, int value, String typeName ) throws SQLException {
     setNull( nr, value );
   }
 
   @Override
   public void setObject( int nr, Object value ) throws SQLException {
     if ( value == null ) {
-      throw new SQLException( "Null values are not supported for the setObject() method" );
+      throw new SQLFeatureNotSupportedException( "Null values are not supported for the setObject() method" );
     }
     if ( value instanceof String ) {
       setString( nr, (String) value );
@@ -384,7 +381,7 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
     } else if ( value instanceof Byte ) {
       setByte( nr, (Byte) value );
     } else if ( value instanceof Date ) {
-      setDate( nr, (Date) value );
+      setTimeValue( nr, (Date) value, Calendar.getInstance() );
     } else if ( value instanceof Boolean ) {
       setBoolean( nr, (Boolean) value );
     } else if ( value instanceof Double ) {
@@ -408,19 +405,19 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
     setObject( nr, value );
   }
 
-  @Override
+  @Override @NotSupported
   public void setRef( int nr, Ref value ) throws SQLException {
-    throw new SQLException( "REF parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "REF parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setRowId( int nr, RowId value ) throws SQLException {
-    throw new SQLException( "ROWID parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "ROWID parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   public void setSQLXML( int nr, SQLXML value ) throws SQLException {
-    throw new SQLException( "SQLXML parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "SQLXML parameters are not supported" );
   }
 
   @Override
@@ -430,56 +427,38 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
 
   @Override
   public void setString( int nr, String value ) throws SQLException {
-    paramData[nr - 1] = value;
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_STRING );
+    setValue( nr, value, new ValueMetaString( "param-" + nr ) );
   }
 
   @Override
   public void setTime( int nr, Time value ) throws SQLException {
-    paramData[nr - 1] = new java.util.Date( value.getTime() );
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_DATE );
+    setTime( nr, value, Calendar.getInstance() );
   }
 
   @Override
-  public void setTime( int nr, Time value, Calendar arg2 ) throws SQLException {
-    setTime( nr, value );
+  public void setTime( int nr, Time value, Calendar calendar ) throws SQLException {
+    setTimeValue( nr, value, calendar );
   }
 
   @Override
   public void setTimestamp( int nr, Timestamp value ) throws SQLException {
-    paramData[nr - 1] = new java.util.Date( value.getTime() );
-    paramMeta[nr - 1] = new ValueMeta( "param-" + nr, ValueMetaInterface.TYPE_DATE );
+    setTimestamp( nr, value, Calendar.getInstance() );
   }
 
   @Override
-  public void setTimestamp( int nr, Timestamp value, Calendar arg2 ) throws SQLException {
-    setTimestamp( nr, value );
+  public void setTimestamp( int nr, Timestamp value, Calendar calendar ) throws SQLException {
+    setTimeValue( nr, value, calendar );
   }
 
-  @Override
+  @Override @NotSupported
   public void setURL( int nr, URL value ) throws SQLException {
-    throw new SQLException( "URL parameters are not supported" );
+    throw new SQLFeatureNotSupportedException( "URL parameters are not supported" );
   }
 
-  @Override
+  @Override @NotSupported
   @Deprecated
   public void setUnicodeStream( int nr, InputStream value, int arg2 ) throws SQLException {
-    throw new SQLException( "Unicode stream parameters are not supported" );
-  }
-
-  /**
-   * @return the sql
-   */
-  public String getSql() {
-    return sql;
-  }
-
-  /**
-   * @param sql
-   *          the sql to set
-   */
-  public void setSql( String sql ) {
-    this.sql = sql;
+    throw new SQLFeatureNotSupportedException( "Unicode stream parameters are not supported" );
   }
 
   /**
@@ -494,6 +473,16 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
    */
   public Object[] getParamData() {
     return paramData;
+  }
+
+  protected void setValue( int nr, Object value, ValueMetaInterface valueMeta ) {
+    paramData[nr - 1] = value;
+    paramMeta[nr - 1] = valueMeta;
+  }
+
+  protected void setTimeValue( int nr, Date value, Calendar calendar ) {
+    calendar.setTime( value );
+    setValue( nr, calendar.getTime(), new ValueMetaDate( "param-" + nr ) );
   }
 
 }

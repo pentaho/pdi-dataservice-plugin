@@ -22,6 +22,7 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
@@ -31,9 +32,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Wrapper;
-import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.hamcrest.Matchers.anything;
 import static org.hamcrest.Matchers.containsString;
@@ -49,9 +50,9 @@ import static org.mockito.Mockito.mock;
  */
 public abstract class JDBCTestBase<C> {
 
-  protected final Class<C> type;
+  protected final Class<? extends C> type;
 
-  public JDBCTestBase( Class<C> type ) {
+  public JDBCTestBase( Class<? extends C> type ) {
     this.type = type;
   }
 
@@ -96,6 +97,14 @@ public abstract class JDBCTestBase<C> {
     }
   }
 
+  protected Method getMethod( String name, Class<?>... parameterTypes ) {
+    try {
+      return type.getMethod( name, parameterTypes );
+    } catch ( NoSuchMethodException e ) {
+      throw Throwables.propagate( e );
+    }
+  }
+
   private interface SecretInterface {
   }
 
@@ -118,8 +127,18 @@ public abstract class JDBCTestBase<C> {
       value = UUID.randomUUID().toString();
     } else if ( type.equals( Boolean.TYPE ) ) {
       value = true;
+    } else if ( type.equals( Byte.TYPE ) ) {
+      value = (byte) ThreadLocalRandom.current().nextInt();
+    } else if ( type.equals( Short.TYPE ) ) {
+      value = (short) ThreadLocalRandom.current().nextInt();
+    } else if ( type.equals( Float.TYPE ) ) {
+      value = ThreadLocalRandom.current().nextFloat();
+    } else if ( type.equals( Double.TYPE ) ) {
+      value = ThreadLocalRandom.current().nextDouble();
+    } else if ( type.equals( Long.TYPE ) ) {
+      value = ThreadLocalRandom.current().nextLong();
     } else if ( type.equals( Integer.TYPE ) ) {
-      value = new Random().nextInt();
+      value = ThreadLocalRandom.current().nextInt();
     } else if ( type.equals( Class.class ) ) {
       value = Object.class;
     } else if ( type.isArray() ) {
