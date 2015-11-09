@@ -22,13 +22,11 @@
 
 package org.pentaho.di.trans.dataservice.client;
 
-import com.google.common.base.Supplier;
 import org.pentaho.di.core.annotations.LifecyclePlugin;
 import org.pentaho.di.core.lifecycle.LifeEventHandler;
 import org.pentaho.di.core.lifecycle.LifecycleException;
 import org.pentaho.di.core.lifecycle.LifecycleListener;
 import org.pentaho.di.trans.dataservice.jdbc.ThinConnection;
-import org.pentaho.di.ui.spoon.Spoon;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,22 +34,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @LifecyclePlugin( id = "DataServiceLifecycleListener" )
 public class DataServiceLifecycleListener implements LifecycleListener {
 
-  private final Supplier<Spoon> spoonSupplier;
   private final AtomicReference<DataServiceClientService> dataServiceClientService =
     new AtomicReference<DataServiceClientService>();
   private final AtomicBoolean enabled = new AtomicBoolean( false );
-
-  public DataServiceLifecycleListener() {
-    this( new Supplier<Spoon>() {
-      @Override public Spoon get() {
-        return Spoon.getInstance();
-      }
-    } );
-  }
-
-  public DataServiceLifecycleListener( Supplier<Spoon> spoonSupplier ) {
-    this.spoonSupplier = spoonSupplier;
-  }
 
   public void bind( DataServiceClientService service ) {
     dataServiceClientService.set( service );
@@ -76,14 +61,6 @@ public class DataServiceLifecycleListener implements LifecycleListener {
   }
 
   private synchronized void setup( DataServiceClientService clientService ) {
-    if ( enabled.get() && clientService != null ) {
-      Spoon spoon = spoonSupplier.get();
-
-      clientService.setRepository( spoon.getRepository() );
-      clientService.setMetaStore( spoon.getMetaStore() );
-      ThinConnection.localClient = clientService;
-    } else {
-      ThinConnection.localClient = null;
-    }
+    ThinConnection.localClient = enabled.get() ? clientService : null;
   }
 }
