@@ -22,7 +22,7 @@
 
 package org.pentaho.di.trans.dataservice.client;
 
-import com.google.common.base.Suppliers;
+import com.google.common.base.Supplier;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,7 +38,9 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -48,6 +50,7 @@ import static org.mockito.Mockito.when;
 public class DataServiceLifecycleListenerTest {
 
   @Mock Spoon spoon;
+  @Mock Supplier<Spoon> spoonSupplier;
   @Mock DataServiceClientService clientService;
   DataServiceLifecycleListener lifecycleListener;
 
@@ -58,24 +61,33 @@ public class DataServiceLifecycleListenerTest {
   public void setUp() throws Exception {
     when( spoon.getRepository() ).thenReturn( repository );
     when( spoon.getMetaStore() ).thenReturn( metaStore );
-    lifecycleListener = new DataServiceLifecycleListener( Suppliers.ofInstance( spoon ) );
+    when( spoonSupplier.get() ).thenReturn( spoon );
+    lifecycleListener = new DataServiceLifecycleListener( spoonSupplier );
   }
 
   @Test
   public void testLifecycle() throws Exception {
-    lifecycleListener.onStart( mock( LifeEventHandler.class ) );
-    assertThat( ThinConnection.localClient, nullValue() );
-
     lifecycleListener.bind( clientService );
-    assertThat( ThinConnection.localClient, sameInstance( clientService ) );
-
-    verify( clientService ).setRepository( repository );
-    verify( clientService ).setMetaStore( metaStore );
+    assertThat( ThinConnection.localClient, nullValue() );
 
     lifecycleListener.unbind( clientService );
     assertThat( ThinConnection.localClient, nullValue() );
 
+    lifecycleListener.onStart( mock( LifeEventHandler.class ) );
+    lifecycleListener.onStart( mock( LifeEventHandler.class ) );
+    assertThat( ThinConnection.localClient, nullValue() );
+
+    // Spoon instance is not requested until onStart has been called and service is bound
+    verify( spoonSupplier, never() ).get();
+
+    lifecycleListener.bind( clientService );
+    assertThat( ThinConnection.localClient, sameInstance( clientService ) );
+
+    lifecycleListener.onExit( mock( LifeEventHandler.class ) );
     lifecycleListener.onExit( mock( LifeEventHandler.class ) );
     assertThat( ThinConnection.localClient, nullValue() );
+
+    verify( spoonSupplier ).get();
+    verifyNoMoreInteractions( spoonSupplier );
   }
 }

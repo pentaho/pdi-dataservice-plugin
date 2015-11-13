@@ -30,6 +30,7 @@ import org.pentaho.di.core.lifecycle.LifecycleListener;
 import org.pentaho.di.trans.dataservice.jdbc.ThinConnection;
 import org.pentaho.di.ui.spoon.Spoon;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 @LifecyclePlugin( id = "DataServiceLifecycleListener" )
@@ -38,6 +39,7 @@ public class DataServiceLifecycleListener implements LifecycleListener {
   private final Supplier<Spoon> spoonSupplier;
   private final AtomicReference<DataServiceClientService> dataServiceClientService =
     new AtomicReference<DataServiceClientService>();
+  private final AtomicBoolean enabled = new AtomicBoolean( false );
 
   public DataServiceLifecycleListener() {
     this( new Supplier<Spoon>() {
@@ -53,29 +55,35 @@ public class DataServiceLifecycleListener implements LifecycleListener {
 
   public void bind( DataServiceClientService service ) {
     dataServiceClientService.set( service );
-    setup();
+    setup( service );
   }
 
   public void unbind( DataServiceClientService service ) {
-    ThinConnection.localClient = null;
+    dataServiceClientService.set( null );
+    setup( null );
   }
 
   @Override public void onStart( LifeEventHandler handler ) throws LifecycleException {
-    setup();
+    if ( enabled.compareAndSet( false, true ) ) {
+      setup( this.dataServiceClientService.get() );
+    }
   }
 
   @Override public void onExit( LifeEventHandler handler ) throws LifecycleException {
+    if ( enabled.compareAndSet( true, false ) ) {
+      setup( this.dataServiceClientService.get() );
+    }
   }
 
-  private void setup() {
-    DataServiceClientService dataServiceClientService = this.dataServiceClientService.get();
-    if ( dataServiceClientService == null ) {
-      return;
-    }
-    Spoon spoon = spoonSupplier.get();
+  private synchronized void setup( DataServiceClientService clientService ) {
+    if ( enabled.get() && clientService != null ) {
+      Spoon spoon = spoonSupplier.get();
 
-    dataServiceClientService.setRepository( spoon.getRepository() );
-    dataServiceClientService.setMetaStore( spoon.getMetaStore() );
-    ThinConnection.localClient = dataServiceClientService;
+      clientService.setRepository( spoon.getRepository() );
+      clientService.setMetaStore( spoon.getMetaStore() );
+      ThinConnection.localClient = clientService;
+    } else {
+      ThinConnection.localClient = null;
+    }
   }
 }
