@@ -51,7 +51,7 @@ class MockDataInput extends DataOutputStream {
     RowMeta rowMeta = new RowMeta();
     rowMeta.addValueMeta( new ValueMetaString( "DUMMY" ) );
     rowMeta.writeMeta( dataOutput );
-    rowMeta.writeData( dataOutput, new Object[] { "X" } );
+    rowMeta.writeData( dataOutput, new Object[] { "x" } );
     return dataOutput;
   }
 
