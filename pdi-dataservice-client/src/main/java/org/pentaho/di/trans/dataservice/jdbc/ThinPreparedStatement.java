@@ -69,7 +69,11 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
   protected Object[] paramData;
 
   public ThinPreparedStatement( ThinConnection connection, String sql ) throws SQLException {
-    super( connection );
+    this( connection, sql, new ThinResultFactory() );
+  }
+
+  public ThinPreparedStatement( ThinConnection connection, String sql, ThinResultFactory resultFactory ) throws SQLException {
+    super( connection, resultFactory );
     this.sql = sql;
 
     analyzeSql();
@@ -187,9 +191,10 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
     throw new SQLFeatureNotSupportedException( "Update operations are not supported" );
   }
 
-  @Override @NotSupported
+  @Override
   public ResultSetMetaData getMetaData() throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Prepared statement meta data is not available" );
+    ResultSet resultSet = getResultSet();
+    return resultSet == null ? null : resultSet.getMetaData();
   }
 
   @Override

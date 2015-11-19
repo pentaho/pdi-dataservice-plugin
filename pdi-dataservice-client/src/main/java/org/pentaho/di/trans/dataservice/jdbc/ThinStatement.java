@@ -35,15 +35,15 @@ public class ThinStatement extends ThinBase implements Statement {
 
   protected final ThinConnection connection;
   private final ThinResultFactory resultFactory;
-  protected ThinResultSet resultSet;
+  private ThinResultSet resultSet;
 
-  protected int maxRows;
+  protected int maxRows = -1;
 
   public ThinStatement( ThinConnection connection ) {
     this( connection, new ThinResultFactory() );
   }
 
-  public ThinStatement( ThinConnection connection, ThinResultFactory resultFactory ) {
+  protected ThinStatement( ThinConnection connection, ThinResultFactory resultFactory ) {
     this.connection = connection;
     this.resultFactory = resultFactory;
   }

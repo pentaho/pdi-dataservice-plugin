@@ -28,9 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 
 import java.io.DataInputStream;
@@ -39,18 +37,20 @@ import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.times;
+import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,8 +63,10 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
   static final String SQL = "SELECT * FROM dataService WHERE query = ?";
   @Mock ThinConnection connection;
   @Mock DataServiceClientService clientService;
+  @Mock ThinResultFactory resultFactory;
+  @Mock ThinResultSet resultSet;
+  @Mock ThinResultSetMetaData resultSetMetaData;
   ThinPreparedStatement statement;
-  String lastQuery;
 
   public ThinPreparedStatementTest() {
     super( ThinPreparedStatement.class );
@@ -72,14 +74,13 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
 
   @Before
   public void setUp() throws Exception {
-    statement = new ThinPreparedStatement( connection, SQL );
+    statement = new ThinPreparedStatement( connection, SQL, resultFactory );
     when( connection.getClientService() ).thenReturn( clientService );
-    when( clientService.query( anyString(), anyInt() ) ).then( new Answer<DataInputStream>() {
-      @Override public DataInputStream answer( InvocationOnMock invocation ) throws Throwable {
-        lastQuery = (String) invocation.getArguments()[0];
-        return MockDataInput.dual().toDataInputStream();
-      }
-    } );
+
+    DataInputStream dataInputStream = MockDataInput.dual().toDataInputStream();
+    when( clientService.query( anyString(), anyInt() ) ).thenReturn( dataInputStream );
+    when( resultFactory.loadResultSet( same( dataInputStream ) ) ).thenReturn( resultSet );
+    when( resultSet.getMetaData() ).thenReturn( resultSetMetaData );
   }
 
   @Override protected ThinPreparedStatement getTestObject() {
@@ -87,8 +88,12 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
   }
 
   protected void verifyQuery( String query ) throws SQLException {
+    assertThat( statement.getResultSet(), nullValue() );
+    assertThat( statement.getMetaData(), nullValue() );
     statement.executeQuery();
-    assertThat( lastQuery, equalTo( "SELECT * FROM dataService WHERE query = " + query ) );
+    verify( clientService ).query( "SELECT * FROM dataService WHERE query = " + query, -1 );
+    assertThat( statement.getResultSet(), is( (ResultSet) resultSet ) );
+    assertThat( statement.getMetaData(), is( (ResultSetMetaData) resultSetMetaData ) );
   }
 
   @Test
@@ -113,20 +118,30 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
   }
 
   @Test
-  public void testDates() throws Exception {
+  public void testDate() throws Exception {
     long millis = System.currentTimeMillis();
-    String expected = ThinPreparedStatement.FORMAT.format( new java.util.Date( millis ) );
+    String expected = ThinPreparedStatement.FORMAT.format( new Date( millis ) );
 
     statement.setDate( 1, new Date( millis ) );
     verifyQuery( expected );
+  }
+
+  @Test
+  public void testTime() throws Exception {
+    long millis = System.currentTimeMillis();
+    String expected = ThinPreparedStatement.FORMAT.format( new Time( millis ) );
 
     statement.setTime( 1, new Time( millis ) );
     verifyQuery( expected );
+  }
+
+  @Test
+  public void testTimestamp() throws Exception {
+    long millis = System.currentTimeMillis();
+    String expected = ThinPreparedStatement.FORMAT.format( new Timestamp( millis ) );
 
     statement.setTimestamp( 1, new Timestamp( millis ) );
     verifyQuery( expected );
-
-    verify( clientService, times( 3 ) ).query( anyString(), anyInt() );
   }
 
   @Test
@@ -158,21 +173,21 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
     // TODO not all types translate correctly
     for ( Integer type : ImmutableList.of( Types.VARCHAR, Types.BOOLEAN, Types.BIGINT ) ) {
       statement.setNull( 1, type );
-      verifyQuery( "NULL" );
       assertThat( statement.getParameterMetaData().getParameterType( 1 ), is( type ) );
     }
+    verifyQuery( "NULL" );
   }
 
   @Test
   public void testObject() throws Exception {
-    ImmutableMap<? extends Serializable, String> tests = ImmutableMap.of(
-      2.5f, "2.5",
-      42, "42",
-      "Some String", "'Some String'"
+    ImmutableMap<? extends Serializable, Integer> tests = ImmutableMap.of(
+      2.5f, Types.DOUBLE,
+      42, Types.BIGINT,
+      "Some String", Types.VARCHAR
     );
-    for ( Map.Entry<? extends Serializable, String> entry : tests.entrySet() ) {
+    for ( Map.Entry<? extends Serializable, Integer> entry : tests.entrySet() ) {
       statement.setObject( 1, entry.getKey() );
-      verifyQuery( entry.getValue() );
+      assertThat( statement.getParameterMetaData().getParameterType( 1 ), is( entry.getValue() ) );
     }
   }
 
