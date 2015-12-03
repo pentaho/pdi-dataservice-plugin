@@ -1,33 +1,27 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                             http://maven.apache.org/maven-v4_0_0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <groupId>pentaho</groupId>
-    <artifactId>pdi-dataservice-client-plugin-parent</artifactId>
-    <packaging>pom</packaging>
-    <version>6.0-SNAPSHOT</version>
-    <name>Dataservice client parent project</name>
-
-    <parent>
-        <groupId>org.pentaho</groupId>
-        <artifactId>pentaho-ce-jar-parent-pom</artifactId>
-        <version>1.0.13</version>
-    </parent>
-
-    <properties>
-        <mockito.version>1.9.5</mockito.version>
-        <junit.version>4.4</junit.version>
-        <dependency.pentaho-kettle.version>6.0-SNAPSHOT</dependency.pentaho-kettle.version>
-        <guava.version>17.0</guava.version>
-        <plugin.org.apache.maven.plugins.maven-assembly-plugin.version>2.4</plugin.org.apache.maven.plugins.maven-assembly-plugin.version>
-        <plugin.org.codehaus.mojo.build-helper-maven-plugin.version>1.5</plugin.org.codehaus.mojo.build-helper-maven-plugin.version>
-    </properties>
-
-    <modules>
-        <module>pdi-dataservice-client</module>
-        <module>assembly</module>
-    </modules>
-
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.pentaho</groupId>
+    <artifactId>pentaho-ce-jar-parent-pom</artifactId>
+    <version>1.0.13</version>
+  </parent>
+  <groupId>pentaho</groupId>
+  <artifactId>pdi-dataservice-client-plugin-parent</artifactId>
+  <version>6.0.1.0-386</version>
+  <packaging>pom</packaging>
+  <name>Dataservice client parent project</name>
+  <modules>
+    <module>pdi-dataservice-client</module>
+    <module>assembly</module>
+  </modules>
+  <properties>
+    <dependency.pentaho-kettle.version>6.0.1.0-386</dependency.pentaho-kettle.version>
+    <mockito.version>1.9.5</mockito.version>
+    <plugin.org.codehaus.mojo.build-helper-maven-plugin.version>1.5</plugin.org.codehaus.mojo.build-helper-maven-plugin.version>
+    <guava.version>17.0</guava.version>
+    <plugin.org.apache.maven.plugins.maven-assembly-plugin.version>2.4</plugin.org.apache.maven.plugins.maven-assembly-plugin.version>
+    <junit.version>4.4</junit.version>
+  </properties>
 </project>
