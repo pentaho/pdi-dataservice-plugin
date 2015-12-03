@@ -7,7 +7,7 @@
     <artifactId>pdi-dataservice-client-plugin-parent</artifactId>
     <version>6.1-SNAPSHOT</version>
   </parent>
-  <artifactId>pdi-dataservice-client-plugin-assembly</artifactId>
+  <artifactId>pdi-dataservice-driver-bundle</artifactId>
   <version>6.1-SNAPSHOT</version>
   <dependencies>
     <dependency>
