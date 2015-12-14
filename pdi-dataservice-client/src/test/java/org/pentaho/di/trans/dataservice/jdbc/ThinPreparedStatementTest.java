@@ -79,7 +79,7 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
 
     DataInputStream dataInputStream = MockDataInput.dual().toDataInputStream();
     when( clientService.query( anyString(), anyInt() ) ).thenReturn( dataInputStream );
-    when( resultFactory.loadResultSet( same( dataInputStream ) ) ).thenReturn( resultSet );
+    when( resultFactory.loadResultSet( same( dataInputStream ), same( clientService ) ) ).thenReturn( resultSet );
     when( resultSet.getMetaData() ).thenReturn( resultSetMetaData );
   }
 

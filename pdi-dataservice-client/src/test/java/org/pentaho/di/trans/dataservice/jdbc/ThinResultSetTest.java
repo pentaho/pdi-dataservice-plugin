@@ -31,6 +31,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.pentaho.di.core.exception.KettleEOFException;
 import org.pentaho.di.core.row.value.ValueMetaString;
+import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 
 import java.io.DataInputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -51,11 +52,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.*;
 
 @RunWith( MockitoJUnitRunner.class )
 public class ThinResultSetTest extends BaseResultSetTest {
@@ -63,6 +60,7 @@ public class ThinResultSetTest extends BaseResultSetTest {
   ThinResultSet thinResultSet;
   ThinResultHeader resultHeader;
   @Mock DataInputStream dataInputStream;
+  @Mock DataServiceClientService client;
   Object[] nextRow = new Object[0];
 
   public ThinResultSetTest() {
@@ -72,7 +70,7 @@ public class ThinResultSetTest extends BaseResultSetTest {
   @Before
   public void setUp() throws Exception {
     resultHeader = new ThinResultHeader( "resultSetTest", "serviceTrans", "serviceId", "sqlTrans", "sqlId", rowMeta );
-    thinResultSet = new ThinResultSet( resultHeader, dataInputStream );
+    thinResultSet = new ThinResultSet( resultHeader, dataInputStream, client );
     doAnswer( new Answer() {
       @Override public Object[] answer( InvocationOnMock invocation ) throws Throwable {
         return nextRow;
@@ -146,6 +144,12 @@ public class ThinResultSetTest extends BaseResultSetTest {
   public void testClose() throws Exception {
     verifyState( "beforeFirst" );
     assertThat( thinResultSet.isClosed(), is( false ) );
+
+    DataInputStream errorInputStream = MockDataInput.errors().toDataInputStream();
+    DataInputStream stopInputStream = MockDataInput.stop().toDataInputStream();
+
+    when( client.query( "[ errors serviceId ]", 0 ) ).thenReturn( errorInputStream );
+    when( client.query( "[ stop serviceId ]", 0 ) ).thenReturn( stopInputStream );
 
     thinResultSet.close();
 

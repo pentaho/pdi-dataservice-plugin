@@ -62,11 +62,13 @@ import static org.mockito.Mockito.when;
 public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
 
   public static final String SQL = "SELECT * FROM dataService";
+  public static final String SERVICE_OBJECT_ID = "12345";
 
   @Mock ThinConnection connection;
   @Mock ThinResultSet resultSet;
   @Mock DataServiceClientService clientService;
   @Mock ThinResultFactory resultFactory;
+  @Mock ThinResultHeader header;
   ThinStatement statement;
 
   public ThinStatementTest() {
@@ -84,8 +86,11 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
       }
     } );
 
+    when( resultSet.getHeader() ).thenReturn( header );
+    when( header.getServiceObjectId() ).thenReturn( SERVICE_OBJECT_ID );
     when( connection.getClientService() ).thenReturn( clientService );
-    when( resultFactory.loadResultSet( any( DataInputStream.class ) ) ).thenReturn( resultSet );
+    when( resultFactory.loadResultSet( any( DataInputStream.class ), any( DataServiceClientService.class ) ) )
+        .thenReturn( resultSet );
   }
 
   @Test
