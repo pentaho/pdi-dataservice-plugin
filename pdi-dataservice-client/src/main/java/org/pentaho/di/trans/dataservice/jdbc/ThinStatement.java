@@ -98,7 +98,7 @@ public class ThinStatement extends ThinBase implements Statement {
   @Override
   public ResultSet executeQuery( String sql ) throws SQLException {
     DataInputStream dataInputStream = connection.getClientService().query( sql, maxRows );
-    resultSet = resultFactory.loadResultSet( dataInputStream );
+    resultSet = resultFactory.loadResultSet( dataInputStream, connection.getClientService() );
     resultSet.setStatement( this );
     return resultSet;
   }

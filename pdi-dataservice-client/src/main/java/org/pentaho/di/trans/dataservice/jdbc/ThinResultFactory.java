@@ -25,6 +25,7 @@ package org.pentaho.di.trans.dataservice.jdbc;
 import com.google.common.base.Throwables;
 import org.pentaho.di.core.KettleClientEnvironment;
 import org.pentaho.di.core.row.RowMeta;
+import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 
 import java.io.DataInputStream;
 import java.sql.SQLException;
@@ -33,8 +34,9 @@ import java.sql.SQLException;
  * @author nhudak
  */
 public class ThinResultFactory {
-  public ThinResultSet loadResultSet( DataInputStream dataInputStream ) throws SQLException {
-    return new ThinResultSet( loadHeader( dataInputStream ), dataInputStream );
+  public ThinResultSet loadResultSet( DataInputStream dataInputStream, DataServiceClientService client )
+      throws SQLException {
+    return new ThinResultSet( loadHeader( dataInputStream ), dataInputStream, client );
   }
 
   public ThinResultHeader loadHeader( DataInputStream dataInputStream ) throws SQLException {

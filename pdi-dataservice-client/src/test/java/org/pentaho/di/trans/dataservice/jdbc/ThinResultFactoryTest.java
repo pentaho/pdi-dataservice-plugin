@@ -26,6 +26,8 @@ import com.google.common.base.Throwables;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -47,13 +49,15 @@ import static org.mockito.Mockito.when;
 @RunWith( org.mockito.runners.MockitoJUnitRunner.class )
 public class ThinResultFactoryTest {
 
+  @Mock DataServiceClientService client;
+
   @InjectMocks ThinResultFactory factory;
 
   @Test
   public void testLoadResultSet() throws Exception {
     DataInputStream inputStream = MockDataInput.dual().toDataInputStream();
 
-    ThinResultSet resultSet = factory.loadResultSet( inputStream );
+    ThinResultSet resultSet = factory.loadResultSet( inputStream, client );
     ResultSetMetaData metaData = resultSet.getMetaData();
 
     assertThat( metaData.getTableName( 1 ), is( "dual" ) );

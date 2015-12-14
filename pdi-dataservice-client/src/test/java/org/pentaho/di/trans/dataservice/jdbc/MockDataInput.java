@@ -55,6 +55,20 @@ class MockDataInput extends DataOutputStream {
     return dataOutput;
   }
 
+  public static MockDataInput errors() throws IOException, KettleFileException {
+    MockDataInput dataOuput = new MockDataInput();
+    dataOuput.writeUTF( "false" );
+
+    return dataOuput;
+  }
+
+  public static MockDataInput stop() throws IOException, KettleFileException {
+    MockDataInput dataOuput = new MockDataInput();
+    dataOuput.writeUTF( "true" );
+
+    return dataOuput;
+  }
+
   public byte[] getBuffer() {
     return ( (ByteArrayOutputStream) out ).toByteArray();
   }

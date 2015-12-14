@@ -22,8 +22,10 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleEOFException;
 import org.pentaho.di.core.exception.KettleFileException;
+import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -38,16 +40,18 @@ public class ThinResultSet extends BaseResultSet {
   private final ThinResultHeader thinResultHeader;
   private final AtomicBoolean stopped = new AtomicBoolean( false );
   private DataInputStream dataInputStream;
+  private DataServiceClientService client;
   private int size = 1;
 
-  public ThinResultSet( ThinResultHeader header, DataInputStream dataInputStream ) {
+  public ThinResultSet( ThinResultHeader header, DataInputStream dataInputStream, DataServiceClientService client ) {
     super( header.getRowMeta() );
     this.thinResultHeader = header;
     this.dataInputStream = dataInputStream;
+    this.client = client;
   }
 
   @Override
-  public void close() {
+  public void close() throws SQLException {
     try {
       // Kill the service transformation on the server...
       // Only ever try once.
@@ -56,10 +60,25 @@ public class ThinResultSet extends BaseResultSet {
         dataInputStream.close();
       }
       if ( stopped.compareAndSet( false, true ) ) {
-        // TODO issue stop to serviceTrans: http://jira.pentaho.com/browse/BACKLOG-4594
-        ThinDriver.logger.warning( "Need to stop " + thinResultHeader.getServiceTransName() );
+        String id = thinResultHeader.getServiceObjectId();
+        if ( !Const.isEmpty( id ) ) {
+          Boolean hasErrors = false;
+          DataInputStream
+              errorInputStream =
+              client.query( "[ errors " + thinResultHeader.getServiceObjectId() + " ]", 0 );
+          try {
+            hasErrors = "true".equals( errorInputStream.readUTF() );
+          } finally {
+            errorInputStream.close();
+          }
+          DataInputStream stopInputStream = client.query( "[ stop " + thinResultHeader.getServiceObjectId() + " ]", 0 );
+          stopInputStream.close();
+          if ( hasErrors ) {
+            throw new SQLException( "An error occurred while processing request." );
+          }
+        }
       }
-    } catch ( Exception e ) {
+    } catch ( IOException e ) {
       ThinDriver.logger.warning( e.getMessage() );
     } finally {
       dataInputStream = null;
