@@ -31,8 +31,22 @@ import java.sql.SQLException;
 import java.util.List;
 
 public interface DataServiceClientService {
+  /**
+   * @deprecated as of 6.1.
+   *
+   * Implementations should locate the meta store. It does not need to be provided users of this interface.
+   */
+  @Deprecated
   void setMetaStore( IMetaStore metaStore );
+
+  /**
+   * @deprecated as of 6.1.
+   *
+   * Implementations should locate the repository. It does not need to be provided users of this interface.
+   */
+  @Deprecated
   void setRepository( Repository repository );
+
   DataInputStream query( String sql, int maxRows ) throws SQLException;
   List<ThinServiceInformation> getServiceInformation() throws SQLException;
 }
