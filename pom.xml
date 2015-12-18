@@ -17,7 +17,7 @@
     <module>assembly</module>
   </modules>
   <properties>
-    <dependency.pentaho-kettle.version>6.1-SNAPSHOT</dependency.pentaho-kettle.version>
+    <dependency.kettle.revision>6.1-SNAPSHOT</dependency.kettle.revision>
     <mockito.version>1.9.5</mockito.version>
     <plugin.org.codehaus.mojo.build-helper-maven-plugin.version>1.5</plugin.org.codehaus.mojo.build-helper-maven-plugin.version>
     <guava.version>17.0</guava.version>
