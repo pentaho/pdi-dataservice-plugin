@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>pentaho</groupId>
-    <artifactId>pdi-dataservice-client-plugin-parent</artifactId>
+    <artifactId>pdi-dataservice-client</artifactId>
     <version>6.1-SNAPSHOT</version>
   </parent>
   <artifactId>pdi-dataservice-driver-bundle</artifactId>
@@ -30,7 +30,6 @@
     <plugins>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>${plugin.org.apache.maven.plugins.maven-assembly-plugin.version}</version>
         <executions>
           <execution>
             <id>package</id>
@@ -51,7 +50,6 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>${plugin.org.codehaus.mojo.build-helper-maven-plugin.version}</version>
         <executions>
           <execution>
             <id>attach-artifacts</id>
