@@ -53,6 +53,11 @@ import java.util.Map;
  * @author nhudak
  */
 class RemoteClient implements DataServiceClientService {
+
+  private static final String SQL = "SQL";
+  private static final String MAX_ROWS = "MaxRows";
+  private static final int MAX_SQL_LENGTH = 7500;
+
   private final ThinConnection connection;
   private final HttpClient client;
   private DocumentBuilderFactory docBuilderFactory;
@@ -68,10 +73,15 @@ class RemoteClient implements DataServiceClientService {
       PostMethod method = new PostMethod( url );
       method.setDoAuthentication( true );
 
-      method.addRequestHeader( new Header( "SQL", CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
-      method.addRequestHeader( new Header( "MaxRows", Integer.toString( maxRows ) ) );
-
       method.getParams().setParameter( "http.socket.timeout", 0 );
+
+      // Kept in for backwards compatibility, but should be removed in next major release
+      if ( sql.length() < MAX_SQL_LENGTH ) {
+        method.addRequestHeader( new Header( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
+        method.addRequestHeader( new Header( MAX_ROWS, Integer.toString( maxRows ) ) );
+      }
+      method.addParameter( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) );
+      method.addParameter( MAX_ROWS, Integer.toString( maxRows ) );
 
       for ( Map.Entry<String, String> parameterEntry : connection.getParameters().entrySet() ) {
         method.addParameter( parameterEntry.getKey(), parameterEntry.getValue() );
