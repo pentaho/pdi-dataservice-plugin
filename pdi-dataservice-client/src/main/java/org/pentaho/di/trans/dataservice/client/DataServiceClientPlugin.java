@@ -81,7 +81,7 @@ public class DataServiceClientPlugin extends BaseDatabaseMeta implements Databas
   }
 
   @Override public String getExtraOptionsHelpText() {
-    return "http://wiki.pentaho.com/display/EAI/JDBC+and+SQL+Reference";
+    return "https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040";
   }
 
   @Override
