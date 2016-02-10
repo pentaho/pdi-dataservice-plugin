@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -109,7 +109,7 @@ public class RemoteClientTest {
     verify( httpClient ).executeMethod( httpMethodCaptor.capture() );
     PostMethod httpMethod = (PostMethod) httpMethodCaptor.getValue();
 
-    assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:9080/pentaho-di/kettle/sql" ) );
+    assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:9080/pentaho-di/kettle/sql/" ) );
     assertThat( httpMethod.getRequestHeader( "SQL" ).getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
     assertThat( httpMethod.getRequestHeader( "MaxRows" ).getValue(), equalTo( "200" ) );
     assertThat( httpMethod.getParameter( "SQL" ).getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
@@ -142,7 +142,7 @@ public class RemoteClientTest {
     verify( httpClient ).executeMethod( httpMethodCaptor.capture() );
     PostMethod httpMethod = (PostMethod) httpMethodCaptor.getValue();
 
-    assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:9080/pentaho-di/kettle/sql" ) );
+    assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:9080/pentaho-di/kettle/sql/" ) );
     assertThat( httpMethod.getRequestHeader( "SQL" ), is( nullValue() ) );
     assertThat( httpMethod.getRequestHeader( "MaxRows" ), is( nullValue() ) );
     assertThat( httpMethod.getParameter( "SQL" ).getValue(),

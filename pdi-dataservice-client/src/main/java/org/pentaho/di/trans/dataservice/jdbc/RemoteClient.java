@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -61,6 +61,7 @@ class RemoteClient implements DataServiceClientService {
   private final ThinConnection connection;
   private final HttpClient client;
   private DocumentBuilderFactory docBuilderFactory;
+  private static final String SERVICE_PATH = "/sql/";
 
   RemoteClient( ThinConnection connection, HttpClient client ) {
     this.connection = connection;
@@ -69,7 +70,7 @@ class RemoteClient implements DataServiceClientService {
 
   @Override public DataInputStream query( String sql, int maxRows ) throws SQLException {
     try {
-      String url = connection.constructUrl( "/sql" );
+      String url = connection.constructUrl( SERVICE_PATH );
       PostMethod method = new PostMethod( url );
       method.setDoAuthentication( true );
 
