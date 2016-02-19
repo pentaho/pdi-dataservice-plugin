@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -125,11 +125,11 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
 
   @Override
   public double getDouble( int index ) throws SQLException {
-    return getValue( index, new ValueRetriever<Double>() {
+    return getNonNullableValue( index, new ValueRetriever<Double>() {
       @Override public Double value( int index ) throws Exception {
         return rowMeta.getNumber( currentRow, index );
       }
-    } );
+    }, 0.0 );
   }
 
   @Override
@@ -205,11 +205,11 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
 
   @Override
   public boolean getBoolean( int index ) throws SQLException {
-    return getValue( index, new ValueRetriever<Boolean>() {
+    return getNonNullableValue( index, new ValueRetriever<Boolean>() {
       @Override public Boolean value( int index ) throws Exception {
         return rowMeta.getBoolean( currentRow, index );
       }
-    } );
+    }, false );
   }
 
   @Override
@@ -284,11 +284,11 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
 
   @Override
   public long getLong( int index ) throws SQLException {
-    return getValue( index, new ValueRetriever<Long>() {
+    return getNonNullableValue( index, new ValueRetriever<Long>() {
       @Override public Long value( int index ) throws Exception {
         return rowMeta.getInteger( currentRow, index );
       }
-    } );
+    }, 0l );
   }
 
   @Override
@@ -915,6 +915,20 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
       Throwables.propagateIfPossible( e, SQLException.class );
       throw new SQLException( e );
     }
+  }
+
+  /**
+   * Retrieves the value of a non-nullable column.  If the column has a SQL NULL value,
+   * return the specified defaultValue instead.
+   * Methods which return primitive values (getLong, getInt, getBoolean, etc.) cannot
+   * return null.  The client can determine whether the value was SQL NULL or actually
+   * equal to defaultValue by using the .wasNull() method.
+   * @throws SQLException
+   */
+  private <T> T getNonNullableValue( int index, ValueRetriever<T> valueRetriever, T defaultValue )
+          throws SQLException {
+    T value = getValue( index, valueRetriever );
+    return value == null ? defaultValue : value;
   }
 
   @Override
