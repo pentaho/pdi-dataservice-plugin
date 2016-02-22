@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -120,83 +120,116 @@ public abstract class BaseResultSetTest extends JDBCTestBase<BaseResultSet> {
   }
 
   @Test public void testGetDouble() throws Exception {
-    setNextRow( new Object[] { 1.1, "foo" } );
+    setNextRow( new Object[] { 1.1, "foo", null } );
     rowMeta.addValueMeta( new ValueMetaNumber( "number" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
+    rowMeta.addValueMeta( new ValueMetaNumber( "nullNumber" ) );
     getTestObject().next();
     assertThat( getTestObject().getDouble( "number" ), equalTo( 1.1 ) );
+    assertThat( getTestObject().wasNull(), equalTo( false ) );
     assertThat( getTestObject().getFloat( "number" ), equalTo( 1.1f ) );
+    assertThat( getTestObject().getDouble( "nullNumber" ), equalTo( 0.0 ) );
+    assertThat( getTestObject().wasNull(), equalTo( true ) );
   }
 
   @Test public void testGetBigDecimal() throws Exception {
-    setNextRow( new Object[] { 1.1, "foo" } );
+    setNextRow( new Object[] { 1.1, "foo", null } );
     rowMeta.addValueMeta( new ValueMetaNumber( "number" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
+    rowMeta.addValueMeta( new ValueMetaNumber( "nullBigDec" ) );
     getTestObject().next();
     assertThat( getTestObject().getBigDecimal( "number" ).doubleValue(), equalTo( 1.1 ) );
+    assertThat( getTestObject().getBigDecimal( "nullBigDec" ), nullValue() );
+    assertThat( getTestObject().wasNull(), equalTo( true ) );
   }
 
   @Test public void testGetByte() throws Exception {
     byte b = 'a';
-    setNextRow( new Object[] { new Byte( b ).longValue(), "foo" } );
+    setNextRow( new Object[] { new Byte( b ).longValue(), "foo", null } );
     rowMeta.addValueMeta( new ValueMetaInteger( "byte" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
+    rowMeta.addValueMeta( new ValueMetaInteger( "nullByte" ) );
     getTestObject().next();
     assertThat( getTestObject().getByte( "byte" ), equalTo( b ) );
+    assertThat( getTestObject().wasNull(), equalTo( false ) );
+    assertThat( getTestObject().getByte( "nullByte" ), equalTo( (byte) 0 ) );
+    assertThat( getTestObject().wasNull(), equalTo( true ) );
   }
 
   @Test public void testGetBytes() throws Exception {
-    setNextRow( new Object[] { "b", "foo" } );
+    setNextRow( new Object[] { "b", "foo", null } );
     rowMeta.addValueMeta( new ValueMetaString( "bytes" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
+    rowMeta.addValueMeta( new ValueMetaString( "nullBytes" ) );
     getTestObject().next();
     assertThat( getTestObject().getBytes( "bytes" ), equalTo( new byte[] { 'b' } ) );
-
+    assertThat( getTestObject().wasNull(), equalTo( false ) );
+    assertThat( getTestObject().getBytes( "nullBytes" ), nullValue() );
+    assertThat( getTestObject().wasNull(), equalTo( true ) );
   }
 
   @Test public void testGetFloat() throws Exception {
-    setNextRow( new Object[] { 1.1, "foo" } );
+    setNextRow( new Object[] { 1.1, "foo", null } );
     rowMeta.addValueMeta( new ValueMetaNumber( "col" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
+    rowMeta.addValueMeta( new ValueMetaNumber( "nullCol" ) );
     getTestObject().next();
     assertThat( getTestObject().getFloat( "col" ), equalTo( 1.1f ) );
+    assertThat( getTestObject().wasNull(), equalTo( false ) );
+    assertThat( getTestObject().getFloat( "nullCol" ), equalTo( 0f ) );
+    assertThat( getTestObject().wasNull(), equalTo( true ) );
   }
 
   @Test public void testGetInt() throws Exception {
-    setNextRow( new Object[] { 1l, "foo" } );
+    setNextRow( new Object[] { 1l, "foo", null } );
     rowMeta.addValueMeta( new ValueMetaInteger( "col" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
+    rowMeta.addValueMeta( new ValueMetaInteger( "nullCol" ) );
     getTestObject().next();
     assertThat( getTestObject().getInt( "col" ), equalTo( 1 ) );
+    assertThat( getTestObject().wasNull(), equalTo( false ) );
+    assertThat( getTestObject().getInt( "nullCol" ), equalTo( 0 ) );
+    assertThat( getTestObject().wasNull(), equalTo( true ) );
 
   }
 
   @Test public void testGetLong() throws Exception {
-    setNextRow( new Object[] { 1l, "foo" } );
+    setNextRow( new Object[] { 1l, "foo", null } );
     rowMeta.addValueMeta( new ValueMetaInteger( "col" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
+    rowMeta.addValueMeta( new ValueMetaInteger( "nullCol" ) );
     getTestObject().next();
     assertThat( getTestObject().getLong( "col" ), equalTo( 1l ) );
+    assertThat( getTestObject().wasNull(), equalTo( false ) );
     assertThat( getTestObject().getInt( "col" ), equalTo( 1 ) );
+    assertThat( getTestObject().getLong( "nullCol" ), equalTo( 0l ) );
+    assertThat( getTestObject().wasNull(), equalTo( true ) );
   }
 
   @Test public void testGetShort() throws Exception {
-    setNextRow( new Object[] { 1l, "foo" } );
+    setNextRow( new Object[] { 1l, "foo", null } );
     rowMeta.addValueMeta( new ValueMetaInteger( "col" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
+    rowMeta.addValueMeta( new ValueMetaInteger( "nullCol" ) );
     short s = 1;
     getTestObject().next();
     assertThat( getTestObject().getShort( "col" ), equalTo( s ) );
-
+    assertThat( getTestObject().wasNull(), equalTo( false ) );
+    assertThat( getTestObject().getShort( "nullCol" ), equalTo( (short) 0 ) );
+    assertThat( getTestObject().wasNull(), equalTo( true ) );
   }
 
   @Test public void testGetString() throws Exception {
-    setNextRow( new Object[] { "a string", "foo" } );
+    setNextRow( new Object[] { "a string", "foo", null } );
     rowMeta.addValueMeta( new ValueMetaString( "col" ) );
     rowMeta.addValueMeta( new ValueMetaString( "string" ) );
+    rowMeta.addValueMeta( new ValueMetaString( "nullString" ) );
     getTestObject().next();
     assertThat( getTestObject().getString( "col" ), equalTo( "a string" ) );
+    assertThat( getTestObject().wasNull(), equalTo( false ) );
     assertThat( getTestObject().getObject( "col", String.class ), equalTo( "a string" ) );
+    assertThat( getTestObject().getString( "nullString" ), nullValue() );
+    assertThat( getTestObject().wasNull(), equalTo( true ) );
   }
 
   @Test
