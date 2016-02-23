@@ -1,5 +1,7 @@
 # Data Services Technical Overview
 
+TODO:  KC/Gretchen to include section describing use cases, what it does and why.
+
 0. How it Works
   - OSGi Plugins
     * Server
