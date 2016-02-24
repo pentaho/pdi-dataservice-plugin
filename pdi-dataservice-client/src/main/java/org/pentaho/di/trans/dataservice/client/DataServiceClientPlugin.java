@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -42,8 +42,7 @@ import java.util.Map;
 
 @DatabaseMetaPlugin(
   type = "KettleThin",
-  typeDescription = "Pentaho Data Services"
-)
+  typeDescription = "Pentaho Data Services" )
 public class DataServiceClientPlugin extends BaseDatabaseMeta implements DatabaseInterface {
   public static final String DEFAULT_WEBAPPNAME = "pentaho-di";
 
@@ -81,7 +80,7 @@ public class DataServiceClientPlugin extends BaseDatabaseMeta implements Databas
   }
 
   @Override public String getExtraOptionsHelpText() {
-    return "https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040";
+    return "https://help.pentaho.com/Documentation/6.1/0L0/0Y0/090/040";
   }
 
   @Override
