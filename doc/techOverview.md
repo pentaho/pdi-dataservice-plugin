@@ -2,13 +2,21 @@
 
 TODO:  KC/Gretchen to include section describing use cases, what it does and why.
 
-0. How it Works
+## Table of Contents
+0. [How it Works](#how-it-works)
+0. [ETL Designer Guide](#etl-designer-guide)
+0. [User Guide](#user-guide)
+0. [Limitations](#limitations)
+0. [Troubleshooting](#troubleshooting)
+
+## How it Works
   - OSGi Plugins
     * Server
     * JDBC Client
   - Storage and Resolution
   - Execution
-0. ETL Designer Guide
+
+## ETL Designer Guide
   - Transformation Design
   - Optimizations
     * Caching
@@ -23,7 +31,8 @@ TODO:  KC/Gretchen to include section describing use cases, what it does and why
     * DI Server
     * Carte
     * Local
-0. User Guide
+
+## User Guide
   - Queries
   - PDI
   - Analyzer <-- top use case
@@ -41,8 +50,10 @@ TODO:  KC/Gretchen to include section describing use cases, what it does and why
     * PIR
     * *TEST*
   - External tools
-0. Known and Unknown Limitations
+
+## Limitations
   - Multi tenancy
   - Performance
-0. Troubleshooting
+
+## Troubleshooting
   - Local/Remote Files
