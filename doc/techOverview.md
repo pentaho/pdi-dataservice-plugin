@@ -43,9 +43,22 @@ The [pdi-dataservice-client-plugin](https://github.com/pentaho/pdi-dataservice-p
     * Local
 
 ## User Guide
-  - Queries
-  - PDI
-  - Analyzer <-- top use case
+
+### SQL Queries
+Data Services support a limited subset of SQL.  The capabilities are documented here: [6.0](http://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/080), [6.1](http://help.pentaho.com/Documentation/6.1/0L0/0Y0/090/080)
+
+
+**Some important things to keep in mind:**
+- Calculations are *not* supported.  This impacts things like Mondrian’s native filter and topcount since it will attempt to push down simple filter calculations to the database (see above).
+- Aggregate functions can give incorrect results when NULLs are included in the results.  For example, min/max will include NULLs in the results, where the SQL spec says they should be excluded ([PDI-14974](http://jira.pentaho.com/browse/PDI-14974), [PDI-14422](http://jira.pentaho.com/browse/PDI-14422))
+- Fields cannot be referenced with the “kettle” schema (e.g. “Kettle”.”Table”.”Field”).  ([PRD-5560](http://jira.pentaho.com/browse/PRD-5560))
+- Nested selects are not supported
+- No table joining is supported.  Data Services only work with single tables.
+ 
+
+### PDI
+
+### Analyzer <-- top use case
     * Modeling (workbench, dsw, SDR)
       * *TEST*
         - Properties
@@ -79,7 +92,13 @@ Another potential “gotcha” with PRD/Data Services report construction is tha
 Also, virtual table names in SQL are case sensitive, so make sure to match the casing from the defined service.
 
 #### PIR
-    * *TEST*
+
+Interactive Reporting models for use with Data Services can be created both with the Data Source Wizard and with Metadata Editor.  Be aware that if using Data Source Wizard you must select “Database Tables” and cannot define a SQL query for the source.  This is because DSW will wrap any SQL specified as a sub-select, and the Data Services SQL parser is not currently capable of handling such queries.  The error when attempting to use SQL is not particularly helpful, either:  “Unable to generate model:  null”.  [BISERVER-13064](http://jira.pentaho.com/browse/BISERVER-13064)
+
+Models can be created using Pentaho Metadata Editor as well, with the limitation that no joins can be defined (since Data Services supports querying only a single table).
+
+As with PRD reports, including report parameters can make performance optimizations with Query Pushdown and Parameter Pushdown very effective (see above).
+
 ### External tools
 
 ## Limitations
