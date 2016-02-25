@@ -55,11 +55,32 @@ The [pdi-dataservice-client-plugin](https://github.com/pentaho/pdi-dataservice-p
         - Compound slicers
         - count distinct
     * Shared dimensions
-  - Reporting
-    * PRD, preferred method?
-    * PIR
+     
+### Reporting
+
+#### PRD
+
+For the most part PRD reports will work well with Data Services. Parameterized reports in particular can benefit from the optimization features of Data Services:
+
+**Query Pushdown.**  If the underlying datasources in a Data Service include Table Input or MongoDB Input, including Query Pushdown optimizations will allow the parameters selected within the report to be included in the queries to the source data, which can greatly limit the amount of processing the service needs to perform.  Query Pushdown can handle relatively complex WHERE clauses, and can work well with both Single-Select style parameters as well as Multi-Select.
+
+**Parameter Pushdown.**  For other input sources (e.g. a REST input), Parameter Pushdown can be leveraged to make parameterized PRD reports more efficient.  Single values selected within one or more report parameters can be pushed down and used to limit the underlying data source.  Note that this won’t work with Multi-Select parameters, since Parameter Pushdown does not support IN lists.
+
+There are two current limitations to be aware of when creating PRD reports.
+
+1.  When defining your SQL query, the SQL Query Designer is able to load and display the virtual tables and fields available from a data service.  The filenames set in the editor, however, use the full path (e.g. “Kettle”.”VirtualTable”.’VirtualField”).  Data Services SQL does not support prefixing the “Kettle” schema name within column references (PRD-5560).  The workaround is to manually edit the query to remove the “Kettle”.
+
+2.  Including parameters in your query can cause design-time issues, since PRD will place NULL values in parameters when doing things like preview or listing the available columns in the Query tree in the Data Sets pane ([PRD-5662](http://jira.pentaho.com/browse/PRD-5662)).  The workaround for this is to not use parameters while doing report design, swapping them in at the point you’re ready to test the report locally or publish.  This design time limitation should not impact successful execution of reports with parameters.
+
+The one place the above limitation can have run-time impact is if the PRD parameter is set to "Validate Values" and can have a NULL (or N/A) value.  PRD will attempt to validate by passing a NULL in the JDBC call, which hits the same error as [PRD-5662](http://jira.pentaho.com/browse/PRD-5662) describes.  This error doesn't actually prevent running the report, but does display a validation error below the prompt.
+
+Another potential “gotcha” with PRD/Data Services report construction is that the datatypes from the transformation in the data service may not translate to what you expect in the virtual table.  For example, an Integer field in a transformation will be widened to a Long in the resultset.  Make sure to check the datatype as displayed in the Data Set tree when defining parameter datatypes.
+
+Also, virtual table names in SQL are case sensitive, so make sure to match the casing from the defined service.
+
+#### PIR
     * *TEST*
-  - External tools
+### External tools
 
 ## Limitations
   - Multi tenancy
