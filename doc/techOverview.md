@@ -88,17 +88,13 @@ The recommended means of publishing a Data Service is running a **DI Server**. C
 
 **No further configuration is required to the DI Server.** This differs from releases prior to 6.0, where an admin would have to modify the server's `slave-server-config.xml`. Starting with 6.0, users will automatically connect to the server's built-in repository and inherit the execution rights of the current session. JDBC users connected in this manner will only be able to query a data service if they would normally have execution rights for the respective transformation.
 
-Alternatively, Data Services can be published from a **Carte** server. Before starting carte, save a Data Service to a file-based repository in Spoon. In `${user.home}/.kettle/repositories.xml`, identify the name of the `repository` entry corresponding to the used file repository.
+Alternatively, Data Services can be published from a **Carte** server. Before starting carte, save a Data Service to a repository in Spoon. In `${user.home}/.kettle/repositories.xml`, identify the name of the `repository` entry corresponding to the used repository.
 ```xml
 <repositories>
   ...
   <repository>
-    <id>KettleFileRepository</id>
-    <name>file</name>
-    <description>My File Repository</description>
-    <base_directory>&#x2f;home&#x2f;pentaho&#x2f;repo</base_directory>
-    <read_only>N</read_only>
-    <hides_hidden_files>N</hides_hidden_files>
+    <name>myRepo</name>
+    <description>My Repository</description>
   </repository>
 </repositories>
 ```
@@ -108,7 +104,7 @@ Create a [slave server configuration file](https://help.pentaho.com/Documentatio
 ```xml
 <slave_config>
   <repository>
-    <name>file</name>
+    <name>myRepo</name>
   </repository>
 
   <slaveserver>
