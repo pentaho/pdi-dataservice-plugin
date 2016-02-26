@@ -5,6 +5,7 @@ TODO:  KC/Gretchen to include section describing use cases, what it does and why
 ## Table of Contents
 0. [How it Works](#how-it-works)
 0. [ETL Designer Guide](#etl-designer-guide)
+  * [Optimizations](#optimizations)
 0. [User Guide](#user-guide)
 0. [Limitations](#limitations)
 0. [Troubleshooting](#troubleshooting)
@@ -19,7 +20,7 @@ Any Transformation can be used as a virtual table. Here's out it works:
   0. On saving the transformation to a repository, a table in the repository's MetaStore maps the virtual table to the transformation in which it is defined. A Carte or DI Server must be connected to this repository and running for any Data Services to be accessible.
   0. A user with a JDBC client [connects to the server](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040). The client can list tables, view table structure, and submit SQL SELECT queries.
   0. When the server receives a SQL query, the table name is resolved and the user-defined **Service Transformation** is loaded from the repository. The SQL is parsed and a second **Generated Transformation** is created, containing all of the query operations (grouping, sorting, filtering).  
-  0. Optimizations are applied to the Service Transformation in a best-effort fashion, depending on the user's query and constraints of the optimization type. These optimizations are intended to reduce the number of rows processed during query execution.
+  0. Optimizations may be applied to the Service Transformation, depending on the user's query and constraints of the optimization type. These optimizations are intended to reduce the number of rows processed during query execution.
   0. Both transformations execute. Output from the service transformation is injected into the generated transformation, and output of the generated transformation is returned to the user as a Result Set.
 
 A vast majority of the work here is done by the [pdi-dataservice-server-plugin](https://github.com/pentaho/pdi-dataservice-server-plugin). It is located in Karaf assembly in data-integration and data-integration-server.
@@ -27,20 +28,74 @@ A vast majority of the work here is done by the [pdi-dataservice-server-plugin](
 The [pdi-dataservice-client-plugin](https://github.com/pentaho/pdi-dataservice-plugin/tree/master/pdi-dataservice-client/) contains the code for connecting to a server, issuing queries, and receiving result sets. It also contains the [DatabaseMetaPlugin](https://github.com/pentaho/pdi-dataservice-plugin/blob/master/pdi-dataservice-client/src/main/java/org/pentaho/di/trans/dataservice/client/DataServiceClientPlugin.java) which adds 'Pentaho Data Services' as a supported database connection type. It is included in the karaf assemblies of all supported Pentaho products and can be added to the classpath (along with a few dependencies) of other tools using JDBC connections.
 
 ## ETL Designer Guide
-  - Transformation Design
-  - Optimizations
-    * Caching
-     - *TEST*
-       * Result set limitations
-       * Cache capacity
-    * Parameter Generation
-    * Parameter Pushdown
-  - Testing
-    * Logging
-  - Hosting
-    * DI Server
-    * Carte
-    * Local
+
+Although any transformation step can be used as a Data Service, it is highly recommended that a transformation contains only one data service and that running the transformation has no persistent side-effects. When using data services with an OLAP engine like Mondrian, many SQL queries may be issued, and the entire transformation may run each time. Data Service transformations should therefore consist of inputs combined into one output.
+
+### Testing
+
+Data services can be tested directly within Spoon. After creating the data service, use the test dialog to run test queries [(see help)](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/020#Create_a_Pentaho_Data_Service).
+
+It is also highly recommended to start a Carte server connected to the current repository and test the service from a [new database connection](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040#Access_a_Pentaho_Data_Service) within Spoon. This will ensure that any resources used by the transformation will be accessible when executing remotely.
+
+### Optimizations
+
+Data service optimizations should be configured once the data service has been tested and output is verified.
+
+Optimizations should never alter the output of a service. They are designed only to speed up data services by reducing the number of rows being processed. They are also designed to execute in a 'best-effort' fashion. If criteria for an optimization is not met, no changes will be made.
+
+#### Caching
+Caching is designed to run the Service Transformation only once for similar queries. When enabled, the output of the user-defined Service Transformation will be stored in a timed cache before being passed to the Generated Transformation.
+
+On subsequent queries, this optimization will determine if the cache holds enough rows to answer the query. If it does, the Service Transformation will not run. Rows will be injected into the Generated Transformation directly from the cache. A Generated Transformation will always be created and run for each query.
+
+Caching is enabled by default when a Data Service is created. The timeout for a cache (TTL) can be configured on a per-service basis within Spoon.
+
+Depending on system resources and the size of the service output, [cache limits](#result-set-size) may be reached and performance will degrade severely.
+
+#### Parameter Generation
+#### Parameter Pushdown
+
+### Hosting
+
+The recommended means of publishing a Data Service is running a **DI Server**. Connect Spoon to the EE Repository of a DI Server and save a transformation with a Data Service. The service will automatically be published to the DI Server and available to connected JDBC clients.
+
+**No further configuration is required to the DI Server.** This differs from releases prior to 6.0, where an admin would have to modify the server's `slave-server-config.xml`. Starting with 6.0, users will automatically connect to the server's built-in repository and inherit the execution rights of the current session. JDBC users connected in this manner will only be able to query a data service if they would normally have execution rights for the respective transformation.
+
+Alternatively, Data Services can be published from a **Carte** server. Before starting carte, save a Data Service to a file-based repository in Spoon. In `${user.home}/.kettle/repositories.xml`, identify the name of the `repository` entry corresponding to the used file repository.
+```xml
+<repositories>
+  ...
+  <repository>
+    <id>KettleFileRepository</id>
+    <name>file</name>
+    <description>My File Repository</description>
+    <base_directory>&#x2f;home&#x2f;pentaho&#x2f;repo</base_directory>
+    <read_only>N</read_only>
+    <hides_hidden_files>N</hides_hidden_files>
+  </repository>
+</repositories>
+```
+
+Create a [slave server configuration file](https://help.pentaho.com/Documentation/5.3/0P0/0U0/050/060/010#Configure_Carte_Slave_Servers) and add a `repository` entry with a matching name.
+
+```xml
+<slave_config>
+  <repository>
+    <name>file</name>
+  </repository>
+
+  <slaveserver>
+    <name>master1</name>
+    <hostname>localhost</hostname>
+    <port>8080</port>
+  </slaveserver>
+
+</slave_config>
+```
+
+JDBC clients connecting to Carte will be able to execute data services saved in the repository.
+
+Although not recommended, it is possible to configure a DI Server to use an alternative repository by adding a `repository` element to `data-integration-server/pentaho-solutions/system/kettle/slave-server-config.xml`
 
 ## User Guide
 
@@ -54,7 +109,7 @@ Data Services support a limited subset of SQL.  The capabilities are documented 
 - Fields cannot be referenced with the “kettle” schema (e.g. “Kettle”.”Table”.”Field”).  ([PRD-5560](http://jira.pentaho.com/browse/PRD-5560))
 - Nested selects are not supported
 - No table joining is supported.  Data Services only work with single tables.
- 
+
 
 ### PDI
 
@@ -68,7 +123,7 @@ Data Services support a limited subset of SQL.  The capabilities are documented 
         - Compound slicers
         - count distinct
     * Shared dimensions
-     
+
 ### Reporting
 
 #### PRD
@@ -102,8 +157,9 @@ As with PRD reports, including report parameters can make performance optimizati
 ### External tools
 
 ## Limitations
-  - Multi tenancy
-  - Performance
+#### Result Set size
+     - *TEST*
+#### Multi tenancy
 
 ## Troubleshooting
   - Local/Remote Files
