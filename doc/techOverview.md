@@ -53,7 +53,34 @@ Caching is enabled by default when a Data Service is created. The timeout for a 
 Depending on system resources and the size of the service output, [cache limits](#result-set-size) may be reached and performance will degrade severely.
 
 #### Parameter Generation
+
+Parameter Generation should be used when a service imports rows form an 'Table Input' or 'Mongo Input' Step. Use the [help pages](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/020#Optimize_a_Data_Service) to configure a Parameter Generation optimization.
+
+This optimization will analyze the WHERE clause of an incoming query and push parts of the query down to an input step. The query fragment will be reformatted as SQL or JSON, depending on the input step type.
+
+A Parameter Generation optimization can not be used if rows are modified between the input step and the service output step (e.g. Calc, Group By). Filtering, adding additional fields, merging with other rows, and altering row metadata is allowed and can be optimized.
+
 #### Parameter Pushdown
+
+Parameter Pushdown is a powerful optimization that can be used in many scenarios, but requires special consideration when designing the Service Transformation.
+
+Mappings are configured to correlate virtual table columns to transformation parameters. When a query contains a simple `COLUMN = 'value'` predicate in the WHERE clause, the corresponding transformation parameter is set to `value`. A formatting string can optionally be modified to add a prefix or postfix to the value. A default value can be set from the Transformation Properties dialog.
+
+When designing the transformation, be careful of the case where the parameter may be empty, meaning the query was not optimized. For example, consider the [marsPhoto sample transformation](https://github.com/hudak/nasa-samples/blob/master/mars.ktr)
+
+![Parameter Pushdown configuration](resources/paramPushdown.png)
+
+These parameters are injected into the row stream via a Get Variable Step
+
+![Get Variables](resources/paramPushdown-getVar.png)
+
+The `ROVER_FILTER` parameter is applied with a Filter Step. If the parameter is null, the filter could not be optimized and all rovers are queried.
+
+![Filter query](resources/paramPushdown-filter.png)
+
+The Value Format in the optimization configuration allows the `*_QUERY` parameters to optimize and HTTP request. A Concat Strings step is used to append the parameters to the end of the base URL.
+
+![Filter query](resources/paramPushdown-url.png)
 
 ### Hosting
 
@@ -61,17 +88,13 @@ The recommended means of publishing a Data Service is running a **DI Server**. C
 
 **No further configuration is required to the DI Server.** This differs from releases prior to 6.0, where an admin would have to modify the server's `slave-server-config.xml`. Starting with 6.0, users will automatically connect to the server's built-in repository and inherit the execution rights of the current session. JDBC users connected in this manner will only be able to query a data service if they would normally have execution rights for the respective transformation.
 
-Alternatively, Data Services can be published from a **Carte** server. Before starting carte, save a Data Service to a file-based repository in Spoon. In `${user.home}/.kettle/repositories.xml`, identify the name of the `repository` entry corresponding to the used file repository.
+Alternatively, Data Services can be published from a **Carte** server. Before starting carte, save a Data Service to a repository in Spoon. In `${user.home}/.kettle/repositories.xml`, identify the name of the `repository` entry corresponding to the used repository.
 ```xml
 <repositories>
   ...
   <repository>
-    <id>KettleFileRepository</id>
-    <name>file</name>
-    <description>My File Repository</description>
-    <base_directory>&#x2f;home&#x2f;pentaho&#x2f;repo</base_directory>
-    <read_only>N</read_only>
-    <hides_hidden_files>N</hides_hidden_files>
+    <name>myRepo</name>
+    <description>My Repository</description>
   </repository>
 </repositories>
 ```
@@ -81,7 +104,7 @@ Create a [slave server configuration file](https://help.pentaho.com/Documentatio
 ```xml
 <slave_config>
   <repository>
-    <name>file</name>
+    <name>myRepo</name>
   </repository>
 
   <slaveserver>
