@@ -113,16 +113,16 @@ Data Services support a limited subset of SQL.  The capabilities are documented 
 
 ### PDI
 
-### Analyzer <-- top use case
-    * Modeling (workbench, dsw, SDR)
-      * *TEST*
-        - Properties
-        - parent/child
-        - AggTables
-        - Big Filters
-        - Compound slicers
-        - count distinct
-    * Shared dimensions
+### Analyzer Modeling
+**Star Schemas** Analyzer and Mondrian typically use a Star Schema, where there are separate tables for facts and dimensions.  Pentaho Data Services do not support joining multiple transformations together.  This means you will have to model your schema against one flat table.
+
+**Parent-Child Hierarchies** Parent-child hierarchies usually require a closure table in order to have adequate performance.  Since closure tables also require a sql join, you cannot use them in your schema backed by a Pentaho Data Service.  Therefore, we recommend against creating any Parent-child hierarchies for all but the smallest of data sets. 
+
+**Aggregate Tables** Aggregate tables are allowed in your schema, of course you still cannot link to any dimension tables.  Each aggregate table needs to be defined as separate transformation with the attached data service.  You may use PDI's included steps for grouping and sorting to build your aggregate transformation.  You may also choose to configure your data input step to do the aggregation at the source.  MDX queries that are able to utilize your aggregate table will do so when querying for cell data, but queries for member data will not use the aggregate table.
+
+**Modeling Tools** You may use any of your usual tools for creating a Mondrian schema.  Pentaho Schema Workbench, Data Source Wizard, PDI Annotations or manual schema creation can all generate valid schemas for use with Pentaho Data Services.  Keep in mind the limitations as descrbed here.  For example, because you may not use a Star Schema, the Shared Dimension annotation would generate an invalid schema for a Pentaho Data Service connection.
+
+**Mondrian Properties** If your schema defines calculated measures that use any arithmetic operations in the calculation, then you will need to disable the native filter option in Mondrian.  For example, if your measure computes an average by dividing a sum measure by a count measure, then that measure will cause SQL failures when used on a report, unless you disable native filter.  The option is specified in mondrian.properties with the name "mondrian.native.filter.enable".
 
 ### Reporting
 
