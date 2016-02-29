@@ -16,9 +16,9 @@ Data Services is implemented as a set of OSGi plugins and is included in all cor
 
 Any Transformation can be used as a virtual table. Here's out it works:
   0. In Spoon, an ETL designer [creates a Data Service](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/020#Create_a_Pentaho_Data_Service) on the step which will generate the virtual table's rows.
-  0. Meta data is saved to the transformation describing the the virtual table's name and any optimizations applied. Optimizations are optional should never affect the Data Service's output. They serve only to speed up processing.
-  0. On saving the transformation to a repository, a table in the repository's MetaStore maps the virtual table to the transformation in which it is defined. A Carte or DI Server must be connected to this repository and running for any Data Services to be accessible.
-  0. A user with a JDBC client [connects to the server](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040). The client can list tables, view table structure, and submit SQL SELECT queries.
+  0. Meta data is saved to the transformation describing the the virtual table's name and any optimizations applied.
+  0. On saving the transformation to a repository, a table in the repository's MetaStore maps the virtual table to the transformation in which it is defined. A DI Server must be connected to this repository and running for any Data Services to be accessible.
+  0. A user with a JDBC client [connects to the server](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040). The client can list available Data Services (virtual tables), view table structure, and submit SQL SELECT queries.
   0. When the server receives a SQL query, the table name is resolved and the user-defined **Service Transformation** is loaded from the repository. The SQL is parsed and a second **Generated Transformation** is created, containing all of the query operations (grouping, sorting, filtering).  
   0. Optimizations may be applied to the Service Transformation, depending on the user's query and constraints of the optimization type. These optimizations are intended to reduce the number of rows processed during query execution.
   0. Both transformations execute. Output from the service transformation is injected into the generated transformation, and output of the generated transformation is returned to the user as a Result Set.
@@ -29,13 +29,13 @@ The [pdi-dataservice-client-plugin](https://github.com/pentaho/pdi-dataservice-p
 
 ## ETL Designer Guide
 
-Although any transformation step can be used as a Data Service, it is highly recommended that a transformation contains only one data service and that running the transformation has no persistent side-effects. When using data services with an OLAP engine like Mondrian, many SQL queries may be issued, and the entire transformation may run each time. Data Service transformations should therefore consist of inputs combined into one output.
+Although any transformation step can be used as a Data Service, it is highly recommended that a transformation contains only one data service and that running the transformation has no persistent side-effects. When using data services with an OLAP engine like Mondrian, many SQL queries may be issued, and the entire transformation may run each time. There is no guarantee when or if a service transformation will execute. Transformations usually consist of inputs combined into one Select Values or Dummy Step.
 
 ### Testing
 
 Data services can be tested directly within Spoon. After creating the data service, use the test dialog to run test queries [(see help)](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/020#Create_a_Pentaho_Data_Service).
 
-It is also highly recommended to start a Carte server connected to the current repository and test the service from a [new database connection](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040#Access_a_Pentaho_Data_Service) within Spoon. This will ensure that any resources used by the transformation will be accessible when executing remotely.
+It is also highly recommended to save the transformation to a DI server and test the service from a [new database connection](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040#Access_a_Pentaho_Data_Service) within Spoon. This will ensure that any resources used by the transformation will be accessible when executing remotely.
 
 ### Optimizations
 
@@ -44,6 +44,7 @@ Data service optimizations should be configured once the data service has been t
 Optimizations should never alter the output of a service. They are designed only to speed up data services by reducing the number of rows being processed. They are also designed to execute in a 'best-effort' fashion. If criteria for an optimization is not met, no changes will be made.
 
 #### Caching
+
 Caching is designed to run the Service Transformation only once for similar queries. When enabled, the output of the user-defined Service Transformation will be stored in a timed cache before being passed to the Generated Transformation.
 
 On subsequent queries, this optimization will determine if the cache holds enough rows to answer the query. If it does, the Service Transformation will not run. Rows will be injected into the Generated Transformation directly from the cache. A Generated Transformation will always be created and run for each query.
@@ -52,13 +53,13 @@ Caching is enabled by default when a Data Service is created. The timeout for a 
 
 Depending on system resources and the size of the service output, [cache limits](#result-set-size) may be reached and performance will degrade severely.
 
-#### Parameter Generation
+#### Query Pushdown
 
-Parameter Generation should be used when a service imports rows form an 'Table Input' or 'Mongo Input' Step. Use the [help pages](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/020#Optimize_a_Data_Service) to configure a Parameter Generation optimization.
+Query Pushdown should be used when a service imports rows form an 'Table Input' or 'Mongo Input' Step. Use the [help pages](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/020#Optimize_a_Data_Service) to configure a Query Pushdown optimization.
 
 This optimization will analyze the WHERE clause of an incoming query and push parts of the query down to an input step. The query fragment will be reformatted as SQL or JSON, depending on the input step type.
 
-A Parameter Generation optimization can not be used if rows are modified between the input step and the service output step (e.g. Calc, Group By). Filtering, adding additional fields, merging with other rows, and altering row metadata is allowed and can be optimized.
+A Query Pushdown optimization can not be used if values are modified between the input step and the service output step (e.g. Calc, Group By). Filtering, adding additional fields, merging with other rows, and altering row metadata is allowed and can be optimized.
 
 #### Parameter Pushdown
 
@@ -88,37 +89,9 @@ The recommended means of publishing a Data Service is running a **DI Server**. C
 
 **No further configuration is required to the DI Server.** This differs from releases prior to 6.0, where an admin would have to modify the server's `slave-server-config.xml`. Starting with 6.0, users will automatically connect to the server's built-in repository and inherit the execution rights of the current session. JDBC users connected in this manner will only be able to query a data service if they would normally have execution rights for the respective transformation.
 
-Alternatively, Data Services can be published from a **Carte** server. Before starting carte, save a Data Service to a repository in Spoon. In `${user.home}/.kettle/repositories.xml`, identify the name of the `repository` entry corresponding to the used repository.
-```xml
-<repositories>
-  ...
-  <repository>
-    <name>myRepo</name>
-    <description>My Repository</description>
-  </repository>
-</repositories>
-```
-
-Create a [slave server configuration file](https://help.pentaho.com/Documentation/5.3/0P0/0U0/050/060/010#Configure_Carte_Slave_Servers) and add a `repository` entry with a matching name.
-
-```xml
-<slave_config>
-  <repository>
-    <name>myRepo</name>
-  </repository>
-
-  <slaveserver>
-    <name>master1</name>
-    <hostname>localhost</hostname>
-    <port>8080</port>
-  </slaveserver>
-
-</slave_config>
-```
-
-JDBC clients connecting to Carte will be able to execute data services saved in the repository.
-
 Although not recommended, it is possible to configure a DI Server to use an alternative repository by adding a `repository` element to `data-integration-server/pentaho-solutions/system/kettle/slave-server-config.xml`
+
+Hosting Data Services from **Carte** is not yet officially supported.
 
 ## User Guide
 
