@@ -135,6 +135,7 @@ Data Services support a limited subset of SQL.  The capabilities are documented 
 
 
 ### PDI
+**Data Refinery** Pentaho Data Services make a good datasource for use in the Data Refinery.  The Build Model job step is able to select from data services that are defined in any of the transformation steps that are connected in your job.  The Annotate Stream transformation step is a good choice for where to attach your data service.  Your transformation will be run twice in the typical data refinery setup.  The first time is from the flow of the main transformation, and the second time as a result of the Build Model step connecting to the service for modeling.  This is important to know for troubleshooting when you are connected to a remote repository and running the job locally.  The job runs once locally and once remotely.  In this case, make sure you aren't refencing any local files.  The Publish Model job step will publish a JDBC connection to the BA Server using the URL from the DI Repository you are connected to.  Publish will fail if you are not connected to a DI repository since the data service would not be accessible outside your local session.
 
 ### Analyzer Modeling
 **Star Schemas** Analyzer and Mondrian typically use a Star Schema, where there are separate tables for facts and dimensions.  Pentaho Data Services do not support joining multiple transformations together.  This means you will have to model your schema against one flat table.
