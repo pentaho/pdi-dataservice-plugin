@@ -11,6 +11,7 @@
   * [SQL Queries](#sql-queries)
   * [PDI](#pdi)
   * [Analyzer Modeling](#analyzer-modeling)
+  * [General Mondrian Usage](#general-mondrian-usage)
   * [Reporting](#reporting)
      * [PRD](#prd)
      * [PIR](#pir)
@@ -134,6 +135,15 @@ Data Services support a limited subset of SQL.  The capabilities are documented 
 
 **Mondrian Properties** If your schema defines calculated measures that use any arithmetic operations in the calculation, then you will need to disable the native filter option in Mondrian.  For example, if your measure computes an average by dividing a sum measure by a count measure, then that measure will cause SQL failures when used on a report, unless you disable native filter.  The option is specified in mondrian.properties with the name "mondrian.native.filter.enable".
 
+### General Mondrian Usage
+
+In addition to the Mondrian schema limitations referenced in the previous [section](#analyzer-modeling), there are some other factors to be aware of when using Data Service connections with Mondrian:
+
+* XMLA connections are not currently supported.  This is due to a certain form of cardinality query that gets executed by Mondrian when collecting XMLA metadata.  Work to implement a custom dialect for Data Services has been proposed which would prevent this unsupported cardinality query from being executed ([BACKLOG-6872](http://jira.pentaho.com/browse/BACKLOG-6872)).  Most other places where this form of SQL would be executed by Mondrian are not applicable to use of Mondrian with Data Services (e.g. with shared dimensions in certain member constraint queries).
+
+* There are certain scenarios where Mondrian will issue a WHERE clause with a literal comparison, like "WHERE (1 = 0)".  These constraints are not supported by Data Services ([BACKLOG-6870](http://jira.pentaho.com/browse/BACKLOG-6870)).  The most common place where this happens is with native tuple queries with virtual cubes, which is not applicable to Data Services.  One place where such queries *can* happen with data services, however, is if the MDX includes an empty set.  For example "SELECT NonEmptyCrossJoin(  {}, Time.Year.members) on 0 from cube".  This should be a relatively rare occurrence, but if errors are caused by such WHERE constraints an ugly workaround is to define dummy fields in the service trans named "1" and "0".
+
+
 ### Reporting
 
 #### PRD
@@ -172,9 +182,9 @@ Keep in mind that any SQL used with a CDA connection to Data Services needs to c
 
 ### External tools
 
-There hasn't been extensive testing of external JDBC clients with Data Services, but some have been used regularly without any identified issues.  For example, [SQuirreL](http://squirrel-sql.sourceforge.net/), [RStudio](https://www.rstudio.com/home/), and [SQLLine](https://sourceforge.net/projects/sqlline/) have all been used by the development team successfully.  
+While there has been no full validation of any external JDBC clients with Data Services, some have been used without any identified issues.  For example, [SQuirreL](http://squirrel-sql.sourceforge.net/), [RStudio](https://www.rstudio.com/home/), and [SQLLine](https://sourceforge.net/projects/sqlline/) have all been used by the development team successfully.  
 
-Some external tools are likely to hit issues with Data Services handling of JDBC metadata.  There are some metadata methods which are not currently implemented, which can cause unexpected errors.  [Aqua Data Studio](http://www.aquafold.com/), for example, is not completely usable with Data Services due to such limitations.
+Be aware, however, that some external tools are likely to hit issues with Data Services handling of JDBC metadata.  There are some metadata methods which are not currently implemented, which can cause unexpected errors.  [Aqua Data Studio](http://www.aquafold.com/), for example, is not completely usable with Data Services due to such limitations.
 
 ### Multi-tenancy
 
@@ -201,6 +211,6 @@ If you encounter errors when executing your data service remotely which you did 
 
 Reviewing the di-server logs can provide additional information about the failure.  Typically the error information returned to the jdbc client will be fairly generic, but the server logs should provide more detailed information and stack traces connected with the failure.
 
-Additionally, setting the debugtrans connection parameter will allow you to write out the generated transformation to a location you specify.  Being able to review the generated transformation can occasionally identify the cause of problems (see the “Required Parameters” section of [Connect to a Pentaho Data Service](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040))  Note that the parameter “debuglog=true” is currently non-functional.  [BACKLOG-6869](http://jira.pentaho.com/browse/BACKLOG-6869)
+Additionally, setting the debugtrans connection parameter will allow you to write out the generated transformation to a location you specify.  Being able to review the generated transformation can occasionally identify the cause of problems (see the “Required Parameters” section of [Connect to a Pentaho Data Service](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040))  Note that the parameter “debuglog=true” is currently non-functional.  ([BACKLOG-6869](http://jira.pentaho.com/browse/BACKLOG-6869))
 
-One issue that can occur under heavy usage with data services is that a large amount of memory can be consumed, eventually leading to OOM if intensive enough.  This can happen because generated transformations used when executing SQL will be kept around until the cleanup thread removes them, which by default only happens every 4 hours.  If Data Services will be frequently queried the cleanup job interval should be adjusted to accommodate by setting the KETTLE_CARTE_OBJECT_TIMEOUT_MINUTES property .  ([PDI=14491](http://jira.pentaho.com/browse/PDI-14491) is intended to address the flood of carte objects that can occur).
+One issue that can occur under heavy usage with data services is that a large amount of memory can be consumed, eventually leading to OOM if intensive enough.  This can happen because generated transformations used when executing SQL will be kept around until the cleanup thread removes them, which by default only happens every 4 hours.  If Data Services will be frequently queried the cleanup job interval should be adjusted to accommodate by setting the KETTLE_CARTE_OBJECT_TIMEOUT_MINUTES property .  ([PDI-14491](http://jira.pentaho.com/browse/PDI-14491) is intended to address the flood of carte objects that can occur).
