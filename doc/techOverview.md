@@ -113,7 +113,7 @@ Data Services support a limited subset of SQL.  The capabilities are documented 
 ### Analyzer Modeling
 **Star Schemas** Analyzer and Mondrian typically use a Star Schema, where there are separate tables for facts and dimensions.  Pentaho Data Services do not support joining multiple transformations together.  This means you will have to model your schema against one flat table.
 
-**Parent-Child Hierarchies** Parent-child hierarchies usually require a closure table in order to have adequate performance.  Since closure tables also require a sql join, you cannot use them in your schema backed by a Pentaho Data Service.  Therefore, we recommend against creating any Parent-child hierarchies for all but the smallest of data sets. 
+**Parent-Child Hierarchies** Parent-child hierarchies usually require a closure table in order to have adequate performance.  Since closure tables also require a sql join, you cannot use them in your schema backed by a Pentaho Data Service.  Therefore, we recommend against creating any Parent-child hierarchies for all but the smallest of data sets.
 
 **Aggregate Tables** Aggregate tables are allowed in your schema, of course you still cannot link to any dimension tables.  Each aggregate table needs to be defined as separate transformation with the attached data service.  You may use PDI's included steps for grouping and sorting to build your aggregate transformation.  You may also choose to configure your data input step to do the aggregation at the source.  MDX queries that are able to utilize your aggregate table will do so when querying for cell data, but queries for member data will not use the aggregate table.
 
@@ -172,7 +172,12 @@ For Analyzer, Dynamic Schema Processors can similarly be used to enforce limited
 
 ## Limitations
 #### Result Set size
-     - *TEST*
+
+The caching optimization is designed to store and retrieve result sets to bypass execution of the Service transformation. The entire result set must be kept in memory when a query is executing. If a large number of rows are expected from a Data Service, and the total result set size is expected to exceed the cache's for JVM's allocated memory, execution may fail.
+
+*TODO* Try configuring ehCache's [local disk storage](http://www.ehcache.org/documentation/2.8/configuration/cache-size.html) to overcome JVM heap size
+
+Caching can be disabled from the Data Service dialog in Spoon. This will ensure that the transformation runs for every query, but memory usage is kept to a minimum.
 
 ## Troubleshooting
   - Local/Remote Files
