@@ -198,9 +198,12 @@ For Analyzer, Dynamic Schema Processors can similarly be used to enforce limited
 
 The caching optimization is designed to store and retrieve result sets to bypass execution of the Service transformation. The entire result set must be kept in memory when a query is executing. If a large number of rows are expected from a Data Service, and the total result set size is expected to exceed the cache's for JVM's allocated memory, execution may fail.
 
-*TODO* Try configuring ehCache's [local disk storage](http://www.ehcache.org/documentation/2.8/configuration/cache-size.html) to overcome JVM heap size
+Kettle starts with a maximum 2GB heap size by default. Disabling caching is recommended when result sets are expected to exceed 1GB in size.
+*TODO: More performance testing*
 
 Caching can be disabled from the Data Service dialog in Spoon. This will ensure that the transformation runs for every query, but memory usage is kept to a minimum.
+
+This issue may be partially resolved when cache persistence is supported. ([BACKLOG-2835](http://jira.pentaho.com/browse/BACKLOG-2835)) Additional development work will be needed to stream results from cache.
 
 ## Troubleshooting
 The help [docs](https://help.pentaho.com/Documentation/6.0/0P0/180/075) have some good suggestions for troubleshooting basic issues.  Some additional things to keep in mind:
