@@ -1,14 +1,27 @@
 # Data Services Technical Overview
 
-TODO:  KC/Gretchen to include section describing use cases, what it does and why.
-
 ## Table of Contents
+0. [Use Cases](#use-cases)
 0. [How it Works](#how-it-works)
 0. [ETL Designer Guide](#etl-designer-guide)
+  * [Testing](#testing)
   * [Optimizations](#optimizations)
+  * [Hosting](#hosting)
 0. [User Guide](#user-guide)
+  * [SQL Queries](#sql-queries)
+  * [PDI](#pdi)
+  * [Analyzer Modeling](#analyzer-modeling)
+  * [Reporting](#reporting)
+     * [PRD](#prd)
+     * [PIR](#pir)
+     * [CTools](#ctools)
+  * [External Tools](#external-tools)
+  * [Multi-tenancy](#multi-tenancy)
 0. [Limitations](#limitations)
 0. [Troubleshooting](#troubleshooting)
+
+## Use Cases
+TODO:  KC/Gretchen to include section describing use cases, what it does and why.
 
 ## How it Works
 
@@ -180,4 +193,14 @@ The caching optimization is designed to store and retrieve result sets to bypass
 Caching can be disabled from the Data Service dialog in Spoon. This will ensure that the transformation runs for every query, but memory usage is kept to a minimum.
 
 ## Troubleshooting
-  - Local/Remote Files
+The help [docs](https://help.pentaho.com/Documentation/6.0/0P0/180/075) have some good suggestions for troubleshooting basic issues.  Some additional things to keep in mind:
+
+When troubleshooting a data service, running within the Data Service Test dialog is the simplest way to collect information about what’s going wrong, since it allows viewing DEBUG level logging of both the Generated and Service transformation.  Often the errors from one or both of these logs will identify the cause of a failure.
+
+If you encounter errors when executing your data service remotely which you did not see when running within the Data Service test dialog, one of the first things to do is to *verify that all resources required by the service are available to the server.*  For example, if you are using a CSV input file, make sure that the path to the CSV file is accessible from di-server.
+
+Reviewing the di-server logs can provide additional information about the failure.  Typically the error information returned to the jdbc client will be fairly generic, but the server logs should provide more detailed information and stack traces connected with the failure.
+
+Additionally, setting the debugtrans connection parameter will allow you to write out the generated transformation to a location you specify.  Being able to review the generated transformation can occasionally identify the cause of problems (see the “Required Parameters” section of [Connect to a Pentaho Data Service](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040))  Note that the parameter “debuglog=true” is currently non-functional.  [BACKLOG-6869](http://jira.pentaho.com/browse/BACKLOG-6869)
+
+One issue that can occur under heavy usage with data services is that a large amount of memory can be consumed, eventually leading to OOM if intensive enough.  This can happen because generated transformations used when executing SQL will be kept around until the cleanup thread removes them, which by default only happens every 4 hours.  If Data Services will be frequently queried the cleanup job interval should be adjusted to accommodate by setting the KETTLE_CARTE_OBJECT_TIMEOUT_MINUTES property .  ([PDI=14491](http://jira.pentaho.com/browse/PDI-14491) is intended to address the flood of carte objects that can occur).
