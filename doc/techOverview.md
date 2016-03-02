@@ -26,11 +26,11 @@ TODO:  KC/Gretchen to include section describing use cases, what it does and why
 
 ## How it Works
 
-Data Services is implemented as a set of OSGi plugins and is included in all core Pentaho products. It allows data to be processed in Pentaho Data Integration and used in another tool in the form of a virtual database table.
+Data Services is implemented as a set of OSGi plugins and is included in all core Pentaho products. It allows data to be processed in Pentaho Data Integration and used in another tool in the form of a virtual table.
 
 Any Transformation can be used as a virtual table. Here's out it works:
   0. In Spoon, an ETL designer [creates a Data Service](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/020#Create_a_Pentaho_Data_Service) on the step which will generate the virtual table's rows.
-  0. Meta data is saved to the transformation describing the the virtual table's name and any optimizations applied.
+  0. Metadata is saved to the transformation describing the the virtual table's name and any optimizations applied.
   0. On saving the transformation to a repository, a table in the repository's MetaStore maps the virtual table to the transformation in which it is defined. A DI Server must be connected to this repository and running for any Data Services to be accessible.
   0. A user with a JDBC client [connects to the server](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040). The client can list available Data Services (virtual tables), view table structure, and submit SQL SELECT queries.
   0. When the server receives a SQL query, the table name is resolved and the user-defined **Service Transformation** is loaded from the repository. The SQL is parsed and a second **Generated Transformation** is created, containing all of the query operations (grouping, sorting, filtering).  
@@ -77,7 +77,7 @@ A Query Pushdown optimization can not be used if values are modified between the
 
 #### Parameter Pushdown
 
-Parameter Pushdown is a powerful optimization that can be used in many scenarios, but requires special consideration when designing the Service Transformation.
+Parameter Pushdown requires special consideration when designing as Service Transformation
 
 Mappings are configured to correlate virtual table columns to transformation parameters. When a query contains a simple `COLUMN = 'value'` predicate in the WHERE clause, the corresponding transformation parameter is set to `value`. A formatting string can optionally be modified to add a prefix or postfix to the value. A default value can be set from the Transformation Properties dialog.
 
@@ -99,7 +99,7 @@ The Value Format in the optimization configuration allows the `*_QUERY` paramete
 
 ### Hosting
 
-The recommended means of publishing a Data Service is running a **DI Server**. Connect Spoon to the EE Repository of a DI Server and save a transformation with a Data Service. The service will automatically be published to the DI Server and available to connected JDBC clients.
+The recommended means of publishing a Data Service is running a **DI Server**. Connect Spoon to the Pentaho Repository of a DI Server and save a transformation with a Data Service. The service will automatically be published to the DI Server and available to connected JDBC clients.
 
 **No further configuration is required to the DI Server.** This differs from releases prior to 6.0, where an admin would have to modify the server's `slave-server-config.xml`. Starting with 6.0, users will automatically connect to the server's built-in repository and inherit the execution rights of the current session. JDBC users connected in this manner will only be able to query a data service if they would normally have execution rights for the respective transformation.
 
@@ -122,12 +122,12 @@ Data Services support a limited subset of SQL.  The capabilities are documented 
 
 
 ### PDI
-**Data Refinery** Pentaho Data Services make a good datasource for use in the Data Refinery.  The Build Model job step is able to select from data services that are defined in any of the transformation steps that are connected in your job.  The Annotate Stream transformation step is a good choice for where to attach your data service.  Your transformation will be run twice in the typical data refinery setup.  The first time is from the flow of the main transformation, and the second time as a result of the Build Model step connecting to the service for modeling.  This is important to know for troubleshooting when you are connected to a remote repository and running the job locally.  The job runs once locally and once remotely.  In this case, make sure you aren't refencing any local files.  The Publish Model job step will publish a JDBC connection to the BA Server using the URL from the DI Repository you are connected to.  Publish will fail if you are not connected to a DI repository since the data service would not be accessible outside your local session.
+**Data Refinery** Pentaho Data Services make a good datasource for use in the Data Refinery.  The Build Model job step is able to select from data services that are defined in any of the transformation steps that are connected in your job.  The Annotate Stream transformation step is a good choice for where to attach your data service.  Your transformation will be run twice in the typical data refinery setup.  The first time is from the flow of the main transformation, and the second time as a result of the Build Model step connecting to the service for modeling.  This is important to know for troubleshooting when you are connected to a remote repository and running the job locally.  The job runs once locally and once remotely.  In this case, make sure you aren't refencing any local files.  The Publish Model job step will publish a JDBC connection to the BA Server using the URL from the Pentaho Repository you are connected to.  Publish will fail if you are not connected to a Pentaho Repository since the data service would not be accessible outside your local session.
 
 ### Analyzer Modeling
 **Star Schemas** Analyzer and Mondrian typically use a Star Schema, where there are separate tables for facts and dimensions.  Pentaho Data Services do not support joining multiple transformations together.  This means you will have to model your schema against one flat table.
 
-**Parent-Child Hierarchies** Parent-child hierarchies usually require a closure table in order to have adequate performance.  Since closure tables also require a sql join, you cannot use them in your schema backed by a Pentaho Data Service.  Therefore, we recommend against creating any Parent-child hierarchies for all but the smallest of data sets.
+**Parent-Child Hierarchies** Parent-child hierarchies usually require a closure table to have adequate performance. Since closure tables also require a SQL join, you cannot use them in your schema backed by a Pentaho Data Service  Therefore, we recommend against creating any Parent-child hierarchies for all but the smallest of data sets.
 
 **Aggregate Tables** Aggregate tables are allowed in your schema, of course you still cannot link to any dimension tables.  Each aggregate table needs to be defined as separate transformation with the attached data service.  You may use PDI's included steps for grouping and sorting to build your aggregate transformation.  You may also choose to configure your data input step to do the aggregation at the source.  MDX queries that are able to utilize your aggregate table will do so when querying for cell data, but queries for member data will not use the aggregate table.
 
@@ -148,9 +148,9 @@ In addition to the Mondrian schema limitations referenced in the previous [secti
 
 #### PRD
 
-For the most part PRD reports will work well with Data Services. Parameterized reports in particular can benefit from the optimization features of Data Services:
+For the most part, PRD reports will work well with Data Services. Parameterized reports in particular can benefit from the optimization features of Data Services:
 
-**Query Pushdown.**  If the underlying datasources in a Data Service include Table Input or MongoDB Input, including Query Pushdown optimizations will allow the parameters selected within the report to be included in the queries to the source data, which can greatly limit the amount of processing the service needs to perform.  Query Pushdown can handle relatively complex WHERE clauses, and can work well with both Single-Select style PRD parameters as well as Multi-Select.
+**Query Pushdown.**  If the underlying datasources in a Data Service include Table Input or MongoDB Input, Query Pushdown optimizations will allow the PRD parameters selected within the report to be pushed down to the source data.  This can greatly limit the amount of processing the service needs to perform.  Query Pushdown can handle relatively complex WHERE clauses, and can work well with both Single-Select style PRD parameters as well as Multi-Select.
 
 **Parameter Pushdown.**  For other input sources (e.g. a REST input), Parameter Pushdown can be leveraged to make parameterized PRD reports more efficient.  Single values selected within one or more report parameters can be pushed down and used to limit the underlying data source.  Note that this won’t work with Multi-Select parameters, since Parameter Pushdown does not support IN lists.
 
@@ -158,9 +158,9 @@ There are two current limitations to be aware of when creating PRD reports.
 
 1.  When defining your SQL query, the SQL Query Designer is able to load and display the virtual tables and fields available from a data service.  The field names set in the editor, however, use the full path (e.g. "Kettle"."VirtualTable"."VirtualField").  Data Services SQL does not support prefixing the “Kettle” schema name within column references ([PRD-5560](http://jira.pentaho.com/browse/PRD-5560)).  The workaround is to manually edit the query to remove the “Kettle”.
 
-2.  Including parameters in your query can cause design-time issues, since PRD will place NULL values in parameters when doing things like preview or listing the available columns in the Query tree in the Data Sets pane ([PRD-5662](http://jira.pentaho.com/browse/PRD-5662)).  The workaround for this is to not use parameters while doing report design, swapping them in at the point you’re ready to test the report locally or publish.  This design time limitation should not impact successful execution of reports with parameters.
+2.  Including parameters in your query can cause design-time issues, since PRD will place NULL values in parameters when doing things like preview or listing the available columns in the Query tree in the Data Sets pane ([PRD-5662](http://jira.pentaho.com/browse/PRD-5662)).  The workaround is to not use parameters while doing report design, swapping them in at the point you’re ready to test the report locally or publish.  This design time limitation should not impact successful execution of reports with parameters.
 
-The one place limitation (2) above can have run-time impact is if the PRD parameter is set to "Validate Values" and can have a NULL (or N/A) value.  PRD will attempt to validate by passing a NULL in the JDBC call, which hits the same error as [PRD-5662](http://jira.pentaho.com/browse/PRD-5662) describes.  This error doesn't actually prevent running the report, but does display a validation error below the prompt.
+The one place limitation (2) above can have runtime impact is if the PRD parameter is set to "Validate Values" and can have a NULL (or N/A) value.  PRD will attempt to validate by passing a NULL in the JDBC call, which hits the same error as [PRD-5662](http://jira.pentaho.com/browse/PRD-5662) describes.  This error doesn't actually prevent running the report, but does display a validation error below the prompt.
 
 Another potential “gotcha” with PRD/Data Services report construction is that the datatypes from the transformation in the data service may not translate to what you expect in the virtual table.  For example, an Integer field in a transformation will be widened to a Long in the result set.  Make sure to check the datatype as displayed in the Data Set tree when defining parameter datatypes.
 
@@ -216,4 +216,4 @@ Reviewing the di-server logs can provide additional information about the failur
 
 Additionally, setting the debugtrans connection parameter will allow you to write out the generated transformation to a location you specify.  Being able to review the generated transformation can occasionally identify the cause of problems (see the “Required Parameters” section of [Connect to a Pentaho Data Service](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040))  Note that the parameter “debuglog=true” is currently non-functional.  ([BACKLOG-6869](http://jira.pentaho.com/browse/BACKLOG-6869))
 
-One issue that can occur under heavy usage with data services is that a large amount of memory can be consumed, eventually leading to OOM if intensive enough.  This can happen because generated transformations used when executing SQL will be kept around until the cleanup thread removes them, which by default only happens every 4 hours.  If Data Services will be frequently queried the cleanup job interval should be adjusted to accommodate by setting the KETTLE_CARTE_OBJECT_TIMEOUT_MINUTES property .  ([PDI-14491](http://jira.pentaho.com/browse/PDI-14491) is intended to address the flood of carte objects that can occur).
+One issue that can occur under heavy usage with data services is that a large amount of memory can be consumed, eventually leading to OOM if intensive enough.  This can happen because generated transformations used when executing SQL will be kept around until the cleanup thread removes them, which by default only happens every 4 hours.  If Data Services will be frequently queried, the cleanup job interval should be adjusted to accommodate by setting the KETTLE_CARTE_OBJECT_TIMEOUT_MINUTES property.  [PDI-14491](http://jira.pentaho.com/browse/PDI-14491) is intended to address the flood of carte objects that can occur.
