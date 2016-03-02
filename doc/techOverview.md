@@ -203,7 +203,7 @@ Kettle starts with a maximum 2GB heap size by default. Disabling caching is reco
 
 Caching can be disabled from the Data Service dialog in Spoon. This will ensure that the transformation runs for every query, but memory usage is kept to a minimum.
 
-This issue may be partially resolved when cache persistence is supported. ([BACKLOG-2835](http://jira.pentaho.com/browse/BACKLOG-2835)) Additional development work will be needed to stream results from cache.
+This issue may be partially resolved when cache persistence is supported. ([BACKLOG-2835](http://jira.pentaho.com/browse/BACKLOG-2835)) Additional development work will be needed to stream results from cache. ([BACKLOG-6874](http://jira.pentaho.com/browse/BACKLOG-6874))
 
 ## Troubleshooting
 The help [docs](https://help.pentaho.com/Documentation/6.0/0P0/180/075) have some good suggestions for troubleshooting basic issues.  Some additional things to keep in mind:
