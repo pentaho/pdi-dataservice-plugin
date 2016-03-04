@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -53,6 +53,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -375,9 +376,8 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
   @Override
   public void setObject( int nr, Object value ) throws SQLException {
     if ( value == null ) {
-      throw new SQLFeatureNotSupportedException( "Null values are not supported for the setObject() method" );
-    }
-    if ( value instanceof String ) {
+      setNull( nr, Types.OTHER );
+    } else if ( value instanceof String ) {
       setString( nr, (String) value );
     } else if ( value instanceof Long ) {
       setLong( nr, (Long) value );
@@ -401,13 +401,17 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
   }
 
   @Override
-  public void setObject( int nr, Object value, int arg2 ) throws SQLException {
+  public void setObject( int nr, Object value, int targetSqlType ) throws SQLException {
+    ThinDriver.logger.warning(
+      String.format( "Ignoring targetSqlType (%s).  Deducing sql type from object (%s)",
+        targetSqlType,
+        value == null ? "NULL" : value.getClass().getName() ) );
     setObject( nr, value );
   }
 
   @Override
-  public void setObject( int nr, Object value, int arg2, int arg3 ) throws SQLException {
-    setObject( nr, value );
+  public void setObject( int nr, Object value, int targetSqlType, int scaleOrLength ) throws SQLException {
+    setObject( nr, value, targetSqlType );
   }
 
   @Override @NotSupported
@@ -480,12 +484,15 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
     return paramData;
   }
 
-  protected void setValue( int nr, Object value, ValueMetaInterface valueMeta ) {
+  protected void setValue( int nr, Object value, ValueMetaInterface valueMeta ) throws SQLException {
+    if ( nr < 1 || nr > paramData.length ) {
+      throw new SQLException( "parameterIndex does not correspond to a parameter marker in the SQL statement" );
+    }
     paramData[nr - 1] = value;
     paramMeta[nr - 1] = valueMeta;
   }
 
-  protected void setTimeValue( int nr, Date value, Calendar calendar ) {
+  protected void setTimeValue( int nr, Date value, Calendar calendar ) throws SQLException {
     calendar.setTime( value );
     setValue( nr, calendar.getTime(), new ValueMetaDate( "param-" + nr ) );
   }
