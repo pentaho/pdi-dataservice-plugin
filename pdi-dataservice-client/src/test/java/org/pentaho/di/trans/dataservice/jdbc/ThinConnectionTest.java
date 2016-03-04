@@ -23,6 +23,7 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpClient;
@@ -39,21 +40,26 @@ import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 
 import java.lang.reflect.Method;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -66,15 +72,12 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
   ThinConnection connection;
   Properties properties;
 
-  @Mock( answer = Answers.RETURNS_DEEP_STUBS ) SlaveConnectionManager connectionManager;
+  @Mock SlaveConnectionManager connectionManager;
+  @Mock( answer = Answers.RETURNS_DEEP_STUBS ) HttpClient httpClient;
   @Mock DataServiceClientService clientService;
 
   private static String host = "localhost";
-  private static String port = "9080";
-  private static String webAppName = "pentaho-di";
-  private static String proxyHostName = "proxyhostname";
-  private static String proxyPort = "9081";
-  private static String nonProxyHosts = "nonproxyhost";
+  private static int port = 9080;
   private static String debugTrans = "debugTrans";
 
   private String url;
@@ -85,20 +88,70 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
 
   @Before
   public void setUp() throws Exception {
-    url = "jdbc:pdi://" + host + ":" + port + "/kettle?webappname=" + webAppName + "&proxyhostname=" + proxyHostName
-      + "&proxyport=" + proxyPort + "&nonproxyhosts=" + nonProxyHosts + "&debugtrans=" + debugTrans + "&debuglog="
-      + "true&secure=true&local=false&PARAMETER_HELLO_WORLD=" + URLEncoder.encode( "test value", Charsets.UTF_8.name() );
+    url = "jdbc:pdi://localhost:9080/pentaho-di/kettle";
 
     properties = new Properties();
     properties.setProperty( "user", "username" );
     properties.setProperty( "password", "password" );
 
-    connection = new ThinConnection( url, host, port );
-    connection.clientService = clientService;
+    connection = new ThinConnection( url, URI.create( "http://localhost:9080/pentaho-di/kettle" ) );
+    connection.setClientService( clientService );
+
+    when( connectionManager.createHttpClient() ).thenReturn( httpClient );
   }
 
   @Test
   public void testBuilder() throws Exception {
+    properties.setProperty( "debugtrans", debugTrans );
+    url += "?PARAMETER_TRANS_PARAM=yes";
+
+    connection = new ThinConnection.Builder( connectionManager ).parseUrl( url ).readProperties( properties ).build();
+
+    assertEquals( url, connection.getUrl() );
+    assertEquals( host, connection.getHostname() );
+    assertEquals( port, connection.getPort() );
+
+    assertEquals( "username", connection.getUsername() );
+
+    assertThat( connection.getDebugTransFilename(), is( debugTrans ) );
+    assertEquals( false, connection.isLocal() );
+
+    assertThat( connection.getParameters(), equalTo( ImmutableMap.of( "PARAMETER_TRANS_PARAM", "yes" ) ) );
+
+    assertThat( connection.constructUrl( "/service?argument=value" ),
+      equalTo( "http://localhost:9080/pentaho-di/kettle/service?argument=value" ) );
+  }
+
+  @Test
+  public void testCarteConnection() throws Exception {
+    url = "jdbc:pdi://localhost/kettle";
+    connection = new ThinConnection.Builder( connectionManager ).parseUrl( url ).readProperties( properties ).build();
+
+    assertThat( connection, allOf(
+      hasProperty( "hostname", is( host ) ),
+      hasProperty( "port", is( 80 ) ),
+      hasProperty( "clientService", instanceOf( RemoteClient.class ) )
+    ) );
+    assertThat( connection.constructUrl( "/service?argument=value" ),
+      equalTo( "http://localhost:80/kettle/service?argument=value" ) );
+  }
+
+  @Test
+  public void testLegacyBuilder() throws Exception {
+    final String proxyHostName = "proxyhostname", proxyPort = "9081", nonProxyHosts = "nonproxyhost";
+    ImmutableMap<String, String> args = ImmutableMap.<String, String>builder().
+      put( "webappname", "pentaho-di" ).
+      put( "proxyhostname", proxyHostName ).
+      put( "proxyport", proxyPort ).
+      put( "nonproxyhosts", nonProxyHosts ).
+      put( "debugtrans", debugTrans ).
+      put( "debuglog", "true" ).
+      put( "secure", "true" ).
+      put( "local", "false" ).
+      put( "PARAMETER_HELLO_WORLD", URLEncoder.encode( "test value", Charsets.UTF_8.name() ) ).
+      build();
+    url = "jdbc:pdi://localhost:9080/kettle?" + Joiner.on( "&" ).withKeyValueSeparator( "=" ).join( args );
+
     ThinConnection thinConnection = new ThinConnection.Builder( connectionManager )
       .parseUrl( url )
       .readProperties( properties )
@@ -109,7 +162,7 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
 
     verify( httpClient.getParams() ).setAuthenticationPreemptive( true );
     verify( httpClient.getState() ).setCredentials( eq( AuthScope.ANY ), credentialsArgumentCaptor.capture() );
-    verify( httpClient.getHostConfiguration() ).setProxy( proxyHostName, 9081 );
+    verify( httpClient.getHostConfiguration() ).setProxy( "proxyhostname", 9081 );
     assertThat( credentialsArgumentCaptor.getValue(),
       equalTo( (Credentials) new UsernamePasswordCredentials( "username", "password" ) ) );
     assertThat( thinConnection.getClientService(), instanceOf( RemoteClient.class ) );
@@ -118,7 +171,6 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     assertEquals( host, thinConnection.getHostname() );
     assertEquals( port, thinConnection.getPort() );
     assertEquals( "username", thinConnection.getUsername() );
-    assertEquals( webAppName, thinConnection.getWebAppName() );
     assertEquals( proxyHostName, thinConnection.getProxyHostname() );
     assertEquals( proxyPort, thinConnection.getProxyPort() );
     assertEquals( nonProxyHosts, thinConnection.getNonProxyHosts() );
@@ -131,6 +183,14 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
 
     assertThat( thinConnection.constructUrl( "/service?argument=value" ),
       equalTo( "https://localhost:9080/pentaho-di/kettle/service?argument=value" ) );
+  }
+
+  @Test
+  public void testLocalConnection() throws Exception {
+    ThinConnection.localClient = mock( DataServiceClientService.class );
+
+    connection = new ThinConnection.Builder( connectionManager ).parseUrl( "pdi:jdbc://localhost?local=true" ).build();
+    assertThat( connection.getClientService(), sameInstance( ThinConnection.localClient ) );
   }
 
   @Test
