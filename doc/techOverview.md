@@ -22,7 +22,15 @@
 0. [Troubleshooting](#troubleshooting)
 
 ## Use Cases
-TODO:  KC/Gretchen to include section describing use cases, what it does and why.
+Pentaho Data Services enables users to access data with the ease of use and standard skillset of the SQL query language, while also leveraging the power and complexity of a Pentaho Data Integration transformation. 
+
+A standard use case that has driven the development of Pentaho Data Services is to easily serve the Data Scientist who would like access to data in an analytics tool like Tableau or R Studio, but doesn’t want to struggle with the heavy lifting of cleansing the data, blending it, dealing with IT security concerns, etc. A transformation is developed as a Data Service, and then exposed through a DI Server, giving the Data Scientist easy access to data through his/her favorite tools via standard JDBC.
+
+The Streamlined Data Refinery, with improvements made to PDI’s auto-model and auto-publish capabilities, is also now a candidate use case for Data Services. The transformation developer can design a Data Service on the auto-model step, publish this Data Service and model, and have a streamlined solution for data extraction and analytics that can be on-demand. Pushdown query and parameter optimizations have been improved and can mitigate some latency in this use case, but consideration must still be given to the size of the dataset queried and the on-demand expectation of the data delivery. Carefully review the limitations sections in this document for boundaries on when to use this solution.  Many of the improvements made in the latest release were driven from the BioMe demonstration, which is a sample SDR solution.
+
+Data Services is a candidate for data preparation and service to the embedded and OEM solutions that many of our customers craft. Data Services can replace CDA, or be leveraged through CDA, in some solutions where the queries are consistently querying the same table of data, with filtering and sorting (as examples) as primary capabilities for the embedded solution. This is a prime use case, as the improvements to query and parameter pushdown now optimize for these capabilities.  
+
+Data Services can be used where any standard JDBC connection can be used to deliver data. You can use Data Services as a source to Pentaho Reporting, Analytics, as a service in another PDI job or transformation. See  documented boundaries for the Pentaho suite of tools below. Performance can be improved using optimizations, and mileage will vary. 
 
 ## How it Works
 
@@ -63,7 +71,7 @@ Caching is designed to run the Service Transformation only once for similar quer
 
 On subsequent queries, this optimization will determine if the cache holds enough rows to answer the query. If it does, the Service Transformation will not run. Rows will be injected into the Generated Transformation directly from the cache. A Generated Transformation will always be created and run for each query.
 
-Caching is enabled by default when a Data Service is created. The timeout for a cache (TTL) can be configured on a per-service basis within Spoon.
+Caching is enabled by default when a Data Service is created. The timeout for a cache (TTL) can be configured on a per-service basis within Spoon. There is no option today to explicitly clear the cache, but disabling the cache and running the transformation will clear the cache. 
 
 Depending on system resources and the size of the service output, [cache limits](#result-set-size) may be reached and performance will degrade severely.
 
