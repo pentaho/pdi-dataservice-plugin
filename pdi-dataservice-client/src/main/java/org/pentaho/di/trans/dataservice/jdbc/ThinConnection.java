@@ -23,6 +23,7 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -32,14 +33,14 @@ import com.google.common.collect.Maps;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
-import org.pentaho.di.cluster.HttpUtil;
 import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.Const;
-import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.sql.Array;
 import java.sql.Blob;
@@ -61,8 +62,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 public class ThinConnection extends ThinBase implements Connection {
 
   public static final String ARG_WEBAPPNAME = "webappname";
@@ -75,42 +74,30 @@ public class ThinConnection extends ThinBase implements Connection {
   public static final String ARG_LOCAL = "local";
 
   public static DataServiceClientService localClient;
-  protected DataServiceClientService clientService;
+  private DataServiceClientService clientService;
 
   private final String url;
-  private final String hostname;
-  private final String port;
+  private final URI baseURI;
 
   private String username;
   private String password;
 
-  private String webAppName;
   private String proxyHostname;
   private String proxyPort;
   private String nonProxyHosts;
-  private boolean isSecure;
 
   private String debugTransFilename;
   private boolean debuggingRemoteLog;
 
   private ImmutableMap<String, String> parameters = ImmutableMap.of();
 
-  private boolean isLocal;
-
-  protected ThinConnection( String url, String hostname, String port ) {
+  protected ThinConnection( String url, URI baseURI ) {
     this.url = url;
-    this.hostname = hostname;
-    this.port = port;
+    this.baseURI = baseURI;
   }
 
-  protected String constructUrl( String serviceAndArguments ) throws SQLException {
-    try {
-      return HttpUtil.constructUrl( new Variables(), hostname, port, webAppName,
-        ThinDriver.SERVICE_NAME + serviceAndArguments, isSecure );
-    } catch ( Exception e ) {
-      Throwables.propagateIfPossible( e, SQLException.class );
-      throw new SQLException( e );
-    }
+  protected String constructUrl( String service ) throws SQLException {
+    return baseURI.resolve( "./" + service ).toString();
   }
 
   @Override
@@ -371,21 +358,14 @@ public class ThinConnection extends ThinBase implements Connection {
    * @return the hostname
    */
   public String getHostname() {
-    return hostname;
+    return baseURI.getHost();
   }
 
   /**
    * @return the port
    */
-  public String getPort() {
-    return port;
-  }
-
-  /**
-   * @return the webAppName
-   */
-  public String getWebAppName() {
-    return webAppName;
+  public int getPort() {
+    return baseURI.getPort();
   }
 
   /**
@@ -450,15 +430,11 @@ public class ThinConnection extends ThinBase implements Connection {
   }
 
   public boolean isLocal() {
-    return isLocal;
-  }
-
-  public void setLocal( boolean isLocal ) {
-    this.isLocal = isLocal;
+    return !( getClientService() instanceof RemoteClient );
   }
 
   public boolean isSecure() {
-    return isSecure;
+    return baseURI.getScheme().equals( "https" );
   }
 
   public static DataServiceClientService getLocalClient() throws SQLException {
@@ -468,26 +444,24 @@ public class ThinConnection extends ThinBase implements Connection {
     return ThinConnection.localClient;
   }
 
+  protected void setClientService( DataServiceClientService clientService ) {
+    this.clientService = clientService;
+  }
+
   public DataServiceClientService getClientService() {
-    return checkNotNull( clientService, "Client Service not set for connection" );
+    return Preconditions.checkNotNull( clientService, "Client Service not set for connection" );
   }
 
   private void addCredentials( HttpClient client ) {
     UsernamePasswordCredentials credentials = new UsernamePasswordCredentials( username, password );
-    AuthScope scope;
-    if ( Strings.isNullOrEmpty( webAppName ) ) {
-      scope = new AuthScope( hostname, Const.toInt( port, 80 ), "Kettle" );
-    } else {
-      scope = AuthScope.ANY;
-      client.getParams().setAuthenticationPreemptive( true );
-    }
-    client.getState().setCredentials( scope, credentials );
+    client.getParams().setAuthenticationPreemptive( true );
+    client.getState().setCredentials( AuthScope.ANY, credentials );
   }
 
   private void setProxy( HttpClient client ) {
     if ( !Const.isEmpty( proxyHostname ) && !Const.isEmpty( proxyPort ) ) {
       // skip applying proxy if non-proxy host matches
-      if ( !Const.isEmpty( nonProxyHosts ) && !Const.isEmpty( hostname ) && hostname.matches( nonProxyHosts ) ) {
+      if ( !Const.isEmpty( nonProxyHosts ) && getHostname().matches( nonProxyHosts ) ) {
         return;
       }
       client.getHostConfiguration().setProxy( proxyHostname, Integer.parseInt( proxyPort ) );
@@ -495,14 +469,11 @@ public class ThinConnection extends ThinBase implements Connection {
   }
 
   private ThinConnection extractProperties( Map<String, String> arguments ) {
-    webAppName = arguments.get( ARG_WEBAPPNAME );
     proxyHostname = arguments.get( ARG_PROXYHOSTNAME );
     proxyPort = arguments.get( ARG_PROXYPORT );
     nonProxyHosts = arguments.get( ARG_NONPROXYHOSTS );
     debugTransFilename = arguments.get( ARG_DEBUGTRANS );
     debuggingRemoteLog = "true".equalsIgnoreCase( arguments.get( ARG_DEBUGLOG ) );
-    isSecure = "true".equalsIgnoreCase( arguments.get( ARG_ISSECURE ) );
-    isLocal = "true".equalsIgnoreCase( arguments.get( ARG_LOCAL ) );
 
     parameters = ImmutableMap.copyOf( Maps.filterKeys( arguments, new Predicate<String>() {
       @Override public boolean apply( String input ) {
@@ -520,8 +491,7 @@ public class ThinConnection extends ThinBase implements Connection {
     private final SlaveConnectionManager connectionManager;
     private final Map<String, String> arguments = Maps.newHashMap();
     private String url;
-    private String hostname;
-    private String port;
+    private URI uri;
 
     public Builder( SlaveConnectionManager connectionManager ) {
       this.connectionManager = connectionManager;
@@ -530,19 +500,11 @@ public class ThinConnection extends ThinBase implements Connection {
     public Builder parseUrl( String url ) throws SQLException {
       this.url = url;
       try {
-        int portColonIndex = url.indexOf( ':', ThinDriver.BASE_URL.length() );
-        if ( portColonIndex < 0 ) {
-          throw new SQLException( "Port is not defined: " + url );
-        }
-        int kettleIndex = url.indexOf( ThinDriver.SERVICE_NAME, portColonIndex );
+        // Remove 'jdbc:' prefix
+        uri = URI.create( url.substring( 5 ) );
 
-        hostname = url.substring( ThinDriver.BASE_URL.length(), portColonIndex );
-        port = url.substring( portColonIndex + 1, kettleIndex );
-
-        int startIndex = url.indexOf( '?', kettleIndex ) + 1;
-        if ( startIndex > 0 ) {
-          String path = url.substring( startIndex );
-          Map<String, String> queryParameters = Splitter.on( '&' ).withKeyValueSeparator( '=' ).split( path );
+        if ( !Strings.isNullOrEmpty( uri.getQuery() ) ) {
+          Map<String, String> queryParameters = Splitter.on( '&' ).withKeyValueSeparator( '=' ).split( uri.getQuery() );
           for ( Map.Entry<String, String> parameterEntry : queryParameters.entrySet() ) {
             arguments.put( decode( parameterEntry.getKey() ), decode( parameterEntry.getValue() ) );
           }
@@ -576,9 +538,36 @@ public class ThinConnection extends ThinBase implements Connection {
     }
 
     public ThinConnection build() throws SQLException {
-      ThinConnection connection = new ThinConnection( url, hostname, port ).extractProperties( arguments );
-      connection.clientService = connection.isLocal ? ThinConnection.getLocalClient() : createRemoteClient( connection );
+      boolean isLocal = "true".equalsIgnoreCase( arguments.get( ARG_LOCAL ) );
+
+      ThinConnection connection = new ThinConnection( url, baseUri() ).extractProperties( arguments );
+      connection.clientService = isLocal ? ThinConnection.getLocalClient() : createRemoteClient( connection );
       return connection;
+    }
+
+    private URI baseUri() throws SQLException {
+      boolean isSecure = "true".equalsIgnoreCase( arguments.get( ARG_ISSECURE ) );
+
+      String pathPrefix = "";
+      if ( arguments.containsKey( ARG_WEBAPPNAME ) ) {
+        ThinDriver.logger.warning( ARG_WEBAPPNAME + " is deprecated. "
+          + "Please instead use the form jdbc:pdi://myserver.mydomain.com:9080/webAppName/kettle" );
+        pathPrefix = "/" + arguments.get( ARG_WEBAPPNAME );
+      }
+
+      try {
+        return new URI(
+          isSecure ? "https" : "http",
+          null,
+          Preconditions.checkNotNull( Strings.emptyToNull( uri.getHost() ), "Host not specified" ),
+          uri.getPort() > 0 ? uri.getPort() : isSecure ? 443 : 80,
+          pathPrefix + Strings.nullToEmpty( uri.getPath() ) + '/',
+          null,
+          null
+        );
+      } catch ( URISyntaxException e ) {
+        throw new SQLException( "Unable to create a connection", e );
+      }
     }
   }
 }
