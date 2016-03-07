@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -48,9 +48,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.same;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -189,6 +187,20 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
       statement.setObject( 1, entry.getKey() );
       assertThat( statement.getParameterMetaData().getParameterType( 1 ), is( entry.getValue() ) );
     }
+  }
+
+  @Test
+  public void testNullObject() throws SQLException {
+    statement.setObject( 1, null );
+    assertThat( statement.getParameterMetaData().getParameterType( 1 ), is( Types.OTHER ) );
+    assertThat( statement.getParamData()[0], is( nullValue() )  );
+  }
+
+  @Test
+  public void testSetNull() throws SQLException {
+    statement.setNull( 1, Types.OTHER );
+    assertThat( statement.getParameterMetaData().getParameterType( 1 ), is( Types.OTHER ) );
+    assertThat( statement.getParamData()[0], is( nullValue() )  );
   }
 
   @Test
