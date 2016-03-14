@@ -145,7 +145,6 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
       put( "proxyport", proxyPort ).
       put( "nonproxyhosts", nonProxyHosts ).
       put( "debugtrans", debugTrans ).
-      put( "debuglog", "true" ).
       put( "secure", "true" ).
       put( "local", "false" ).
       put( "PARAMETER_HELLO_WORLD", URLEncoder.encode( "test value", Charsets.UTF_8.name() ) ).
@@ -175,7 +174,6 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     assertEquals( proxyPort, thinConnection.getProxyPort() );
     assertEquals( nonProxyHosts, thinConnection.getNonProxyHosts() );
     assertEquals( debugTrans, thinConnection.getDebugTransFilename() );
-    assertEquals( true, thinConnection.isDebuggingRemoteLog() );
     assertEquals( true, thinConnection.isSecure() );
     assertEquals( false, thinConnection.isLocal() );
 

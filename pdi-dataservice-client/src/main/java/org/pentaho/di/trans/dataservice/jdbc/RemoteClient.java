@@ -90,9 +90,6 @@ class RemoteClient implements DataServiceClientService {
       if ( !Strings.isNullOrEmpty( connection.getDebugTransFilename() ) ) {
         method.addParameter( ThinConnection.ARG_DEBUGTRANS, connection.getDebugTransFilename() );
       }
-      if ( connection.isDebuggingRemoteLog() ) {
-        method.addParameter( ThinConnection.ARG_DEBUGLOG, "true" );
-      }
 
       return new DataInputStream( execMethod( method ).getResponseBodyAsStream() );
     } catch ( Exception e ) {
