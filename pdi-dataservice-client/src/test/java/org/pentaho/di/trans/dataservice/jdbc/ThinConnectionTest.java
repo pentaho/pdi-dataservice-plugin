@@ -189,7 +189,7 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
   public void testLocalConnection() throws Exception {
     ThinConnection.localClient = mock( DataServiceClientService.class );
 
-    connection = new ThinConnection.Builder( connectionManager ).parseUrl( "pdi:jdbc://localhost?local=true" ).build();
+    connection = new ThinConnection.Builder( connectionManager ).parseUrl( "pdi:jdbc://localhost:-1?local=true" ).build();
     assertThat( connection.getClientService(), sameInstance( ThinConnection.localClient ) );
   }
 

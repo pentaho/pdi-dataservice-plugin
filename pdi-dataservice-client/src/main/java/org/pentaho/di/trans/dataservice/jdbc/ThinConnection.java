@@ -559,7 +559,7 @@ public class ThinConnection extends ThinBase implements Connection {
         return new URI(
           isSecure ? "https" : "http",
           null,
-          Preconditions.checkNotNull( Strings.emptyToNull( uri.getHost() ), "Host not specified" ),
+          uri.getHost(),
           uri.getPort() > 0 ? uri.getPort() : isSecure ? 443 : 80,
           pathPrefix + Strings.nullToEmpty( uri.getPath() ) + '/',
           null,
