@@ -95,7 +95,6 @@ public class RemoteClientTest {
 
     when( connection.getDebugTransFilename() ).thenReturn( debugTrans );
     when( connection.getParameters() ).thenReturn( ImmutableMap.of( "PARAMETER_ECHO", "hello world" ) );
-    when( connection.isDebuggingRemoteLog() ).thenReturn( true );
 
     when( httpClient.executeMethod( isA( PostMethod.class ) ) ).thenReturn( 200 );
 
@@ -116,7 +115,6 @@ public class RemoteClientTest {
     assertThat( httpMethod.getParameter( "MaxRows" ).getValue(), equalTo( "200" ) );
 
     assertThat( httpMethod.getParameter( "debugtrans" ).getValue(), equalTo( debugTrans ) );
-    assertThat( httpMethod.getParameter( "debuglog" ).getValue(), equalTo( "true" ) );
     assertThat( httpMethod.getParameter( "PARAMETER_ECHO" ).getValue(), equalTo( "hello world" ) );
 
     assertThat( queryResponse.readUTF(), equalTo( "Query Response" ) );
@@ -128,7 +126,6 @@ public class RemoteClientTest {
 
     when( connection.getDebugTransFilename() ).thenReturn( null );
     when( connection.getParameters() ).thenReturn( ImmutableMap.<String, String>of() );
-    when( connection.isDebuggingRemoteLog() ).thenReturn( true );
 
     when( httpClient.executeMethod( isA( PostMethod.class ) ) ).thenReturn( 200 );
 

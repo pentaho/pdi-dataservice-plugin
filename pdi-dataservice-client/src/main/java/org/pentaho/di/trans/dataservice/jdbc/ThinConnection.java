@@ -69,7 +69,6 @@ public class ThinConnection extends ThinBase implements Connection {
   public static final String ARG_PROXYPORT = "proxyport";
   public static final String ARG_NONPROXYHOSTS = "nonproxyhosts";
   public static final String ARG_DEBUGTRANS = "debugtrans";
-  public static final String ARG_DEBUGLOG = "debuglog";
   public static final String ARG_ISSECURE = "secure";
   public static final String ARG_LOCAL = "local";
 
@@ -87,7 +86,6 @@ public class ThinConnection extends ThinBase implements Connection {
   private String nonProxyHosts;
 
   private String debugTransFilename;
-  private boolean debuggingRemoteLog;
 
   private ImmutableMap<String, String> parameters = ImmutableMap.of();
 
@@ -396,13 +394,6 @@ public class ThinConnection extends ThinBase implements Connection {
     return debugTransFilename;
   }
 
-  /**
-   * @return the debuggingRemoteLog
-   */
-  public boolean isDebuggingRemoteLog() {
-    return debuggingRemoteLog;
-  }
-
   ImmutableMap<String, String> getParameters() {
     return parameters;
   }
@@ -473,7 +464,6 @@ public class ThinConnection extends ThinBase implements Connection {
     proxyPort = arguments.get( ARG_PROXYPORT );
     nonProxyHosts = arguments.get( ARG_NONPROXYHOSTS );
     debugTransFilename = arguments.get( ARG_DEBUGTRANS );
-    debuggingRemoteLog = "true".equalsIgnoreCase( arguments.get( ARG_DEBUGLOG ) );
 
     parameters = ImmutableMap.copyOf( Maps.filterKeys( arguments, new Predicate<String>() {
       @Override public boolean apply( String input ) {
