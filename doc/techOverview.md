@@ -109,6 +109,8 @@ The Value Format in the optimization configuration allows the `*_QUERY` paramete
 
 The recommended means of publishing a Data Service is running a **DI Server**. Connect Spoon to the Pentaho Repository of a DI Server and save a transformation with a Data Service. The service will automatically be published to the DI Server and available to connected JDBC clients.
 
+Data Services can also be hosted from a CE/EE **Pentaho Server**. Connect to the server repository as you would and save the transformation. Note that when creating a database connection to a Pentaho Server, "web app name" should be changed to "pentaho" and the default port is 8080.
+
 **No further configuration is required to the DI Server.** This differs from releases prior to 6.0, where an admin would have to modify the server's `slave-server-config.xml`. Starting with 6.0, users will automatically connect to the server's built-in repository and inherit the execution rights of the current session. JDBC users connected in this manner will only be able to query a data service if they would normally have execution rights for the respective transformation.
 
 Although not recommended, it is possible to configure a DI Server to use an alternative repository by adding a `repository` element to `data-integration-server/pentaho-solutions/system/kettle/slave-server-config.xml`
