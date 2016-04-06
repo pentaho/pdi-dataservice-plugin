@@ -71,6 +71,7 @@ public class ThinConnection extends ThinBase implements Connection {
   public static final String ARG_DEBUGTRANS = "debugtrans";
   public static final String ARG_ISSECURE = "secure";
   public static final String ARG_LOCAL = "local";
+  public static final String ARG_WEB_APPLICATION_NAME = "WEB_APPLICATION_NAME";
 
   public static DataServiceClientService localClient;
   private DataServiceClientService clientService;

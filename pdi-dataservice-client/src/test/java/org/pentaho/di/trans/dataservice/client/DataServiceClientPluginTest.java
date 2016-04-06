@@ -22,9 +22,10 @@
 
 package org.pentaho.di.trans.dataservice.client;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Ints;
+import java.lang.reflect.Method;
+import java.net.URL;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,15 +34,11 @@ import org.pentaho.di.core.database.DatabaseInterface;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.plugins.DatabaseMetaPlugin;
 import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.trans.dataservice.jdbc.ThinConnection;
 import org.pentaho.di.trans.dataservice.jdbc.ThinDriver;
-
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.util.Map;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.emptyArray;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -104,7 +101,7 @@ public class DataServiceClientPluginTest {
   @Test
   public void testDriverProperties() throws Exception {
     assertThat( Ints.asList( clientPlugin.getAccessTypeList() ), containsInAnyOrder(
-      DatabaseMeta.TYPE_ACCESS_NATIVE, DatabaseMeta.TYPE_ACCESS_ODBC, DatabaseMeta.TYPE_ACCESS_JNDI
+      DatabaseMeta.TYPE_ACCESS_NATIVE, DatabaseMeta.TYPE_ACCESS_JNDI
     ) );
 
     assertThat( clientPlugin.getUsedLibraries(), emptyArray() );
@@ -116,9 +113,6 @@ public class DataServiceClientPluginTest {
     clientPlugin.setDatabaseName( "override" );
     assertThat( clientPlugin.getDatabaseName(), is( "kettle" ) );
 
-    Map<String, String> expectedDefaults = ImmutableMap.of( "KettleThin.webappname", "pentaho-di" );
-    assertThat( clientPlugin.getDefaultOptions(), equalTo( expectedDefaults ) );
-
     assertThat( clientPlugin.getExtraOptionIndicator(), is( "?" ) );
     assertThat( clientPlugin.getExtraOptionSeparator(), is( "&" ) );
   }
@@ -126,5 +120,7 @@ public class DataServiceClientPluginTest {
   @Test
   public void testConstructURL() throws Exception {
     assertThat( clientPlugin.getURL( "host.com", "8080", "kettle" ), is( "jdbc:pdi://host.com:8080/kettle" ) );
+    clientPlugin.getAttributes().put( ThinConnection.ARG_WEB_APPLICATION_NAME, "pentaho-di" );
+    assertThat( clientPlugin.getURL( "host.com", "8080", "kettle" ), is( "jdbc:pdi://host.com:8080/pentaho-di/kettle" ) );
   }
 }
