@@ -32,6 +32,7 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.pentaho.di.core.sql.SQLTest.mockRowMeta;
 
 public class SQLConditionTest extends TestCase {
@@ -914,6 +915,21 @@ public class SQLConditionTest extends TestCase {
 
     assertEquals( "CUSTOMERNAME", condition.getLeftValuename() );
     assertEquals( "'\\;';Toys 'R' us", condition.getRightExactString() );
+  }
+
+  @Test
+  public void testNegatedTrueFuncEvaluatesAsFalse() throws Exception {
+    RowMetaInterface rowMeta = SQLTest.generateServiceRowMeta();
+    String
+            fieldsClause =
+            "\"Service\".\"Country\" as \"c\" from \"Service\" as \"Service\"";
+    SQLFields fields = new SQLFields( "Service", rowMeta, fieldsClause );
+
+    String conditionClause = "(\"Service\".\"Country\" = null)";
+    SQLCondition sqlCondition = new SQLCondition( "Service", conditionClause, rowMeta, fields );
+    Condition condition = sqlCondition.getCondition();
+    assertThat( condition.getFunctionDesc(), is( "TRUE" ) );
+    assertTrue( condition.isNegated() );
   }
 
   @Test

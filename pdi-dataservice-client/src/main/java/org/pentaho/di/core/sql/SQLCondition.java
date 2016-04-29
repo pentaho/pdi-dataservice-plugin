@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2013 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -31,6 +31,7 @@ import org.pentaho.di.core.row.ValueMetaAndData;
 import org.pentaho.di.core.row.value.ValueMetaString;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -279,6 +280,7 @@ public class SQLCondition {
       getServiceFields() );
     String operatorString = strings.get( 1 );
     String right = strings.get( 2 );
+    boolean negation = Pattern.matches( "^NULL$", right.trim().toUpperCase() );
 
     // If it's another column name, remove possible table alias prefix.
     //
@@ -287,7 +289,7 @@ public class SQLCondition {
 
     ValueMetaAndData value = null;
 
-    int function = Condition.getFunction( operatorString );
+    int function = negation ? Condition.FUNC_TRUE : Condition.getFunction( operatorString );
     if ( function == Condition.FUNC_IN_LIST ) {
       // lose the brackets
       //
@@ -346,9 +348,9 @@ public class SQLCondition {
     }
 
     if ( value != null ) {
-      return new Condition( left, function, null, value );
+      return new Condition( negation, left, function, null, value );
     } else {
-      return new Condition( left, function, right, null );
+      return new Condition( negation, left, function, right, null );
     }
   }
 
@@ -372,8 +374,9 @@ public class SQLCondition {
       new int[] { Condition.FUNC_NOT_EQUAL, Condition.FUNC_LARGER_EQUAL, Condition.FUNC_LARGER_EQUAL,
         Condition.FUNC_SMALLER_EQUAL, Condition.FUNC_SMALLER_EQUAL, Condition.FUNC_SMALLER, Condition.FUNC_LARGER,
         Condition.FUNC_EQUAL, Condition.FUNC_REGEXP, Condition.FUNC_IN_LIST, Condition.FUNC_NOT_NULL,
-        Condition.FUNC_NULL, Condition.FUNC_LIKE, Condition.FUNC_CONTAINS, };
+        Condition.FUNC_NULL, Condition.FUNC_LIKE, Condition.FUNC_CONTAINS };
     int index = 0;
+
     while ( index < clause.length() ) {
       index = ThinUtil.skipChars( clause, index, '\'', '"' );
       for ( String operator : operators ) {
@@ -387,13 +390,12 @@ public class SQLCondition {
             String left = Const.trim( clause.substring( 0, index ) );
             String op = Condition.functions[functions[functionIndex]];
             String right = Const.trim( clause.substring( index + operator.length() ) );
-            strings.add( left );
-            strings.add( op );
-            strings.add( right );
-            return strings;
+
+            return Arrays.<String>asList( left, op, right );
           }
         }
       }
+
       index++;
     }
 
