@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -111,7 +111,7 @@ public class DataServiceClientPluginTest {
     assertThat( new URL( clientPlugin.getExtraOptionsHelpText() ), notNullValue() );
 
     clientPlugin.setDatabaseName( "override" );
-    assertThat( clientPlugin.getDatabaseName(), is( "kettle" ) );
+    assertThat( clientPlugin.getDatabaseName(), is( "override" ) );
 
     assertThat( clientPlugin.getExtraOptionIndicator(), is( "?" ) );
     assertThat( clientPlugin.getExtraOptionSeparator(), is( "&" ) );
@@ -119,8 +119,8 @@ public class DataServiceClientPluginTest {
 
   @Test
   public void testConstructURL() throws Exception {
-    assertThat( clientPlugin.getURL( "host.com", "8080", "kettle" ), is( "jdbc:pdi://host.com:8080/kettle" ) );
+    assertThat( clientPlugin.getURL( "host.com", "8080", "pentaho-di" ), is( "jdbc:pdi://host.com:8080/pentaho-di/kettle" ) );
     clientPlugin.getAttributes().put( ThinConnection.ARG_WEB_APPLICATION_NAME, "pentaho-di" );
-    assertThat( clientPlugin.getURL( "host.com", "8080", "kettle" ), is( "jdbc:pdi://host.com:8080/pentaho-di/kettle" ) );
+    assertThat( clientPlugin.getURL( "host.com", "8080", "kettle" ), is( "jdbc:pdi://host.com:8080/kettle" ) );
   }
 }

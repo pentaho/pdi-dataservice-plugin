@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -35,6 +35,7 @@ import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.database.BaseDatabaseMeta;
 import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 
@@ -71,7 +72,8 @@ public class ThinConnection extends ThinBase implements Connection {
   public static final String ARG_DEBUGTRANS = "debugtrans";
   public static final String ARG_ISSECURE = "secure";
   public static final String ARG_LOCAL = "local";
-  public static final String ARG_WEB_APPLICATION_NAME = "WEB_APPLICATION_NAME";
+  public static final String ARG_WEB_APPLICATION_NAME = BaseDatabaseMeta.ATTRIBUTE_PREFIX_EXTRA_OPTION
+      + "KettleThin.webappname";
 
   public static DataServiceClientService localClient;
   private DataServiceClientService clientService;
