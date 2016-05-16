@@ -58,8 +58,8 @@ public class DataServiceClientPlugin extends BaseDatabaseMeta implements Databas
   public String getURL( String hostname, String port, String databaseName ) {
     StringBuilder url = new StringBuilder( ThinDriver.BASE_URL + hostname + ":" + port );
 
-    if ( getAttributes().containsKey( ThinConnection.ARG_WEB_APPLICATION_NAME ) ) {
-      url.append( '/' ).append( getAttributes().getProperty( ThinConnection.ARG_WEB_APPLICATION_NAME ) );
+    if ( !getAttributes().containsKey( ThinConnection.ARG_WEB_APPLICATION_NAME ) ) {
+      url.append( '/' ).append( databaseName );
     }
 
     return url.append( ThinDriver.SERVICE_NAME ).toString();
@@ -67,10 +67,6 @@ public class DataServiceClientPlugin extends BaseDatabaseMeta implements Databas
 
   @Override public int getDefaultDatabasePort() {
     return 9080;
-  }
-
-  @Override public String getDatabaseName() {
-    return "kettle";
   }
 
   @Override public String getExtraOptionsHelpText() {
