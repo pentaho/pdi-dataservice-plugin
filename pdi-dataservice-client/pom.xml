@@ -5,10 +5,10 @@
   <parent>
     <groupId>pentaho</groupId>
     <artifactId>pdi-dataservice-client</artifactId>
-    <version>6.1-SNAPSHOT</version>
+    <version>6.1.0.4-227</version>
   </parent>
   <artifactId>pdi-dataservice-client-plugin</artifactId>
-  <version>6.1-SNAPSHOT</version>
+  <version>6.1.0.4-227</version>
   <packaging>bundle</packaging>
   <name>Pentaho Community Edition Project: ${project.artifactId}</name>
   <description>A client for PDI Data Services</description>
@@ -59,8 +59,8 @@
     </developer>
   </developers>
   <properties>
-    <swt.version>4.3.2</swt.version>
     <jface.version>3.3.0-I20070606-0010</jface.version>
+    <swt.version>4.3.2</swt.version>
   </properties>
   <dependencies>
     <dependency>
@@ -88,8 +88,8 @@
       <scope>provided</scope>
       <exclusions>
         <exclusion>
-          <groupId>*</groupId>
           <artifactId>*</artifactId>
+          <groupId>*</groupId>
         </exclusion>
       </exclusions>
     </dependency>
