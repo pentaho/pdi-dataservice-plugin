@@ -42,6 +42,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
@@ -60,9 +61,12 @@ public class ThinDatabaseMetaDataTest extends JDBCTestBase<ThinDatabaseMetaData>
 
     RowMeta rowMeta = new RowMeta();
     rowMeta.addValueMeta( new ValueMetaString( "valuename" ) );
-    when( clientService.getServiceInformation() ).thenReturn( ImmutableList.of(
+    when( clientService.getServiceInformation( anyString() ) ).thenReturn(
       new ThinServiceInformation( "sequence", rowMeta )
-    ) );
+    );
+    when( clientService.getServiceNames() ).thenReturn(
+      ImmutableList.of( "sequence" )
+    );
   }
 
   public ThinDatabaseMetaDataTest() {

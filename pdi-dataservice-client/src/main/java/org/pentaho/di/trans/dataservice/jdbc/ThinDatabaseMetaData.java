@@ -183,10 +183,6 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
 
     try {
 
-      // Get the service information from the remote server...
-      //
-      List<ThinServiceInformation> services = getServiceInformation();
-
       RowMetaInterface rowMeta = new RowMeta();
       rowMeta.addValueMeta( new ValueMeta( "TABLE_CAT", ValueMetaInterface.TYPE_STRING ) ); // null
       rowMeta.addValueMeta( new ValueMeta( "TABLE_SCHEM", ValueMetaInterface.TYPE_STRING ) ); // null
@@ -216,41 +212,49 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
       rowMeta.addValueMeta( new ValueMeta( "SOURCE_DATA_TYPE", ValueMetaInterface.TYPE_STRING ) ); // Kettle source data
                                                                                                    // type description
 
-      List<Object[]> rows = new ArrayList<Object[]>();
-      for ( ThinServiceInformation service : services ) {
+      // Get the service information from the remote server...
+      //
+      List<String> serviceNames = getServiceNames();
+      ThinServiceInformation service = null;
 
-        if ( Const.isEmpty( tableNamePattern ) || ThinUtil.like( service.getName(), tableNamePattern ) ) {
-          int ordinal = 1;
-          for ( ValueMetaInterface valueMeta : service.getServiceFields().getValueMetaList() ) {
-            if ( Const.isEmpty( columnNamePattern ) || ThinUtil.like( valueMeta.getName(), columnNamePattern ) ) {
-              Object[] row = RowDataUtil.allocateRowData( rowMeta.size() );
-              int index = 0;
-              row[index++] = null; // TABLE_CAT - TYPE_STRING
-              row[index++] = SCHEMA_NAME_KETTLE; // TABLE_SCHEM - TYPE_STRING
-              row[index++] = service.getName(); // TABLE_NAME - TYPE_STRING
-              row[index++] = valueMeta.getName(); // COLUMN_NAME - TYPE_STRING
-              row[index++] = (long) ThinUtil.getSqlType( valueMeta ); // DATA_TYPE - TYPE_INTEGER
-              row[index++] = ThinUtil.getSqlTypeDesc( valueMeta ); // TYPE_NAME - TYPE_STRING
-              row[index++] = (long) valueMeta.getLength(); // COLUMN_SIZE - TYPE_INTEGER
-              row[index++] = null; // BUFFER_LENGTH
-              row[index++] = (long) valueMeta.getPrecision(); // DECIMAL_DIGITS
-              row[index++] = (long) 10; // NUM_PREC_RADIX
-              row[index++] = DatabaseMetaData.columnNullableUnknown; // NULLABLE
-              row[index++] = valueMeta.getComments(); // REMARKS
-              row[index++] = null; // COLUMN_DEF
-              row[index++] = null; // SQL_DATA_TYPE
-              row[index++] = null; // SQL_DATATIME_SUB_
-              row[index++] = (long) valueMeta.getLength(); // CHAR_OCTET_LENGTH
-              row[index++] = (long) ordinal; // ORDINAL_POSITION
-              row[index++] = ""; // IS_NULLABLE
-              row[index++] = null; // SCOPE_CATALOG
-              row[index++] = null; // SCOPE_SCHEMA
-              row[index++] = null; // SCOPE_TABLE
-              row[index] = valueMeta.getTypeDesc(); // SOURCE_DATA_TYPE
-              rows.add( row );
-            }
-            ordinal++;
+      for ( String serviceName : serviceNames ) {
+        if ( Const.isEmpty( tableNamePattern ) || ThinUtil.like( serviceName, tableNamePattern ) ) {
+          service = getServiceInformation( serviceName );
+        }
+      }
+
+      List<Object[]> rows = new ArrayList<Object[]>();
+      if ( service != null ) {
+        int ordinal = 1;
+        for ( ValueMetaInterface valueMeta : service.getServiceFields().getValueMetaList() ) {
+          if ( Const.isEmpty( columnNamePattern ) || ThinUtil.like( valueMeta.getName(), columnNamePattern ) ) {
+            Object[] row = RowDataUtil.allocateRowData( rowMeta.size() );
+            int index = 0;
+            row[index++] = null; // TABLE_CAT - TYPE_STRING
+            row[index++] = SCHEMA_NAME_KETTLE; // TABLE_SCHEM - TYPE_STRING
+            row[index++] = service.getName(); // TABLE_NAME - TYPE_STRING
+            row[index++] = valueMeta.getName(); // COLUMN_NAME - TYPE_STRING
+            row[index++] = (long) ThinUtil.getSqlType( valueMeta ); // DATA_TYPE - TYPE_INTEGER
+            row[index++] = ThinUtil.getSqlTypeDesc( valueMeta ); // TYPE_NAME - TYPE_STRING
+            row[index++] = (long) valueMeta.getLength(); // COLUMN_SIZE - TYPE_INTEGER
+            row[index++] = null; // BUFFER_LENGTH
+            row[index++] = (long) valueMeta.getPrecision(); // DECIMAL_DIGITS
+            row[index++] = (long) 10; // NUM_PREC_RADIX
+            row[index++] = DatabaseMetaData.columnNullableUnknown; // NULLABLE
+            row[index++] = valueMeta.getComments(); // REMARKS
+            row[index++] = null; // COLUMN_DEF
+            row[index++] = null; // SQL_DATA_TYPE
+            row[index++] = null; // SQL_DATATIME_SUB_
+            row[index++] = (long) valueMeta.getLength(); // CHAR_OCTET_LENGTH
+            row[index++] = (long) ordinal; // ORDINAL_POSITION
+            row[index++] = ""; // IS_NULLABLE
+            row[index++] = null; // SCOPE_CATALOG
+            row[index++] = null; // SCOPE_SCHEMA
+            row[index++] = null; // SCOPE_TABLE
+            row[index] = valueMeta.getTypeDesc(); // SOURCE_DATA_TYPE
+            rows.add( row );
           }
+          ordinal++;
         }
       }
 
@@ -571,8 +575,12 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
     return new RowsResultSet( new RowMeta(), new ArrayList<Object[]>() ); // empty set
   }
 
-  public List<ThinServiceInformation> getServiceInformation() throws SQLException {
-    return connection.getClientService().getServiceInformation();
+  public ThinServiceInformation getServiceInformation( String name ) throws SQLException {
+    return connection.getClientService().getServiceInformation( name );
+  }
+
+  public List<String> getServiceNames() throws SQLException {
+    return connection.getClientService().getServiceNames();
   }
 
   @Override
@@ -619,10 +627,6 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
 
     try {
 
-      // Get the service information from the remote server...
-      //
-      List<ThinServiceInformation> services = getServiceInformation();
-
       RowMetaInterface rowMeta = new RowMeta();
       rowMeta.addValueMeta( new ValueMeta( "TABLE_CAT", ValueMetaInterface.TYPE_STRING ) );
       rowMeta.addValueMeta( new ValueMeta( "TABLE_SCHEM", ValueMetaInterface.TYPE_STRING ) );
@@ -635,23 +639,32 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
       rowMeta.addValueMeta( new ValueMeta( "SELF_REFERENCING_COL_NAME", ValueMetaInterface.TYPE_STRING ) );
       rowMeta.addValueMeta( new ValueMeta( "REF_GENERATION", ValueMetaInterface.TYPE_STRING ) );
 
-      List<Object[]> rows = new ArrayList<Object[]>();
-      for ( ThinServiceInformation service : services ) {
-        if ( Const.isEmpty( tableNamePattern ) || ThinUtil.like( service.getName(), tableNamePattern ) ) {
-          Object[] row = RowDataUtil.allocateRowData( rowMeta.size() );
-          int index = 0;
-          row[index++] = null; // TABLE_CAT
-          row[index++] = SCHEMA_NAME_KETTLE; // TABLE_SCHEM
-          row[index++] = service.getName(); // TABLE_NAME
-          row[index++] = "TABLE"; // TABLE_TYPE
-          row[index++] = null; // REMARKS
-          row[index++] = null; // TYPE_CAT
-          row[index++] = null; // TYPE_SCHEM
-          row[index++] = null; // TYPE_NAME
-          row[index++] = null; // SELF_REFERENCING_COL_NAME
-          row[index] = null; // REF_GENERATION
-          rows.add( row );
+      // Get the service information from the remote server...
+      //
+      List<String> serviceNames = getServiceNames();
+      ThinServiceInformation service = null;
+
+      for ( String serviceName : serviceNames ) {
+        if ( Const.isEmpty( tableNamePattern ) || ThinUtil.like( serviceName, tableNamePattern ) ) {
+          service = getServiceInformation( serviceName );
         }
+      }
+
+      List<Object[]> rows = new ArrayList<Object[]>();
+      if ( service != null ) {
+        Object[] row = RowDataUtil.allocateRowData( rowMeta.size() );
+        int index = 0;
+        row[index++] = null; // TABLE_CAT
+        row[index++] = SCHEMA_NAME_KETTLE; // TABLE_SCHEM
+        row[index++] = service.getName(); // TABLE_NAME
+        row[index++] = "TABLE"; // TABLE_TYPE
+        row[index++] = null; // REMARKS
+        row[index++] = null; // TYPE_CAT
+        row[index++] = null; // TYPE_SCHEM
+        row[index++] = null; // TYPE_NAME
+        row[index++] = null; // SELF_REFERENCING_COL_NAME
+        row[index] = null; // REF_GENERATION
+        rows.add( row );
       }
 
       logger.info( "-------------> Found " + rows.size() + " tables for the rows resultset." );

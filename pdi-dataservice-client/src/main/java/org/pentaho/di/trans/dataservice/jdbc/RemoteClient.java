@@ -46,6 +46,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -118,6 +119,47 @@ class RemoteClient implements DataServiceClientService {
     }
 
     return services;
+  }
+
+  @Override public ThinServiceInformation getServiceInformation( String name ) throws SQLException {
+    try {
+      String result = execService( "/listServices" );
+      Document doc = XMLHandler.loadXMLString( createDocumentBuilder(), result );
+      Node servicesNode = XMLHandler.getSubNode( doc, "services" );
+      List<Node> serviceNodes = XMLHandler.getNodes( servicesNode, "service" );
+
+      for ( Node serviceNode : serviceNodes ) {
+        String serviceName = XMLHandler.getTagValue( serviceNode, "name" );
+        if ( serviceName.equals( name ) ) {
+          Node rowMetaNode = XMLHandler.getSubNode( serviceNode, RowMeta.XML_META_TAG );
+          RowMetaInterface serviceFields = new RowMeta( rowMetaNode );
+          return new ThinServiceInformation( serviceName, serviceFields );
+        }
+      }
+
+    } catch ( Exception e ) {
+      throw serverException( e );
+    }
+
+    return null;
+  }
+
+  @Override public List<String> getServiceNames() throws SQLException {
+    List<String> serviceNames = new ArrayList<String>();
+    try {
+      String result = execService( "/listServices" );
+      Document doc = XMLHandler.loadXMLString( createDocumentBuilder(), result );
+      Node servicesNode = XMLHandler.getSubNode( doc, "services" );
+      List<Node> serviceNodes = XMLHandler.getNodes( servicesNode, "service" );
+
+      for ( Node serviceNode : serviceNodes ) {
+        String serviceName = XMLHandler.getTagValue( serviceNode, "name" );
+        serviceNames.add( serviceName );
+      }
+    } catch ( Exception e ) {
+      throw serverException( e );
+    }
+    return serviceNames;
   }
 
   private DocumentBuilder createDocumentBuilder() throws ParserConfigurationException {

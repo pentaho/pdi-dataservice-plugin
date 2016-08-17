@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -35,4 +35,6 @@ public interface DataServiceClientService {
   void setRepository( Repository repository );
   DataInputStream query( String sql, int maxRows ) throws SQLException;
   List<ThinServiceInformation> getServiceInformation() throws SQLException;
+  ThinServiceInformation getServiceInformation( String name ) throws SQLException;
+  List<String> getServiceNames() throws SQLException;
 }
