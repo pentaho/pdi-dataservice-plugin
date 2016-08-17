@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -42,6 +42,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
@@ -60,9 +61,15 @@ public class ThinDatabaseMetaDataTest extends JDBCTestBase<ThinDatabaseMetaData>
 
     RowMeta rowMeta = new RowMeta();
     rowMeta.addValueMeta( new ValueMetaString( "valuename" ) );
-    when( clientService.getServiceInformation() ).thenReturn( ImmutableList.of(
+    when( clientService.getServiceInformation( anyString() ) ).thenReturn(
       new ThinServiceInformation( "sequence", rowMeta )
-    ) );
+    );
+    when( clientService.getServiceInformation() ).thenReturn(
+      ImmutableList.of( new ThinServiceInformation( "sequence", rowMeta ) )
+    );
+    when( clientService.getServiceNames() ).thenReturn(
+      ImmutableList.of( "sequence" )
+    );
   }
 
   public ThinDatabaseMetaDataTest() {
@@ -82,6 +89,17 @@ public class ThinDatabaseMetaDataTest extends JDBCTestBase<ThinDatabaseMetaData>
     assertThat( tables.next(), is( false ) );
 
     ResultSet columns = metaData.getColumns( null, null, null, null );
+    assertThat( columns.next(), is( true ) );
+    assertThat( columns.getString( "TABLE_NAME" ), equalTo( "sequence" ) );
+    assertThat( columns.getString( "COLUMN_NAME" ), equalTo( "valuename" ) );
+    assertThat( columns.next(), is( false ) );
+
+    tables = metaData.getTables( null, null, "sequence", null );
+    assertThat( tables.next(), is( true ) );
+    assertThat( tables.getString( "TABLE_NAME" ), equalTo( "sequence" ) );
+    assertThat( tables.next(), is( false ) );
+
+    columns = metaData.getColumns( null, null, "sequence", null );
     assertThat( columns.next(), is( true ) );
     assertThat( columns.getString( "TABLE_NAME" ), equalTo( "sequence" ) );
     assertThat( columns.getString( "COLUMN_NAME" ), equalTo( "valuename" ) );
