@@ -37,4 +37,5 @@ public interface DataServiceClientService {
   List<ThinServiceInformation> getServiceInformation() throws SQLException;
   ThinServiceInformation getServiceInformation( String name ) throws SQLException;
   List<String> getServiceNames() throws SQLException;
+  List<String> getServiceNames( String serviceName ) throws SQLException;
 }

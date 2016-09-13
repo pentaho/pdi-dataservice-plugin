@@ -180,7 +180,7 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
     if ( Const.isEmpty( tableNamePattern ) ) {
       services = getServiceInformation();
     } else {
-      for ( String serviceName : getServiceNames() ) {
+      for ( String serviceName : getServiceNames( tableNamePattern ) ) {
         if ( ThinUtil.like( serviceName, tableNamePattern ) ) {
           services.add( getServiceInformation( serviceName ) );
         }
@@ -587,8 +587,8 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
     return connection.getClientService().getServiceInformation( name );
   }
 
-  public List<String> getServiceNames() throws SQLException {
-    return connection.getClientService().getServiceNames();
+  public List<String> getServiceNames( String serviceName ) throws SQLException {
+    return connection.getClientService().getServiceNames( serviceName );
   }
 
   @Override
