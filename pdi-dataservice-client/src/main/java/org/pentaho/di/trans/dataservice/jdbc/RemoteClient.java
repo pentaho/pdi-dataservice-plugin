@@ -144,6 +144,10 @@ class RemoteClient implements DataServiceClientService {
     return null;
   }
 
+  @Override public List<String> getServiceNames( String serviceName ) throws SQLException {
+    return getServiceNames();
+  }
+
   @Override public List<String> getServiceNames() throws SQLException {
     List<String> serviceNames = new ArrayList<String>();
     try {

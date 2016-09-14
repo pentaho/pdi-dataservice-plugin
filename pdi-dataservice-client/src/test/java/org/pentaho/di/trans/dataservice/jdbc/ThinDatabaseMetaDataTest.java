@@ -67,7 +67,7 @@ public class ThinDatabaseMetaDataTest extends JDBCTestBase<ThinDatabaseMetaData>
     when( clientService.getServiceInformation() ).thenReturn(
       ImmutableList.of( new ThinServiceInformation( "sequence", rowMeta ) )
     );
-    when( clientService.getServiceNames() ).thenReturn(
+    when( clientService.getServiceNames( anyString() ) ).thenReturn(
       ImmutableList.of( "sequence" )
     );
   }
