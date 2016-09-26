@@ -24,6 +24,7 @@ package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.base.Throwables;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 
 import java.io.InputStream;
@@ -327,10 +328,13 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
   }
 
   @Override
-  public Object getObject( int index ) throws SQLException {
+  public Object getObject( final int index ) throws SQLException {
     return getValue( index, new ValueRetriever<Object>() {
-      @Override public Object value( int index ) throws Exception {
-        return currentRow[index];
+      @Override public Object value( int i ) throws Exception {
+        if ( getRowMeta().getValueMeta( i ).getType() == ValueMetaInterface.TYPE_DATE ) {
+          return getDate( index );
+        }
+        return currentRow[ i ];
       }
     } );
   }

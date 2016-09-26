@@ -49,6 +49,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -290,5 +291,16 @@ public abstract class BaseResultSetTest extends JDBCTestBase<BaseResultSet> {
       return;
     }
     fail();
+  }
+
+  @Test
+  public void testGetObjectOnDateReturnsSqlDate() throws Exception {
+    Date date = new Date( 123456789 );
+    setNextRow( new Object[] { date } );
+    rowMeta.addValueMeta( new ValueMetaDate( "theDate" ) );
+    getTestObject().next();
+    Object value = getTestObject().getObject( 1 );
+    assertEquals( "java.sql.Date", value.getClass().getName() );
+    assertEquals( "1970-01-02", value.toString() );
   }
 }
