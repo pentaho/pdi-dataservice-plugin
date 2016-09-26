@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -102,7 +102,7 @@ public class ThinResultSetMetaData extends ThinBase implements ResultSetMetaData
       case ValueMetaInterface.TYPE_INTEGER:
         return java.sql.Types.BIGINT;
       case ValueMetaInterface.TYPE_BOOLEAN:
-        return java.sql.Types.BOOLEAN;
+        return java.sql.Types.BIT;
       case ValueMetaInterface.TYPE_BINARY:
         return java.sql.Types.BLOB;
       default:
