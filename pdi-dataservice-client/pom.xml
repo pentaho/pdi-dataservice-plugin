@@ -59,8 +59,6 @@
     </developer>
   </developers>
   <properties>
-    <jface.version>3.3.0-I20070606-0010</jface.version>
-    <swt.version>4.3.2</swt.version>
     <dependency.xerces.version>2.9.1</dependency.xerces.version>
   </properties>
   <dependencies>
@@ -79,24 +77,6 @@
       <groupId>pentaho-kettle</groupId>
       <artifactId>kettle-ui-swt</artifactId>
       <version>${dependency.kettle.revision}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.swt</groupId>
-      <artifactId>swt-linux-x86_64</artifactId>
-      <version>${swt.version}</version>
-      <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <artifactId>*</artifactId>
-          <groupId>*</groupId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse</groupId>
-      <artifactId>jface</artifactId>
-      <version>${jface.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
