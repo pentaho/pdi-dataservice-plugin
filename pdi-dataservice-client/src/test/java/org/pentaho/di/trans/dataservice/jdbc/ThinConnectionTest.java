@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -77,7 +77,7 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
   @Mock DataServiceClientService clientService;
 
   private static String host = "localhost";
-  private static int port = 9080;
+  private static int port = 8080;
   private static String debugTrans = "debugTrans";
 
   private String url;
@@ -88,13 +88,13 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
 
   @Before
   public void setUp() throws Exception {
-    url = "jdbc:pdi://localhost:9080/pentaho-di/kettle";
+    url = "jdbc:pdi://localhost:8080/pentaho/kettle";
 
     properties = new Properties();
     properties.setProperty( "user", "username" );
     properties.setProperty( "password", "password" );
 
-    connection = new ThinConnection( url, URI.create( "http://localhost:9080/pentaho-di/kettle" ) );
+    connection = new ThinConnection( url, URI.create( "http://localhost:8080/pentaho/kettle" ) );
     connection.setClientService( clientService );
 
     when( connectionManager.createHttpClient() ).thenReturn( httpClient );
@@ -119,7 +119,7 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     assertThat( connection.getParameters(), equalTo( ImmutableMap.of( "PARAMETER_TRANS_PARAM", "yes" ) ) );
 
     assertThat( connection.constructUrl( "/service?argument=value" ),
-      equalTo( "http://localhost:9080/pentaho-di/kettle/service?argument=value" ) );
+      equalTo( "http://localhost:8080/pentaho/kettle/service?argument=value" ) );
   }
 
   @Test
@@ -140,7 +140,7 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
   public void testLegacyBuilder() throws Exception {
     final String proxyHostName = "proxyhostname", proxyPort = "9081", nonProxyHosts = "nonproxyhost";
     ImmutableMap<String, String> args = ImmutableMap.<String, String>builder().
-      put( "webappname", "pentaho-di" ).
+      put( "webappname", "pentaho" ).
       put( "proxyhostname", proxyHostName ).
       put( "proxyport", proxyPort ).
       put( "nonproxyhosts", nonProxyHosts ).
@@ -149,7 +149,7 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
       put( "local", "false" ).
       put( "PARAMETER_HELLO_WORLD", URLEncoder.encode( "test value", Charsets.UTF_8.name() ) ).
       build();
-    url = "jdbc:pdi://localhost:9080/kettle?" + Joiner.on( "&" ).withKeyValueSeparator( "=" ).join( args );
+    url = "jdbc:pdi://localhost:8080/kettle?" + Joiner.on( "&" ).withKeyValueSeparator( "=" ).join( args );
 
     ThinConnection thinConnection = new ThinConnection.Builder( connectionManager )
       .parseUrl( url )
@@ -180,7 +180,7 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     assertThat( thinConnection.getParameters(), equalTo( ImmutableMap.of( "PARAMETER_HELLO_WORLD", "test value" ) ) );
 
     assertThat( thinConnection.constructUrl( "/service?argument=value" ),
-      equalTo( "https://localhost:9080/pentaho-di/kettle/service?argument=value" ) );
+      equalTo( "https://localhost:8080/pentaho/kettle/service?argument=value" ) );
   }
 
   @Test

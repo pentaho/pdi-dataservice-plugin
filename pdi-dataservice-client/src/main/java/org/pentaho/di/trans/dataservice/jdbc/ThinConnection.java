@@ -544,7 +544,7 @@ public class ThinConnection extends ThinBase implements Connection {
       String pathPrefix = "";
       if ( arguments.containsKey( ARG_WEBAPPNAME ) ) {
         ThinDriver.logger.warning( ARG_WEBAPPNAME + " is deprecated. "
-          + "Please instead use the form jdbc:pdi://myserver.mydomain.com:9080/webAppName/kettle" );
+          + "Please instead use the form jdbc:pdi://myserver.mydomain.com:8080/webAppName/kettle" );
         pathPrefix = "/" + arguments.get( ARG_WEBAPPNAME );
       }
 

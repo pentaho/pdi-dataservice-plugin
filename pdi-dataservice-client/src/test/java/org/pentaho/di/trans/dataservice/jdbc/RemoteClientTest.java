@@ -82,7 +82,7 @@ public class RemoteClientTest {
     };
     when( connection.constructUrl( anyString() ) ).then( new Answer<String>() {
       @Override public String answer( InvocationOnMock invocation ) throws Throwable {
-        return "http://localhost:9080/pentaho-di/kettle" + invocation.getArguments()[0];
+        return "http://localhost:8080/pentaho/kettle" + invocation.getArguments()[0];
       }
     } );
   }
@@ -108,7 +108,7 @@ public class RemoteClientTest {
     verify( httpClient ).executeMethod( httpMethodCaptor.capture() );
     PostMethod httpMethod = (PostMethod) httpMethodCaptor.getValue();
 
-    assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:9080/pentaho-di/kettle/sql/" ) );
+    assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:8080/pentaho/kettle/sql/" ) );
     assertThat( httpMethod.getRequestHeader( "SQL" ).getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
     assertThat( httpMethod.getRequestHeader( "MaxRows" ).getValue(), equalTo( "200" ) );
     assertThat( httpMethod.getParameter( "SQL" ).getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
@@ -139,7 +139,7 @@ public class RemoteClientTest {
     verify( httpClient ).executeMethod( httpMethodCaptor.capture() );
     PostMethod httpMethod = (PostMethod) httpMethodCaptor.getValue();
 
-    assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:9080/pentaho-di/kettle/sql/" ) );
+    assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:8080/pentaho/kettle/sql/" ) );
     assertThat( httpMethod.getRequestHeader( "SQL" ), is( nullValue() ) );
     assertThat( httpMethod.getRequestHeader( "MaxRows" ), is( nullValue() ) );
     assertThat( httpMethod.getParameter( "SQL" ).getValue(),
@@ -151,7 +151,7 @@ public class RemoteClientTest {
 
   @Test
   public void testGetServiceInformation() throws Exception {
-    String url = "http://localhost:9080/pentaho-di/kettle/listServices";
+    String url = "http://localhost:8080/pentaho/kettle/listServices";
     String xml = Resources.toString( ClassLoader.getSystemResource( "jdbc/listServices.xml" ), Charsets.UTF_8 );
     when( httpClient.executeMethod( isA( GetMethod.class ) ) ).thenReturn( 200 );
     when( execMethod.getResponseBodyAsString() ).thenReturn( xml );

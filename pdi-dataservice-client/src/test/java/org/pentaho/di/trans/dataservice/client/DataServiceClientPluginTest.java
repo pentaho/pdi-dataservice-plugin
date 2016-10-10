@@ -106,7 +106,7 @@ public class DataServiceClientPluginTest {
 
     assertThat( clientPlugin.getUsedLibraries(), emptyArray() );
 
-    assertThat( clientPlugin.getDefaultDatabasePort(), is( 9080 ) );
+    assertThat( clientPlugin.getDefaultDatabasePort(), is( 8080 ) );
     assertThat( clientPlugin.getDriverClass(), is( ThinDriver.class.getName() ) );
     assertThat( new URL( clientPlugin.getExtraOptionsHelpText() ), notNullValue() );
 
@@ -119,8 +119,8 @@ public class DataServiceClientPluginTest {
 
   @Test
   public void testConstructURL() throws Exception {
-    assertThat( clientPlugin.getURL( "host.com", "8080", "pentaho-di" ), is( "jdbc:pdi://host.com:8080/pentaho-di/kettle" ) );
-    clientPlugin.getAttributes().put( ThinConnection.ARG_WEB_APPLICATION_NAME, "pentaho-di" );
+    assertThat( clientPlugin.getURL( "host.com", "8080", "pentaho" ), is( "jdbc:pdi://host.com:8080/pentaho/kettle" ) );
+    clientPlugin.getAttributes().put( ThinConnection.ARG_WEB_APPLICATION_NAME, "pentaho" );
     assertThat( clientPlugin.getURL( "host.com", "8080", "kettle" ), is( "jdbc:pdi://host.com:8080/kettle" ) );
   }
 }
