@@ -41,7 +41,6 @@ import org.pentaho.di.trans.dataservice.jdbc.ThinDriver;
   type = "KettleThin",
   typeDescription = "Pentaho Data Services" )
 public class DataServiceClientPlugin extends BaseDatabaseMeta implements DatabaseInterface {
-  public static final String DEFAULT_WEBAPPNAME = "pentaho-di";
 
   @Override
   public int[] getAccessTypeList() {
@@ -66,7 +65,7 @@ public class DataServiceClientPlugin extends BaseDatabaseMeta implements Databas
   }
 
   @Override public int getDefaultDatabasePort() {
-    return 9080;
+    return 8080;
   }
 
   @Override public String getExtraOptionsHelpText() {

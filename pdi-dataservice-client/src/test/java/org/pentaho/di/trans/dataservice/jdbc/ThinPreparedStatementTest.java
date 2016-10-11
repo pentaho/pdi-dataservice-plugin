@@ -212,7 +212,7 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
   @Override protected Object mockValue( Class<?> type ) {
     if ( type.equals( URL.class ) ) {
       try {
-        return new URL( "http://localhost:9080/pentaho-di" );
+        return new URL( "http://localhost:8080/pentaho" );
       } catch ( MalformedURLException e ) {
         throw new AssertionError( e );
       }
