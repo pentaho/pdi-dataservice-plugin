@@ -69,7 +69,7 @@ public class DataServiceClientPlugin extends BaseDatabaseMeta implements Databas
   }
 
   @Override public String getExtraOptionsHelpText() {
-    return "https://help.pentaho.com/Documentation/6.1/0L0/0Y0/090/040";
+    return "https://help.pentaho.com/Documentation/7.0/0L0/0Y0/090/040";
   }
 
   @Override

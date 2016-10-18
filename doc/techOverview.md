@@ -120,7 +120,7 @@ Hosting Data Services from **Carte** is not yet officially supported.
 ## User Guide
 
 ### SQL Queries
-Data Services support a limited subset of SQL.  The capabilities are documented here: [6.0](http://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/080), [6.1](http://help.pentaho.com/Documentation/6.1/0L0/0Y0/090/080)
+Data Services support a limited subset of SQL.  The capabilities are documented here: [6.0](http://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/080), [6.1](http://help.pentaho.com/Documentation/6.1/0L0/0Y0/090/080), [7.0](http://help.pentaho.com/Documentation/7.0/0L0/0Y0/090/080
 
 
 **Some important things to keep in mind:**
