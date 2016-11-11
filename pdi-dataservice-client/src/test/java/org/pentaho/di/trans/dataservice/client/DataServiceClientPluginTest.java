@@ -41,6 +41,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -122,5 +123,10 @@ public class DataServiceClientPluginTest {
     assertThat( clientPlugin.getURL( "host.com", "8080", "pentaho" ), is( "jdbc:pdi://host.com:8080/pentaho/kettle" ) );
     clientPlugin.getAttributes().put( ThinConnection.ARG_WEB_APPLICATION_NAME, "pentaho" );
     assertThat( clientPlugin.getURL( "host.com", "8080", "kettle" ), is( "jdbc:pdi://host.com:8080/kettle" ) );
+  }
+
+  @Test
+  public void testRequiresName() {
+    assertFalse( clientPlugin.requiresName() );
   }
 }

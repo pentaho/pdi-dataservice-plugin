@@ -223,4 +223,8 @@ public class DataServiceClientPlugin extends BaseDatabaseMeta implements Databas
   public boolean supportsSetMaxRows() {
     return true;
   }
+
+  @Override public boolean requiresName() {
+    return false;
+  }
 }
