@@ -43,7 +43,7 @@ Any Transformation can be used as a virtual table. Here's out it works:
   0. A user with a JDBC client [connects to the server](https://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/040). The client can list available Data Services (virtual tables), view table structure, and submit SQL SELECT queries.
   0. When the server receives a SQL query, the table name is resolved and the user-defined **Service Transformation** is loaded from the repository. The SQL is parsed and a second **Generated Transformation** is created, containing all of the query operations (grouping, sorting, filtering).  
   0. Optimizations may be applied to the Service Transformation, depending on the user's query and constraints of the optimization type. These optimizations are intended to reduce the number of rows processed during query execution.
-  0. Both transformations execute. Output from the service transformation is injected into the generated transformation, and output of the generated transformation is returned to the user as a Result Set.
+  0. Both transformations execute. The service transformation will only execute those steps necessary to produce rows from the selected step.  Output from the service transformation is injected into the generated transformation, and output of the generated transformation is returned to the user as a Result Set.
 
 A vast majority of the work here is done by the [pdi-dataservice-server-plugin](https://github.com/pentaho/pdi-dataservice-server-plugin). It is located in Karaf assembly in data-integration and data-integration-server.
 
