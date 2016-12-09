@@ -105,6 +105,8 @@ public class ThinResultSetMetaData extends ThinBase implements ResultSetMetaData
         return java.sql.Types.BIT;
       case ValueMetaInterface.TYPE_BINARY:
         return java.sql.Types.BLOB;
+      case ValueMetaInterface.TYPE_INET:
+        return java.sql.Types.BINARY;
       default:
         throw new SQLException( "Unknown data type for column " + column );
     }

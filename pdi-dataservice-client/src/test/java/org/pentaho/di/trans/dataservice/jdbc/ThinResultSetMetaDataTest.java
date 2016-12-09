@@ -94,6 +94,12 @@ public class ThinResultSetMetaDataTest {
   }
 
   @Test
+  public void getColumnType_inet() throws Exception {
+    when( valueMeta.getType() ).thenReturn( ValueMetaInterface.TYPE_INET );
+    assertEquals( Types.BINARY, resultSetMetaData.getColumnType( 1 ) );
+  }
+
+  @Test
   public void getColumnType_date() throws Exception {
     when( valueMeta.getType() ).thenReturn( ValueMetaInterface.TYPE_DATE );
     assertEquals( Types.TIMESTAMP, resultSetMetaData.getColumnType( 1 ) );
