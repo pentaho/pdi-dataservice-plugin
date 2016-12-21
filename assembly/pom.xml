@@ -5,10 +5,10 @@
   <parent>
     <groupId>pentaho</groupId>
     <artifactId>pdi-dataservice-client</artifactId>
-    <version>7.0-SNAPSHOT</version>
+    <version>7.0.0.1-37</version>
   </parent>
   <artifactId>pdi-dataservice-driver-bundle</artifactId>
-  <version>7.0-SNAPSHOT</version>
+  <version>7.0.0.1-37</version>
   <name>Pentaho Community Edition Project: ${project.artifactId}</name>
   <description>PDI Data Services driver bundle</description>
   <url>http://www.pentaho.com</url>
