@@ -29,6 +29,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Spy;
@@ -42,6 +43,7 @@ import org.pentaho.di.core.row.value.ValueMetaString;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Map;
 
@@ -300,7 +302,8 @@ public abstract class BaseResultSetTest extends JDBCTestBase<BaseResultSet> {
     rowMeta.addValueMeta( new ValueMetaDate( "theDate" ) );
     getTestObject().next();
     Object value = getTestObject().getObject( 1 );
-    assertEquals( "java.sql.Date", value.getClass().getName() );
-    assertEquals( "1970-01-02", value.toString() );
+    assertEquals( "java.sql.Timestamp", value.getClass().getName() );
+    Timestamp timestampValue = (Timestamp) value;
+    assertEquals( "2 Jan 1970 10:17:36 GMT", timestampValue.toGMTString() );
   }
 }

@@ -332,7 +332,7 @@ public abstract class BaseResultSet extends ThinBase implements ResultSet {
     return getValue( index, new ValueRetriever<Object>() {
       @Override public Object value( int i ) throws Exception {
         if ( getRowMeta().getValueMeta( i ).getType() == ValueMetaInterface.TYPE_DATE ) {
-          return getDate( index );
+          return getTimestamp( index );
         }
         return currentRow[ i ];
       }
