@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -23,7 +23,6 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import org.pentaho.di.core.Const;
-import org.pentaho.di.core.exception.KettleEOFException;
 import org.pentaho.di.core.exception.KettleFileException;
 import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 
@@ -150,7 +149,7 @@ public class ThinResultSet extends BaseResultSet {
       Object[] data = getRowMeta().readData( dataInputStream );
       size += 1;
       return data;
-    } catch ( KettleEOFException e ) {
+    } catch ( KettleFileException e ) {
       size = getRow();
       dataInputStream.close();
       return null;
