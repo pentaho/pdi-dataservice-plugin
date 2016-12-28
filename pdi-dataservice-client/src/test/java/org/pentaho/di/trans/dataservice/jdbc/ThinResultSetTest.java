@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -30,6 +30,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.pentaho.di.core.exception.KettleEOFException;
+import org.pentaho.di.core.exception.KettleFileException;
 import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 
@@ -111,7 +112,7 @@ public class ThinResultSetTest extends BaseResultSetTest {
     assertThat( thinResultSet.getRow(), is( 2 ) );
     verifyState();
 
-    doThrow( new KettleEOFException() ).when( rowMeta ).readData( dataInputStream );
+    doThrow( new KettleFileException() ).when( rowMeta ).readData( dataInputStream );
 
     assertThat( thinResultSet.next(), is( false ) );
     assertThat( thinResultSet.getRow(), is( 0 ) );
