@@ -29,6 +29,7 @@ import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMeta;
 import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.version.BuildVersion;
 
 import java.sql.Connection;
@@ -227,6 +228,12 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
       rowMeta.addValueMeta( new ValueMeta( "SCOPE_TABLE", ValueMetaInterface.TYPE_STRING ) ); // null
       rowMeta.addValueMeta( new ValueMeta( "SOURCE_DATA_TYPE", ValueMetaInterface.TYPE_STRING ) ); // Kettle source data
                                                                                                    // type description
+
+      rowMeta.addValueMeta( new ValueMetaString( "SOURCE_MASK" ) ); // Kettle source data conversion mask
+      rowMeta.addValueMeta( new ValueMetaString( "SOURCE_DECIMAL_SYMBOL" ) ); // Mask decimal symbol
+      rowMeta.addValueMeta( new ValueMetaString( "SOURCE_GROUPING_SYMBOL" ) ); // Mask thousands grouping symbol
+      rowMeta.addValueMeta( new ValueMetaString( "SOURCE_CURRENCY_SYMBOL" ) ); // Mask currency symbol
+
       List<Object[]> rows = new ArrayList<Object[]>();
       for ( ThinServiceInformation service : getServices( tableNamePattern ) ) {
         int ordinal = 1;
@@ -255,7 +262,13 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
             row[index++] = null; // SCOPE_CATALOG
             row[index++] = null; // SCOPE_SCHEMA
             row[index++] = null; // SCOPE_TABLE
-            row[index] = valueMeta.getTypeDesc(); // SOURCE_DATA_TYPE
+            row[index++] = valueMeta.getTypeDesc(); // SOURCE_DATA_TYPE
+
+            row[index++] = valueMeta.getConversionMask(); // SOURCE_MASK
+            row[index++] = valueMeta.getDecimalSymbol(); // SOURCE_DECIMAL_SYMBOL
+            row[index++] = valueMeta.getGroupingSymbol(); // SOURCE_GROUPING_SYMBOL
+            row[index++] = valueMeta.getCurrencySymbol(); // SOURCE_CURRENCY_SYMBOL
+
             rows.add( row );
           }
           ordinal++;
