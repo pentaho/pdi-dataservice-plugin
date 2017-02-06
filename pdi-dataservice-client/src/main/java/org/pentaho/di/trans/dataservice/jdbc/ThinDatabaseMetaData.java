@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -264,10 +264,10 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
             row[index++] = null; // SCOPE_TABLE
             row[index++] = valueMeta.getTypeDesc(); // SOURCE_DATA_TYPE
 
-            row[index++] = valueMeta.getConversionMask(); // SOURCE_MASK
-            row[index++] = valueMeta.getDecimalSymbol(); // SOURCE_DECIMAL_SYMBOL
-            row[index++] = valueMeta.getGroupingSymbol(); // SOURCE_GROUPING_SYMBOL
-            row[index++] = valueMeta.getCurrencySymbol(); // SOURCE_CURRENCY_SYMBOL
+            row[index++] = valueMeta.getFormatMask();        // SOURCE_MASK
+            row[index++] = valueMeta.getDecimalSymbol();     // SOURCE_DECIMAL_SYMBOL
+            row[index++] = valueMeta.getGroupingSymbol();    // SOURCE_GROUPING_SYMBOL
+            row[index++] = valueMeta.getCurrencySymbol();    // SOURCE_CURRENCY_SYMBOL
 
             rows.add( row );
           }
