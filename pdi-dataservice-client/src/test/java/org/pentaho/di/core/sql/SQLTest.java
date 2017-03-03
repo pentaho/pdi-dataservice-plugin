@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -492,6 +492,13 @@ public class SQLTest extends TestCase {
     RowMetaInterface rowMeta = new RowMeta();
     rowMeta.addValueMeta( new ValueMeta( "A", ValueMetaInterface.TYPE_STRING, 50 ) );
     rowMeta.addValueMeta( new ValueMeta( "B", ValueMetaInterface.TYPE_INTEGER, 7 ) );
+    return rowMeta;
+  }
+
+  public static RowMetaInterface generateTest2RowMetaWithParans() {
+    RowMetaInterface rowMeta = new RowMeta();
+    rowMeta.addValueMeta( new ValueMeta( "A", ValueMetaInterface.TYPE_STRING, 50 ) );
+    rowMeta.addValueMeta( new ValueMeta( "B (g)", ValueMetaInterface.TYPE_INTEGER, 7 ) );
     return rowMeta;
   }
 

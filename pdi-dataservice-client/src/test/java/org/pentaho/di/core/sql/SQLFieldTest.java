@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -396,6 +396,17 @@ public class SQLFieldTest extends TestCase {
     assertEquals( "B", condition.getLeftValuename() );
     assertEquals( ">", condition.getFunctionDesc() );
     assertEquals( "50", condition.getRightExactString() );
+  }
+
+  public void testAliasWithParans() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateTest2RowMetaWithParans();
+
+    String fieldClause = "sum(\"Service\".\"B (g)\") as nrSize";
+
+    SQLField field = new SQLField( "Service", fieldClause, rowMeta );
+    assertEquals( "B (g)", field.getName() );
+    assertEquals( "nrSize", field.getAlias() );
+    assertEquals( SQLAggregation.SUM, field.getAggregation() );
   }
 
   public void testSqlFieldConstants01() throws KettleSQLException {
