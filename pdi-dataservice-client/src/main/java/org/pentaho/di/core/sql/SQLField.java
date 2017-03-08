@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2013 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -125,8 +125,8 @@ public class SQLField {
               throw new KettleSQLException( "No opening bracket found after keyword ["
                 + aggregation.getKeyWord() + "] in clause [" + fieldClause + "]" );
             }
-            int closeIndex = value.indexOf( ')', openIndex );
-            if ( closeIndex < 0 ) {
+            int closeIndex = value.lastIndexOf( ')' );
+            if ( closeIndex <= openIndex ) {
               throw new KettleSQLException( "No closing bracket found after keyword ["
                 + aggregation.getKeyWord() + "]" );
             }
