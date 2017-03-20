@@ -22,20 +22,6 @@
 
 package org.pentaho.di.trans.dataservice.client;
 
-import org.pentaho.di.repository.Repository;
-import org.pentaho.di.trans.dataservice.jdbc.ThinServiceInformation;
-import org.pentaho.metastore.api.IMetaStore;
-
-import java.io.DataInputStream;
-import java.sql.SQLException;
-import java.util.List;
-
-public interface DataServiceClientService {
-  void setMetaStore( IMetaStore metaStore );
-  void setRepository( Repository repository );
-  DataInputStream query( String sql, int maxRows ) throws SQLException;
-  List<ThinServiceInformation> getServiceInformation() throws SQLException;
-  ThinServiceInformation getServiceInformation( String name ) throws SQLException;
-  List<String> getServiceNames() throws SQLException;
-  List<String> getServiceNames( String serviceName ) throws SQLException;
+public interface ConnectionAbortingSupport {
+  void disconnect();
 }

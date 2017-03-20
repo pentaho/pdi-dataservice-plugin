@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -35,6 +35,7 @@ import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.repository.Repository;
+import org.pentaho.di.trans.dataservice.client.ConnectionAbortingSupport;
 import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.Document;
@@ -49,11 +50,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author nhudak
  */
-class RemoteClient implements DataServiceClientService {
+class RemoteClient implements DataServiceClientService, ConnectionAbortingSupport {
 
   private static final String SQL = "SQL";
   private static final String MAX_ROWS = "MaxRows";
@@ -63,6 +65,7 @@ class RemoteClient implements DataServiceClientService {
   private final HttpClient client;
   private DocumentBuilderFactory docBuilderFactory;
   private static final String SERVICE_PATH = "/sql/";
+  private final CopyOnWriteArrayList<PostMethod> activeMethods = new CopyOnWriteArrayList<PostMethod>();
 
   RemoteClient( ThinConnection connection, HttpClient client ) {
     this.connection = connection;
@@ -70,9 +73,10 @@ class RemoteClient implements DataServiceClientService {
   }
 
   @Override public DataInputStream query( String sql, int maxRows ) throws SQLException {
+    PostMethod method = null;
     try {
       String url = connection.constructUrl( SERVICE_PATH );
-      PostMethod method = new PostMethod( url );
+      method = new PostMethod( url );
       method.setDoAuthentication( true );
 
       method.getParams().setParameter( "http.socket.timeout", 0 );
@@ -91,10 +95,12 @@ class RemoteClient implements DataServiceClientService {
       if ( !Strings.isNullOrEmpty( connection.getDebugTransFilename() ) ) {
         method.addParameter( ThinConnection.ARG_DEBUGTRANS, connection.getDebugTransFilename() );
       }
-
+      activeMethods.add( method );
       return new DataInputStream( execMethod( method ).getResponseBodyAsStream() );
     } catch ( Exception e ) {
       throw serverException( e );
+    } finally {
+      activeMethods.remove( method );
     }
   }
 
@@ -166,6 +172,12 @@ class RemoteClient implements DataServiceClientService {
     return serviceNames;
   }
 
+  @Override public void disconnect() {
+    for ( PostMethod method : activeMethods ) {
+      method.abort();
+    }
+  }
+
   private DocumentBuilder createDocumentBuilder() throws ParserConfigurationException {
     if ( docBuilderFactory == null ) {
       docBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -207,7 +219,7 @@ class RemoteClient implements DataServiceClientService {
       }
     } catch ( IOException e ) {
       throw new SQLException(
-        "You don't seem to be getting a connection to the server. Check the host and port you're using and make sure the sever is up and running." );
+        "You don't seem to be getting a connection to the server or you have closed it. Check the host and port you're using and make sure the sever is up and running." );
     }
     return method;
   }
