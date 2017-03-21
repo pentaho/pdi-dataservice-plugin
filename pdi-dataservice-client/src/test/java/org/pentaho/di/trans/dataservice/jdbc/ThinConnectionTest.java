@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -60,6 +60,8 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -233,9 +235,6 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     connection.setCatalog( "catalog" );
     assertThat( connection.getCatalog(), nullValue() );
 
-    connection.close();
-    assertThat( connection.isClosed(), is( false ) );
-
     connection.setAutoCommit( false );
     assertThat( connection.getAutoCommit(), is( true ) );
 
@@ -253,5 +252,18 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
 
   @Override protected ThinConnection getTestObject() {
     return connection;
+  }
+
+  // PDI-14428
+  @Test
+  public void testCloseConnection() throws Exception {
+    ThinConnection spyConnection = spy( connection );
+    assertThat( spyConnection.isClosed(), is( false ) );
+    ThinStatement thinStatement = new ThinStatement(spyConnection);
+    verify( spyConnection, times( 1 ) ).registerStatement( thinStatement );
+    spyConnection.close();
+    assertThat( spyConnection.isClosed(), is( true ) );
+    verify( clientService, times( 1 ) ).disconnect();
+    verify( spyConnection, times( 1 ) ).closeAllOpenStatements();
   }
 }

@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -38,4 +38,5 @@ public interface DataServiceClientService {
   ThinServiceInformation getServiceInformation( String name ) throws SQLException;
   List<String> getServiceNames() throws SQLException;
   List<String> getServiceNames( String serviceName ) throws SQLException;
+  void disconnect();
 }

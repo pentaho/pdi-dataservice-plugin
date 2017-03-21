@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -61,6 +61,7 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 
 public class ThinConnection extends ThinBase implements Connection {
@@ -92,6 +93,12 @@ public class ThinConnection extends ThinBase implements Connection {
 
   private ImmutableMap<String, String> parameters = ImmutableMap.of();
 
+  /**
+   * An array of currently open statements.
+   * Copy-on-write used here to avoid ConcurrentModificationException when statements unregister themselves while we iterate over the list.
+   */
+  private final CopyOnWriteArrayList<ThinStatement> openStatements = new CopyOnWriteArrayList<ThinStatement>();
+
   protected ThinConnection( String url, URI baseURI ) {
     this.url = url;
     this.baseURI = baseURI;
@@ -103,7 +110,10 @@ public class ThinConnection extends ThinBase implements Connection {
 
   @Override
   public void close() throws SQLException {
-    // TODO
+    //clean all resources
+    clientService.disconnect();
+    closeAllOpenStatements();
+    clientService = null;
   }
 
   @Override @NotSupported
@@ -199,8 +209,7 @@ public class ThinConnection extends ThinBase implements Connection {
 
   @Override
   public boolean isClosed() throws SQLException {
-    // TODO
-    return false;
+    return clientService == null;
   }
 
   @Override
@@ -561,6 +570,48 @@ public class ThinConnection extends ThinBase implements Connection {
       } catch ( URISyntaxException e ) {
         throw new SQLException( "Unable to create a connection", e );
       }
+    }
+  }
+
+  /**
+   * Register a Statement instance as open.
+   *
+   * @param stmt
+   *            the ThinStatement instance to register
+   */
+  public void registerStatement( ThinStatement stmt ) {
+    this.openStatements.addIfAbsent( stmt );
+  }
+
+
+  /**
+   * Remove the given statement from the list of open statements
+   *
+   * @param stmt
+   *            the ThinStatement instance to remove
+   */
+  public void unregisterStatement( ThinStatement stmt ) {
+    this.openStatements.remove( stmt );
+  }
+
+  /**
+   * Closes all currently open statements.
+   *
+   * @throws SQLException
+   */
+  public void closeAllOpenStatements() throws SQLException {
+    SQLException postponedException = null;
+
+    for ( ThinStatement stmt : this.openStatements ) {
+      try {
+        stmt.close();
+      } catch ( SQLException sqlEx ) {
+        postponedException = sqlEx; // throw it later, cleanup all statements first
+      }
+    }
+
+    if ( postponedException != null ) {
+      throw postponedException;
     }
   }
 }
