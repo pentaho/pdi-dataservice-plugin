@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -46,7 +46,6 @@ public class ThinStatement extends ThinBase implements Statement {
   protected ThinStatement( ThinConnection connection, ThinResultFactory resultFactory ) {
     this.connection = connection;
     this.resultFactory = resultFactory;
-    this.connection.registerStatement( this );
   }
 
   @Override @NotSupported
@@ -59,7 +58,6 @@ public class ThinStatement extends ThinBase implements Statement {
     if ( resultSet != null ) {
       resultSet.close();
     }
-    connection.unregisterStatement( this );
   }
 
   @Override @NotSupported
