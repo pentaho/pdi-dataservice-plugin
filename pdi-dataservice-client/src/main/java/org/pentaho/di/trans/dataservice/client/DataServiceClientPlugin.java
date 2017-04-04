@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -22,6 +22,7 @@
 
 package org.pentaho.di.trans.dataservice.client;
 
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.BaseDatabaseMeta;
 import org.pentaho.di.core.database.DatabaseInterface;
 import org.pentaho.di.core.database.DatabaseMeta;
@@ -69,7 +70,7 @@ public class DataServiceClientPlugin extends BaseDatabaseMeta implements Databas
   }
 
   @Override public String getExtraOptionsHelpText() {
-    return "https://help.pentaho.com/Documentation/7.0/0L0/0Y0/090/040";
+    return Const.getDocUrl( "0L0/0Y0/090/040" );
   }
 
   @Override
