@@ -5,10 +5,10 @@
   <parent>
     <groupId>pentaho</groupId>
     <artifactId>pdi-dataservice-client</artifactId>
-    <version>6.1-SNAPSHOT</version>
+    <version>6.1.0.13-350</version>
   </parent>
   <artifactId>pdi-dataservice-driver-bundle</artifactId>
-  <version>6.1-SNAPSHOT</version>
+  <version>6.1.0.13-350</version>
   <dependencies>
     <dependency>
       <groupId>pentaho</groupId>
