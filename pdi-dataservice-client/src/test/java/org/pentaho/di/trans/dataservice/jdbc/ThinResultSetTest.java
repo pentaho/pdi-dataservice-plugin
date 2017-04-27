@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -139,6 +139,12 @@ public class ThinResultSetTest extends BaseResultSetTest {
     verify( rowMeta ).readData( dataInputStream );
     assertThat( thinResultSet.next(), is( false ) );
     verifyNoMoreInteractions( rowMeta );
+  }
+
+  @Test
+  public void testNullDataInputStream() throws Exception {
+    doThrow( new KettleFileException() ).when( rowMeta ).readData( null );
+    verify( dataInputStream, never() ).close();
   }
 
   @Test
