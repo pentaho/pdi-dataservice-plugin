@@ -151,7 +151,7 @@ public class ThinResultSet extends BaseResultSet {
       return data;
     } catch ( KettleFileException e ) {
       size = getRow();
-      if ( dataInputStream != null ) {
+      if ( !isClosed() ) {
         dataInputStream.close();
       }
       return null;
