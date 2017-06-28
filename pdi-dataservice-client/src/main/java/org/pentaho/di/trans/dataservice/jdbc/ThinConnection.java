@@ -30,12 +30,12 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScope;
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.pentaho.di.cluster.SlaveConnectionManager;
-import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.BaseDatabaseMeta;
+import org.pentaho.di.core.util.HttpClientManager;
+import org.pentaho.di.core.util.HttpClientUtil;
 import org.pentaho.di.trans.dataservice.client.ConnectionAbortingSupport;
 import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
@@ -80,8 +80,8 @@ public class ThinConnection extends ThinBase implements Connection {
   public static DataServiceClientService localClient;
   private DataServiceClientService clientService;
 
-  private final String url;
-  private final URI baseURI;
+  private String url;
+  private URI baseURI;
 
   private String username;
   private String password;
@@ -99,6 +99,9 @@ public class ThinConnection extends ThinBase implements Connection {
    * Copy-on-write used here to avoid ConcurrentModificationException when statements unregister themselves while we iterate over the list.
    */
   private final CopyOnWriteArrayList<ThinStatement> openStatements = new CopyOnWriteArrayList<ThinStatement>();
+
+  protected ThinConnection() {
+  }
 
   protected ThinConnection( String url, URI baseURI ) {
     this.url = url;
@@ -458,22 +461,6 @@ public class ThinConnection extends ThinBase implements Connection {
     return Preconditions.checkNotNull( clientService, "Client Service not set for connection" );
   }
 
-  private void addCredentials( HttpClient client ) {
-    UsernamePasswordCredentials credentials = new UsernamePasswordCredentials( username, password );
-    client.getParams().setAuthenticationPreemptive( true );
-    client.getState().setCredentials( AuthScope.ANY, credentials );
-  }
-
-  private void setProxy( HttpClient client ) {
-    if ( !Const.isEmpty( proxyHostname ) && !Const.isEmpty( proxyPort ) ) {
-      // skip applying proxy if non-proxy host matches
-      if ( !Const.isEmpty( nonProxyHosts ) && getHostname().matches( nonProxyHosts ) ) {
-        return;
-      }
-      client.getHostConfiguration().setProxy( proxyHostname, Integer.parseInt( proxyPort ) );
-    }
-  }
-
   private ThinConnection extractProperties( Map<String, String> arguments ) {
     proxyHostname = arguments.get( ARG_PROXYHOSTNAME );
     proxyPort = arguments.get( ARG_PROXYPORT );
@@ -492,14 +479,21 @@ public class ThinConnection extends ThinBase implements Connection {
     return this;
   }
 
-  public static class Builder {
-    private final SlaveConnectionManager connectionManager;
+  protected Builder createBuilder() {
+    return new Builder();
+  }
+
+  public class Builder {
+    private final HttpClientManager httpClientManager = HttpClientManager.getInstance();
     private final Map<String, String> arguments = Maps.newHashMap();
     private String url;
     private URI uri;
 
+    @Deprecated
     public Builder( SlaveConnectionManager connectionManager ) {
-      this.connectionManager = connectionManager;
+    }
+
+    public Builder() {
     }
 
     public Builder parseUrl( String url ) throws SQLException {
@@ -522,7 +516,7 @@ public class ThinConnection extends ThinBase implements Connection {
       return this;
     }
 
-    static String decode( String s ) throws UnsupportedEncodingException {
+    String decode( String s ) throws UnsupportedEncodingException {
       return URLDecoder.decode( s, Charsets.UTF_8.name() );
     }
 
@@ -532,14 +526,25 @@ public class ThinConnection extends ThinBase implements Connection {
     }
 
     private RemoteClient createRemoteClient( ThinConnection connection ) {
-      HttpClient client = connectionManager.createHttpClient();
-      connection.addCredentials( client );
-      connection.setProxy( client );
+      HttpClientManager.HttpClientBuilderFacade clientBuilder = httpClientManager.createBuilder();
+      HttpClientContext clientContext = null;
+      clientBuilder.setSocketTimeout( 0 );
+      clientBuilder.setConnectionTimeout( 0 );
 
-      client.getHttpConnectionManager().getParams().setConnectionTimeout( 0 );
-      client.getHttpConnectionManager().getParams().setSoTimeout( 0 );
+      if ( StringUtils.isNotBlank( username ) ) {
+        clientBuilder.setCredentials( username, password );
+      }
 
-      return new RemoteClient( connection, client );
+      if ( StringUtils.isNotBlank( proxyHostname ) && StringUtils.isNotBlank( proxyPort )
+        && ( StringUtils.isBlank( nonProxyHosts ) || ( StringUtils.isNotBlank( nonProxyHosts ) && !getHostname()
+        .matches( nonProxyHosts ) ) ) ) {
+        int proxyPort = Integer.parseInt( ThinConnection.this.proxyPort );
+        clientBuilder.setProxy( proxyHostname, proxyPort );
+        clientContext =
+          HttpClientUtil.createPreemptiveBasicAuthentication( proxyHostname, proxyPort, username, password );
+      }
+
+      return new RemoteClient( connection, clientBuilder.build(), clientContext );
     }
 
     public ThinConnection build() throws SQLException {
