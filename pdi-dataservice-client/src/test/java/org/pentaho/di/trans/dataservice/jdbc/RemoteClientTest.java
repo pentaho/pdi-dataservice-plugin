@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -117,6 +117,8 @@ public class RemoteClientTest {
     assertThat( httpMethod.getParameter( "debugtrans" ).getValue(), equalTo( debugTrans ) );
     assertThat( httpMethod.getParameter( "PARAMETER_ECHO" ).getValue(), equalTo( "hello world" ) );
 
+    assertThat( httpMethod.getParams().getContentCharset(), equalTo( "utf-8" ) );
+
     assertThat( queryResponse.readUTF(), equalTo( "Query Response" ) );
   }
 
@@ -145,6 +147,8 @@ public class RemoteClientTest {
     assertThat( httpMethod.getParameter( "SQL" ).getValue(),
         equalTo( "SELECT * FROM myService WHERE id = 3 /" + StringUtils.repeat( "*", 8000 ) + "/" ) );
     assertThat( httpMethod.getParameter( "MaxRows" ).getValue(), equalTo( "200" ) );
+
+    assertThat( httpMethod.getParams().getContentCharset(), equalTo( "utf-8" ) );
 
     assertThat( queryResponse.readUTF(), equalTo( "Query Response" ) );
   }

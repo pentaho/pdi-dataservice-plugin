@@ -59,6 +59,7 @@ class RemoteClient implements DataServiceClientService, ConnectionAbortingSuppor
 
   private static final String SQL = "SQL";
   private static final String MAX_ROWS = "MaxRows";
+  private static final String CONTENT_CHARSET = "utf-8";
   private static final int MAX_SQL_LENGTH = 7500;
 
   private final ThinConnection connection;
@@ -95,6 +96,7 @@ class RemoteClient implements DataServiceClientService, ConnectionAbortingSuppor
       if ( !Strings.isNullOrEmpty( connection.getDebugTransFilename() ) ) {
         method.addParameter( ThinConnection.ARG_DEBUGTRANS, connection.getDebugTransFilename() );
       }
+      method.getParams().setContentCharset( CONTENT_CHARSET );
       activeMethods.add( method );
       return new DataInputStream( execMethod( method ).getResponseBodyAsStream() );
     } catch ( Exception e ) {
