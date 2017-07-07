@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -21,8 +21,6 @@
  ******************************************************************************/
 
 package org.pentaho.di.trans.dataservice.jdbc;
-
-import org.pentaho.di.cluster.SlaveConnectionManager;
 
 import java.sql.Connection;
 import java.sql.Driver;
@@ -74,7 +72,9 @@ public class ThinDriver implements Driver {
   }
 
   protected ThinConnection createConnection( String url, Properties properties ) throws SQLException {
-    return new ThinConnection.Builder( SlaveConnectionManager.getInstance() )
+    ThinConnection thinConnection = new ThinConnection();
+    ThinConnection.Builder builder = thinConnection.createBuilder();
+    return builder
       .parseUrl( url )
       .readProperties( properties )
       .build();
