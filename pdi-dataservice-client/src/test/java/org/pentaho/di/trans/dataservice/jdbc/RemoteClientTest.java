@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -27,20 +27,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.util.EntityUtils;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,16 +42,19 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
-import java.io.IOException;
-import java.net.URLDecoder;
+import java.io.DataInputStream;
 import java.sql.SQLException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.emptyOrNullString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -71,34 +65,24 @@ import static org.mockito.Mockito.when;
 @RunWith( MockitoJUnitRunner.class )
 public class RemoteClientTest {
 
-  @Mock
-  private ThinConnection connection;
-  @Mock
-  private HttpClient httpClient;
-  @Mock
-  private HttpGet execMethod;
-  @Mock
-  private HttpClientContext context;
-  @Mock
-  private HttpEntity entity;
-  @Mock
-  private StatusLine statusLine;
-  @Mock
-  private HttpResponse response;
-
-  @Captor
-  private ArgumentCaptor<HttpRequestBase> httpMethodCaptor;
-  private RemoteClientMock remoteClient;
-
-  @Captor
-  private ArgumentCaptor<HttpClientContext> httpContextCaptor;
+  @Mock ThinConnection connection;
+  @Mock HttpClient httpClient;
+  @Mock HttpMethod execMethod;
+  @Captor ArgumentCaptor<HttpMethod> httpMethodCaptor;
+  RemoteClient remoteClient;
 
   @Before
   public void setUp() throws Exception {
-    remoteClient = new RemoteClientMock( connection, httpClient, context );
+    remoteClient = new RemoteClient( connection, httpClient ) {
+      // Intercept execMethod so we can inject our mock response streams
+      @Override protected HttpMethod execMethod( HttpMethod method ) throws SQLException {
+        super.execMethod( method );
+        return execMethod;
+      }
+    };
     when( connection.constructUrl( anyString() ) ).then( new Answer<String>() {
       @Override public String answer( InvocationOnMock invocation ) throws Throwable {
-        return "http://localhost:8080/pentaho/kettle" + invocation.getArguments()[ 0 ];
+        return "http://localhost:8080/pentaho/kettle" + invocation.getArguments()[0];
       }
     } );
   }
@@ -112,30 +96,28 @@ public class RemoteClientTest {
     when( connection.getDebugTransFilename() ).thenReturn( debugTrans );
     when( connection.getParameters() ).thenReturn( ImmutableMap.of( "PARAMETER_ECHO", "hello world" ) );
 
-    when( response.getStatusLine() ).thenReturn( statusLine );
-    when( statusLine.getStatusCode() ).thenReturn( 200 );
-    when( response.getEntity() ).thenReturn( entity );
-
-    when( httpClient.execute( any( HttpUriRequest.class ), any( HttpContext.class ) ) ).thenReturn( response );
+    when( httpClient.executeMethod( isA( PostMethod.class ) ) ).thenReturn( 200 );
 
     MockDataInput mockDataInput = new MockDataInput();
     mockDataInput.writeUTF( "Query Response" );
 
-    remoteClient.query( sql, maxRows );
+    when( execMethod.getResponseBodyAsStream() ).thenReturn( mockDataInput.toDataInputStream() );
 
-    verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
-    HttpPost httpPost = (HttpPost) httpMethodCaptor.getValue();
+    DataInputStream queryResponse = remoteClient.query( sql, maxRows );
 
-    assertThat( httpPost.getURI().toString(), equalTo( "http://localhost:8080/pentaho/kettle/sql/" ) );
-    assertThat( httpPost.getHeaders( "SQL" )[ 0 ].getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
-    assertThat( httpPost.getHeaders( "MaxRows" )[ 0 ].getValue(), equalTo( "200" ) );
-    String actual = EntityUtils.toString( httpPost.getEntity() );
-    EntityUtils.consume( httpPost.getEntity() );
-    actual = URLDecoder.decode( actual, "UTF-8" );
-    assertThat( actual, equalTo(
-      "SQL=SELECT * FROM myService WHERE id = 3&MaxRows=200&PARAMETER_ECHO=hello world&debugtrans=/tmp/genTrans.ktr"
-    ) );
-    assertThat( (Integer) httpPost.getParams().getParameter( "http.socket.timeout" ), equalTo( 0 ) );
+    verify( httpClient ).executeMethod( httpMethodCaptor.capture() );
+    PostMethod httpMethod = (PostMethod) httpMethodCaptor.getValue();
+
+    assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:8080/pentaho/kettle/sql/" ) );
+    assertThat( httpMethod.getRequestHeader( "SQL" ).getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
+    assertThat( httpMethod.getRequestHeader( "MaxRows" ).getValue(), equalTo( "200" ) );
+    assertThat( httpMethod.getParameter( "SQL" ).getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
+    assertThat( httpMethod.getParameter( "MaxRows" ).getValue(), equalTo( "200" ) );
+
+    assertThat( httpMethod.getParameter( "debugtrans" ).getValue(), equalTo( debugTrans ) );
+    assertThat( httpMethod.getParameter( "PARAMETER_ECHO" ).getValue(), equalTo( "hello world" ) );
+
+    assertThat( queryResponse.readUTF(), equalTo( "Query Response" ) );
   }
 
   @Test
@@ -145,45 +127,38 @@ public class RemoteClientTest {
     when( connection.getDebugTransFilename() ).thenReturn( null );
     when( connection.getParameters() ).thenReturn( ImmutableMap.<String, String>of() );
 
-    when( response.getStatusLine() ).thenReturn( statusLine );
-    when( statusLine.getStatusCode() ).thenReturn( 200 );
-    when( response.getEntity() ).thenReturn( entity );
-    when( httpClient.execute( isA( HttpPost.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
+    when( httpClient.executeMethod( isA( PostMethod.class ) ) ).thenReturn( 200 );
 
     MockDataInput mockDataInput = new MockDataInput();
     mockDataInput.writeUTF( "Query Response" );
 
-    remoteClient.query( sql, 200 );
+    when( execMethod.getResponseBodyAsStream() ).thenReturn( mockDataInput.toDataInputStream() );
 
-    verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
-    HttpPost httpMethod = (HttpPost) httpMethodCaptor.getValue();
+    DataInputStream queryResponse = remoteClient.query( sql, 200 );
+
+    verify( httpClient ).executeMethod( httpMethodCaptor.capture() );
+    PostMethod httpMethod = (PostMethod) httpMethodCaptor.getValue();
 
     assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:8080/pentaho/kettle/sql/" ) );
-    assertThat( httpMethod.getHeaders( "SQL" ), is( Matchers.<Header>emptyArray() ) );
-    assertThat( httpMethod.getHeaders( "MaxRows" ), is( Matchers.<Header>emptyArray() ) );
-    String actual = EntityUtils.toString( httpMethod.getEntity(), Charsets.UTF_8 );
-    EntityUtils.consume( httpMethod.getEntity() );
-    actual = URLDecoder.decode( actual, "UTF-8" );
-    assertTrue(
-      actual.contains( "SQL=SELECT * FROM myService WHERE id = 3 /" + StringUtils.repeat( "*", 8000 ) + "/" ) );
-    assertTrue( actual.contains( "MaxRows=200" ) );
+    assertThat( httpMethod.getRequestHeader( "SQL" ), is( nullValue() ) );
+    assertThat( httpMethod.getRequestHeader( "MaxRows" ), is( nullValue() ) );
+    assertThat( httpMethod.getParameter( "SQL" ).getValue(),
+        equalTo( "SELECT * FROM myService WHERE id = 3 /" + StringUtils.repeat( "*", 8000 ) + "/" ) );
+    assertThat( httpMethod.getParameter( "MaxRows" ).getValue(), equalTo( "200" ) );
+
+    assertThat( queryResponse.readUTF(), equalTo( "Query Response" ) );
   }
 
   @Test
   public void testGetServiceInformation() throws Exception {
     String url = "http://localhost:8080/pentaho/kettle/listServices";
     String xml = Resources.toString( ClassLoader.getSystemResource( "jdbc/listServices.xml" ), Charsets.UTF_8 );
-
-    when( response.getStatusLine() ).thenReturn( statusLine );
-    when( statusLine.getStatusCode() ).thenReturn( 200 );
-    when( response.getEntity() ).thenReturn( entity );
-    when( httpClient.execute( isA( HttpGet.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
-
-    remoteClient.setResponse( xml );
+    when( httpClient.executeMethod( isA( GetMethod.class ) ) ).thenReturn( 200 );
+    when( execMethod.getResponseBodyAsString() ).thenReturn( xml );
 
     ThinServiceInformation serviceInformation = Iterables.getOnlyElement( remoteClient.getServiceInformation() );
 
-    verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
+    verify( httpClient ).executeMethod( httpMethodCaptor.capture() );
     assertThat( httpMethodCaptor.getValue().getURI().toString(), equalTo( url ) );
 
     assertThat( serviceInformation.getName(), is( "sequence" ) );
@@ -193,13 +168,10 @@ public class RemoteClientTest {
   @Test
   public void testExecMethod() throws Exception {
     ImmutableList<Integer> statusCodes = ImmutableList.of( 500, 401, 404 );
-    remoteClient.setResponse( "kettle status" );
+    when( execMethod.getResponseBodyAsString() ).thenReturn( "kettle status" );
 
     for ( Integer statusCode : statusCodes ) {
-      when( response.getStatusLine() ).thenReturn( statusLine );
-      when( statusLine.getStatusCode() ).thenReturn( statusCode );
-      when( response.getEntity() ).thenReturn( entity );
-      when( httpClient.execute( isA( HttpGet.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
+      when( httpClient.executeMethod( any( HttpMethod.class ) ) ).thenReturn( statusCode );
       try {
         remoteClient.execMethod( execMethod );
         fail( "Expected an exception from response code" + statusCode );
@@ -207,30 +179,9 @@ public class RemoteClientTest {
         assertThat( statusCode + " exception", e.getMessage(), not( emptyOrNullString() ) );
       }
     }
-    when( response.getStatusLine() ).thenReturn( statusLine );
-    when( statusLine.getStatusCode() ).thenReturn( 200 );
-    when( response.getEntity() ).thenReturn( entity );
-    when( httpClient.execute( isA( HttpPost.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
+
+    when( httpClient.executeMethod( any( HttpMethod.class ) ) ).thenReturn( 200 );
     assertThat( remoteClient.execService( "/status" ), equalTo( "kettle status" ) );
-  }
-
-  private class RemoteClientMock extends RemoteClient {
-    private String response;
-
-    RemoteClientMock( ThinConnection connection, HttpClient client, HttpClientContext context ) {
-      super( connection, client, context );
-    }
-
-    void setResponse( String response ) {
-      this.response = response;
-    }
-
-    // Intercept execMethod so we can inject our mock response streams
-    @Override
-    protected String httpResponseToString( HttpResponse httpResponse ) throws IOException {
-      return response;
-    }
-
   }
 
 }
