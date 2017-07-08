@@ -26,20 +26,13 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.message.BasicNameValuePair;
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.methods.PostMethod;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.core.util.HttpClientUtil;
 import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.trans.dataservice.client.ConnectionAbortingSupport;
@@ -70,45 +63,40 @@ class RemoteClient implements DataServiceClientService, ConnectionAbortingSuppor
 
   private final ThinConnection connection;
   private final HttpClient client;
-  private final HttpClientContext context;
   private DocumentBuilderFactory docBuilderFactory;
   private static final String SERVICE_PATH = "/sql/";
-  private final CopyOnWriteArrayList<HttpPost> activeMethods = new CopyOnWriteArrayList<HttpPost>();
+  private final CopyOnWriteArrayList<PostMethod> activeMethods = new CopyOnWriteArrayList<PostMethod>();
 
-  RemoteClient( ThinConnection connection, HttpClient client, HttpClientContext context ) {
+  RemoteClient( ThinConnection connection, HttpClient client ) {
     this.connection = connection;
     this.client = client;
-    this.context = context;
   }
 
-  @Override
-  public DataInputStream query( String sql, int maxRows ) throws SQLException {
-    HttpPost method = null;
+  @Override public DataInputStream query( String sql, int maxRows ) throws SQLException {
+    PostMethod method = null;
     try {
       String url = connection.constructUrl( SERVICE_PATH );
-      method = new HttpPost( url );
+      method = new PostMethod( url );
+      method.setDoAuthentication( true );
 
       method.getParams().setParameter( "http.socket.timeout", 0 );
 
-      ArrayList<NameValuePair> postParameters = new ArrayList<NameValuePair>();
       // Kept in for backwards compatibility, but should be removed in next major release
       if ( sql.length() < MAX_SQL_LENGTH ) {
-        method.addHeader( new BasicHeader( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
-        method.addHeader( new BasicHeader( MAX_ROWS, Integer.toString( maxRows ) ) );
+        method.addRequestHeader( new Header( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
+        method.addRequestHeader( new Header( MAX_ROWS, Integer.toString( maxRows ) ) );
       }
-      postParameters.add( new BasicNameValuePair( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
-      postParameters.add( new BasicNameValuePair( MAX_ROWS, Integer.toString( maxRows ) ) );
+      method.addParameter( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) );
+      method.addParameter( MAX_ROWS, Integer.toString( maxRows ) );
 
       for ( Map.Entry<String, String> parameterEntry : connection.getParameters().entrySet() ) {
-        postParameters.add( new BasicNameValuePair( parameterEntry.getKey(), parameterEntry.getValue() ) );
+        method.addParameter( parameterEntry.getKey(), parameterEntry.getValue() );
       }
       if ( !Strings.isNullOrEmpty( connection.getDebugTransFilename() ) ) {
-        postParameters.add( new BasicNameValuePair( ThinConnection.ARG_DEBUGTRANS, connection.getDebugTransFilename() ) );
+        method.addParameter( ThinConnection.ARG_DEBUGTRANS, connection.getDebugTransFilename() );
       }
-      method.setEntity( new UrlEncodedFormEntity( postParameters, "UTF-8" ) );
       activeMethods.add( method );
-      HttpResponse httpResponse = execMethod( method );
-      return new DataInputStream( HttpClientUtil.responseToInputStream( httpResponse ) );
+      return new DataInputStream( execMethod( method ).getResponseBodyAsStream() );
     } catch ( Exception e ) {
       throw serverException( e );
     } finally {
@@ -184,9 +172,8 @@ class RemoteClient implements DataServiceClientService, ConnectionAbortingSuppor
     return serviceNames;
   }
 
-  @Override
-  public void disconnect() {
-    for ( HttpPost method : activeMethods ) {
+  @Override public void disconnect() {
+    for ( PostMethod method : activeMethods ) {
       method.abort();
     }
   }
@@ -201,11 +188,10 @@ class RemoteClient implements DataServiceClientService, ConnectionAbortingSuppor
   String execService( String serviceAndArguments ) throws SQLException {
     try {
       String urlString = connection.constructUrl( serviceAndArguments );
-      HttpGet method = new HttpGet( urlString );
+      HttpMethod method = new GetMethod( urlString );
 
       try {
-        HttpResponse httpResponse = execMethod( method );
-        return httpResponseToString( httpResponse );
+        return execMethod( method ).getResponseBodyAsString();
       } finally {
         method.releaseConnection();
       }
@@ -215,33 +201,27 @@ class RemoteClient implements DataServiceClientService, ConnectionAbortingSuppor
     }
   }
 
-  HttpResponse execMethod( HttpRequestBase method ) throws SQLException {
-    HttpResponse httpResponse = null;
+  HttpMethod execMethod( HttpMethod method ) throws SQLException {
     try {
-      httpResponse = context != null ? client.execute( method, context ) : client.execute( method );
-      int result = httpResponse.getStatusLine().getStatusCode();
+      int result = client.executeMethod( method );
 
-      if ( result == HttpStatus.SC_INTERNAL_SERVER_ERROR ) {
+      if ( result == 500 ) {
         throw new SQLException( "There was an error reading data from the server." );
       }
 
-      if ( result == HttpStatus.SC_UNAUTHORIZED ) {
+      if ( result == 401 ) {
         throw new SQLException(
           "Nice try-but we couldn't log you in. Check your username and password and try again." );
       }
 
-      if ( result != HttpStatus.SC_OK ) {
-        throw new SQLException( httpResponseToString( httpResponse ) );
+      if ( result != 200 ) {
+        throw new SQLException( method.getResponseBodyAsString() );
       }
     } catch ( IOException e ) {
       throw new SQLException(
         "You don't seem to be getting a connection to the server or you have closed it. Check the host and port you're using and make sure the sever is up and running." );
     }
-    return httpResponse;
-  }
-
-  protected String httpResponseToString( HttpResponse httpResponse ) throws IOException {
-    return HttpClientUtil.responseToString( httpResponse );
+    return method;
   }
 
   private static SQLException serverException( Exception e ) throws SQLException {
