@@ -27,49 +27,53 @@ import org.pentaho.di.core.annotations.LifecyclePlugin;
 import org.pentaho.di.core.lifecycle.LifeEventHandler;
 import org.pentaho.di.core.lifecycle.LifecycleException;
 import org.pentaho.di.core.lifecycle.LifecycleListener;
-import org.pentaho.di.trans.dataservice.jdbc.ThinConnection;
 import org.pentaho.di.ui.spoon.Spoon;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-@LifecyclePlugin( id = "DataServiceLifecycleListener" )
-public class DataServiceLifecycleListener implements LifecycleListener {
+@LifecyclePlugin( id = "SpoonDataServiceLocalClientConfigurer" )
+public class SpoonDataServiceLocalClientConfigurer implements LifecycleListener {
 
   private final Supplier<Spoon> spoonSupplier;
   private final AtomicReference<DataServiceClientService> dataServiceClientService =
-    new AtomicReference<DataServiceClientService>();
+      new AtomicReference<DataServiceClientService>();
   private final AtomicBoolean enabled = new AtomicBoolean( false );
 
-  public DataServiceLifecycleListener() {
+  public SpoonDataServiceLocalClientConfigurer() {
     this( new Supplier<Spoon>() {
-      @Override public Spoon get() {
+      @Override
+      public Spoon get() {
         return Spoon.getInstance();
       }
     } );
   }
 
-  public DataServiceLifecycleListener( Supplier<Spoon> spoonSupplier ) {
+  public SpoonDataServiceLocalClientConfigurer( Supplier<Spoon> spoonSupplier ) {
     this.spoonSupplier = spoonSupplier;
   }
 
   public void bind( DataServiceClientService service ) {
     dataServiceClientService.set( service );
+
     setup( service );
   }
 
   public void unbind( DataServiceClientService service ) {
     dataServiceClientService.set( null );
+
     setup( null );
   }
 
-  @Override public void onStart( LifeEventHandler handler ) throws LifecycleException {
+  @Override
+  public void onStart( LifeEventHandler handler ) throws LifecycleException {
     if ( enabled.compareAndSet( false, true ) ) {
       setup( this.dataServiceClientService.get() );
     }
   }
 
-  @Override public void onExit( LifeEventHandler handler ) throws LifecycleException {
+  @Override
+  public void onExit( LifeEventHandler handler ) throws LifecycleException {
     if ( enabled.compareAndSet( true, false ) ) {
       setup( this.dataServiceClientService.get() );
     }
@@ -81,9 +85,8 @@ public class DataServiceLifecycleListener implements LifecycleListener {
 
       clientService.setRepository( spoon.getRepository() );
       clientService.setMetaStore( spoon.getMetaStore() );
-      ThinConnection.localClient = clientService;
     } else {
-      ThinConnection.localClient = null;
+      // should we clean (set to null) the clientService repository and metastore?
     }
   }
 }
