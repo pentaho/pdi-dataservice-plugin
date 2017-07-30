@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -38,7 +38,6 @@ public class DataServiceLocalClientBinder {
 
   public void unbind( DataServiceClientService service ) {
     if ( dataServiceClientService.compareAndSet( service, null ) ) {
-      dataServiceClientService.set( null );
       ThinConnection.localClient = null;
     }
   }

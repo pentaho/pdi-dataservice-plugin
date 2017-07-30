@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -85,8 +85,7 @@ public class SpoonDataServiceLocalClientConfigurer implements LifecycleListener 
 
       clientService.setRepository( spoon.getRepository() );
       clientService.setMetaStore( spoon.getMetaStore() );
-    } else {
-      // should we clean (set to null) the clientService repository and metastore?
     }
+    // else, should we clean (set to null) the clientService repository and metastore?
   }
 }
