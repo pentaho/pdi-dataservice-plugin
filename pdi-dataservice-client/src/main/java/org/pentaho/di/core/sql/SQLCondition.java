@@ -33,6 +33,7 @@ import org.pentaho.di.core.row.value.ValueMetaString;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,16 +46,16 @@ public class SQLCondition {
   private SQLFields selectFields;
 
   private static final Pattern
-      PARAMETER_REGEX_PATTERN =
-      Pattern.compile( "(?i)^PARAMETER\\s*\\(\\s*'(.*)'\\s*\\)\\s*=\\s*'?([^']*)'?$" );
+    PARAMETER_REGEX_PATTERN =
+    Pattern.compile( "(?i)^PARAMETER\\s*\\(\\s*'(.*)'\\s*\\)\\s*=\\s*'?([^']*)'?$" );
 
   public SQLCondition( String tableAlias, String conditionSql, RowMetaInterface serviceFields )
-      throws KettleSQLException {
+    throws KettleSQLException {
     this( tableAlias, conditionSql, serviceFields, null );
   }
 
   public SQLCondition( String tableAlias, String conditionSql, RowMetaInterface serviceFields, SQLFields selectFields )
-      throws KettleSQLException {
+    throws KettleSQLException {
     this.tableAlias = tableAlias;
     this.conditionClause = conditionSql;
     this.serviceFields = serviceFields;
@@ -114,7 +115,7 @@ public class SQLCondition {
   }
 
   private Condition splitConditionByOperator( String clause, Condition parentCondition, int parentOperator )
-      throws KettleSQLException {
+    throws KettleSQLException {
     if ( parentCondition == null ) {
       parentCondition = new Condition();
     } else {
@@ -161,7 +162,7 @@ public class SQLCondition {
           validateParam( clause, parameterName, parameterValue );
 
           parentCondition
-              .addCondition( createParameterCondition( orConditionOperator, parameterName, parameterValue ) );
+            .addCondition( createParameterCondition( orConditionOperator, parameterName, parameterValue ) );
         } else {
 
           // See if this elementary block is a NOT ( ) construct
@@ -201,10 +202,10 @@ public class SQLCondition {
    */
   private Condition createParameterCondition( int orConditionOperator, String parameterName, String parameterValue ) {
     Condition
-        subCondition =
-        new Condition( parameterName, Condition.FUNC_TRUE, parameterName,
-            new ValueMetaAndData( new ValueMetaString( "string" ),
-                Const.NVL( parameterValue, "" ) ) );
+      subCondition =
+      new Condition( parameterName, Condition.FUNC_TRUE, parameterName,
+        new ValueMetaAndData( new ValueMetaString( "string" ),
+          Const.NVL( parameterValue, "" ) ) );
     subCondition.setOperator( orConditionOperator );
     return subCondition;
   }
@@ -219,7 +220,7 @@ public class SQLCondition {
   }
 
   private int splitByOperator( String clause, Condition parentCondition, String operatorString, int conditionOperator )
-      throws KettleSQLException {
+    throws KettleSQLException {
     int lastIndex = 0;
     int index = 0;
     while ( index < clause.length() && ( index = searchForString( clause, operatorString, index ) ) >= 0 ) {
@@ -242,37 +243,14 @@ public class SQLCondition {
   }
 
   private Condition parseAtomicCondition( String clause ) throws KettleSQLException {
-    // First split on spaces...
-    //
     List<String> strings = splitConditionClause( clause );
     if ( strings.size() > 3 ) {
       throw new KettleSQLException(
-          "Unfortunately support for conditions is still very rudimentary, only 1 simple condition is supported ["
-              + clause + "]" );
+        "Unfortunately support for conditions is still very rudimentary, only 1 simple condition is supported ["
+          + clause + "]" );
     }
-    String left = "";
-    try {
-      left = strings.get( 0 );
-    } catch ( Exception e ) {
-      throw new KettleSQLException( "Invalid SQL statement [" + clause + "]" );
-    }
+    String left = getAlias( strings.get( 0 ) ).orElse( strings.get( 0 ) );
 
-
-    // See if this is not a having clause expression :
-    // example:
-    //
-    // SELECT country, count(distinct id) as customerCount FROM service GROUP BY country HAVING count(distinct id) > 10
-    //
-    if ( selectFields != null ) {
-      for ( SQLField field : selectFields.getFields() ) {
-        if ( field.getExpression().equalsIgnoreCase( left ) ) {
-          if ( !Const.isEmpty( field.getAlias() ) ) {
-            left = field.getAlias();
-          }
-          break;
-        }
-      }
-    }
 
     // Remove the optional table alias prefix from the left field
     //
@@ -354,6 +332,30 @@ public class SQLCondition {
     }
   }
 
+  /**
+   * Returns the alias associated with expression, if one is present.
+   *
+   * Currently only HAVING clauses will have a selectFields set.  Swapping in the alias with HAVING clauses
+   * are necessary with queries like this
+   *  SELECT country, count(distinct id) as customerCount
+   *  FROM service GROUP BY country
+   *  HAVING count(distinct id) > 10
+   * Since the "count(distinct id)" needs to be associated with the alias name used in the generated trans.
+   * @param expression
+   */
+  private Optional<String> getAlias( String expression ) {
+    if ( selectFields != null ) {
+      for ( SQLField field : selectFields.getFields() ) {
+        if ( field.getExpression().equalsIgnoreCase( expression ) ) {
+          if ( !Const.isEmpty( field.getAlias() ) ) {
+            return Optional.of( field.getAlias() );
+          }
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
 
   /**
    * We need to split conditions on a single operator (for now)
@@ -388,7 +390,7 @@ public class SQLCondition {
             // The part before is the first string
             //
             String left = Const.trim( clause.substring( 0, index ) );
-            String op = Condition.functions[functions[functionIndex]];
+            String op = Condition.functions[ functions[ functionIndex ] ];
             String right = Const.trim( clause.substring( index + operator.length() ) );
 
             return Arrays.<String>asList( left, op, right );
@@ -471,7 +473,7 @@ public class SQLCondition {
    * @throws KettleSQLException
    */
   public List<SQLField> extractHavingFields( List<SQLField> selectFields, List<SQLField> aggFields,
-      RowMetaInterface rowMeta ) throws KettleSQLException {
+                                             RowMetaInterface rowMeta ) throws KettleSQLException {
     List<SQLField> list = new ArrayList<SQLField>();
 
     // Get a list of all the lowest level field names and see if we can parse them as aggregation fields

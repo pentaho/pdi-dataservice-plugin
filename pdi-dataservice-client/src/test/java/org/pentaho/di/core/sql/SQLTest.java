@@ -24,6 +24,7 @@ package org.pentaho.di.core.sql;
 
 import java.util.List;
 
+import org.junit.Test;
 import org.pentaho.di.core.exception.KettleSQLException;
 import org.pentaho.di.core.jdbc.ThinUtil;
 import org.pentaho.di.core.row.RowMeta;
@@ -486,6 +487,16 @@ public class SQLTest extends TestCase {
     } catch ( KettleSQLException e ) {
       // Should throw a KettleSQLException
     }
+  }
+
+  public void testAliasHandling() throws KettleSQLException {
+
+    String sqlString = "SELECT A, count(distinct B) as customerCount FROM service GROUP BY A HAVING count(distinct B) > 10";
+    SQL sql = new SQL( sqlString );
+    RowMetaInterface rowMeta = generateTest4RowMeta();
+    sql.parse( rowMeta );
+
+    assertEquals( sql.getHavingCondition().getCondition().getLeftValuename(), "customerCount" );
   }
 
   public static RowMetaInterface generateTest2RowMeta() {
