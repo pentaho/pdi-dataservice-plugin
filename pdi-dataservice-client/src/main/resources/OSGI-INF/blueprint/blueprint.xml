@@ -10,10 +10,13 @@
     </bean>
 
     <reference id="dataServiceClientService"  interface="org.pentaho.di.trans.dataservice.client.DataServiceClientService" availability="optional">
-        <reference-listener ref="DataServiceLifecycleListener" bind-method="bind" unbind-method="unbind" />
+        <reference-listener ref="dataServiceLocalClientBinder" bind-method="bind" unbind-method="unbind" />
+        <reference-listener ref="spoonDataServiceLocalClientConfigurer" bind-method="bind" unbind-method="unbind" />
     </reference>
 
-    <bean id="DataServiceLifecycleListener" class="org.pentaho.di.trans.dataservice.client.DataServiceLifecycleListener">
+    <bean id="dataServiceLocalClientBinder" class="org.pentaho.di.trans.dataservice.client.DataServiceLocalClientBinder" />
+
+    <bean id="spoonDataServiceLocalClientConfigurer" class="org.pentaho.di.trans.dataservice.client.SpoonDataServiceLocalClientConfigurer">
         <pen:di-plugin type="org.pentaho.di.core.plugins.LifecyclePluginType" />
     </bean>
 
