@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -28,6 +28,7 @@ import org.pentaho.di.core.exception.KettleSQLException;
 import org.pentaho.di.core.jdbc.ThinUtil;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaAndData;
+import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaString;
 
 import java.util.ArrayList;
@@ -243,31 +244,28 @@ public class SQLCondition {
   }
 
   private Condition parseAtomicCondition( String clause ) throws KettleSQLException {
-    List<String> strings = splitConditionClause( clause );
-    if ( strings.size() > 3 ) {
+    List<String> clauseElements = splitConditionClause( clause );
+    if ( clauseElements.size() > 3 ) {
       throw new KettleSQLException(
         "Unfortunately support for conditions is still very rudimentary, only 1 simple condition is supported ["
           + clause + "]" );
     }
-    String left = getAlias( strings.get( 0 ) ).orElse( strings.get( 0 ) );
+    String left = getCleansedName( getAlias( clauseElements.get( 0 ) ).orElse( clauseElements.get( 0 ) ) );
+    int opFunction = Condition.getFunction( clauseElements.get( 1 ) );
+    String right = getCleansedName( clauseElements.get( 2 ) );
 
+    if ( isEqualityComparisonOfLiteralValues( clauseElements ) ) {
+      // comparison of literals, e.g. ( 1 = 0 ) or ( 1 = 1 )
+      // not currently supporting general literal comparisons.
+      return new Condition( !left.equals( right ), left, Condition.FUNC_TRUE, right, null );
+    }
 
-    // Remove the optional table alias prefix from the left field
-    //
-    left = ThinUtil.resolveFieldName( ThinUtil.stripQuoteTableAlias( left, tableAlias ),
-      getServiceFields() );
-    String operatorString = strings.get( 1 );
-    String right = strings.get( 2 );
     boolean negation = Pattern.matches( "^NULL$", right.trim().toUpperCase() );
 
-    // If it's another column name, remove possible table alias prefix.
-    //
-    right = ThinUtil.resolveFieldName( ThinUtil.stripQuoteTableAlias( right, tableAlias ),
-      getServiceFields() );
+    ValueMetaAndData value;
 
-    ValueMetaAndData value = null;
 
-    int function = negation ? Condition.FUNC_TRUE : Condition.getFunction( operatorString );
+    int function = negation ? Condition.FUNC_TRUE : opFunction;
     if ( function == Condition.FUNC_IN_LIST ) {
       // lose the brackets
       //
@@ -299,7 +297,7 @@ public class SQLCondition {
         valueString.append( part );
       }
       value =
-          new ValueMetaAndData( new ValueMetaString( "constant-in-list" ), valueString.toString() );
+        new ValueMetaAndData( new ValueMetaString( "constant-in-list" ), valueString.toString() );
     } else {
 
       // Mondrian, analyzer CONTAINS hack:
@@ -332,15 +330,42 @@ public class SQLCondition {
     }
   }
 
+  private boolean isEqualityComparisonOfLiteralValues( List<String> clauseElements ) {
+    String left = clauseElements.get( 0 );
+    int opFunction = Condition.getFunction( clauseElements.get( 1 ) );
+    String right = clauseElements.get( 2 );
+    return isLiteral( left ) && isLiteral( right ) && opFunction == Condition.FUNC_EQUAL;
+  }
+
+  /**
+   * If the element is not determined to have an alias, and doesn't map to a service field,
+   * then we'll assume it's a literal value.
+   */
+  private boolean isLiteral( String element ) {
+    return !getAlias( element ).isPresent()
+      && !ThinUtil.getValueMetaInterface( getCleansedName( element ), getServiceFields() ).isPresent();
+  }
+
+  /**
+   * Removes table alias and quotes, if present.
+   * If the field maps to a service field, retrieves the service field's name.
+   */
+  private String getCleansedName( String field ) {
+    return ThinUtil.getValueMetaInterface( field, getServiceFields() )
+      .map( ValueMetaInterface::getName )
+      .orElse( ThinUtil.stripQuotes( ThinUtil.stripQuoteTableAlias( field, tableAlias ), '"' ) );
+  }
+
   /**
    * Returns the alias associated with expression, if one is present.
-   *
+   * <p>
    * Currently only HAVING clauses will have a selectFields set.  Swapping in the alias with HAVING clauses
    * are necessary with queries like this
-   *  SELECT country, count(distinct id) as customerCount
-   *  FROM service GROUP BY country
-   *  HAVING count(distinct id) > 10
+   * SELECT country, count(distinct id) as customerCount
+   * FROM service GROUP BY country
+   * HAVING count(distinct id) > 10
    * Since the "count(distinct id)" needs to be associated with the alias name used in the generated trans.
+   *
    * @param expression
    */
   private Optional<String> getAlias( String expression ) {
