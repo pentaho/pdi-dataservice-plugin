@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -29,6 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -644,16 +645,22 @@ public class ThinUtil {
     return Pattern.compile( pattern, Pattern.CASE_INSENSITIVE | Pattern.DOTALL );
   }
 
+
+
   /**
    * Attempts to resolve the reference to field from the serviceFields value meta list.
    * Will search with both the quoted and unquoted field.
    */
   public static String resolveFieldName( String field, RowMetaInterface serviceFields ) {
+    return getValueMetaInterface( field, serviceFields ).map( ValueMetaInterface::getName ).orElse( field );
+  }
+
+  public static Optional<ValueMetaInterface> getValueMetaInterface( String field, RowMetaInterface serviceFields ) {
     ValueMetaInterface valueMeta = serviceFields.searchValueMeta( field );
     if ( valueMeta == null ) {
       valueMeta = serviceFields.searchValueMeta(
         ThinUtil.stripQuotes( field, '"' ) );
     }
-    return valueMeta == null ? field : valueMeta.getName();
+    return Optional.ofNullable( valueMeta );
   }
 }
