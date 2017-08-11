@@ -31,7 +31,11 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.database.BaseDatabaseMeta;
 import org.pentaho.di.core.util.HttpClientManager;
@@ -533,6 +537,12 @@ public class ThinConnection extends ThinBase implements Connection {
 
       if ( StringUtils.isNotBlank( username ) ) {
         clientBuilder.setCredentials( username, password );
+        clientContext = HttpClientContext.create();
+        CredentialsProvider provider = new BasicCredentialsProvider();
+        UsernamePasswordCredentials credentials =
+          new UsernamePasswordCredentials( username, password );
+        provider.setCredentials( AuthScope.ANY, credentials );
+        clientContext.setCredentialsProvider( provider );
       }
 
       if ( StringUtils.isNotBlank( proxyHostname ) && StringUtils.isNotBlank( proxyPort )
