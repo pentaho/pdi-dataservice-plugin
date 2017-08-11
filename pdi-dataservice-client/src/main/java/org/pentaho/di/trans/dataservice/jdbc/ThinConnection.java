@@ -556,7 +556,9 @@ public class ThinConnection extends ThinBase implements Connection {
     }
 
     private URI baseUri() throws SQLException {
-      boolean isSecure = "true".equalsIgnoreCase( arguments.get( ARG_ISSECURE ) );
+      boolean isSecure = "true".equalsIgnoreCase( arguments.get( ARG_ISSECURE ) )
+              || uri.getPort() == 8443
+              || uri.getPort() == 443;
 
       String pathPrefix = "";
       if ( arguments.containsKey( ARG_WEBAPPNAME ) ) {
