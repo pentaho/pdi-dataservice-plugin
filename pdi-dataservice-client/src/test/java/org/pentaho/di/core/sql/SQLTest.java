@@ -24,7 +24,6 @@ package org.pentaho.di.core.sql;
 
 import java.util.List;
 
-import org.junit.Test;
 import org.pentaho.di.core.Condition;
 import org.pentaho.di.core.exception.KettleSQLException;
 import org.pentaho.di.core.jdbc.ThinUtil;
@@ -533,6 +532,19 @@ public class SQLTest extends TestCase {
     final Condition condition = sql.getHavingCondition().getCondition();
     assertEquals( "customerCount", condition.getLeftValuename() );
     assertEquals( Condition.FUNC_LARGER, condition.getFunction() );
+  }
+
+  public void testSelectFromHaving() throws KettleSQLException {
+
+    String sqlString =
+      "SELECT SUM(A) FROM service HAVING SUM(A) IS NULL";
+    SQL sql = new SQL( sqlString );
+    RowMetaInterface rowMeta = generateTest4RowMeta();
+    sql.parse( rowMeta );
+
+    final Condition condition = sql.getHavingCondition().getCondition();
+    assertEquals( "SUM(A)", condition.getLeftValuename() );
+    assertEquals( Condition.FUNC_NULL, condition.getFunction() );
   }
 
   public static RowMetaInterface generateTest2RowMeta() {
