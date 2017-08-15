@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2013 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -95,7 +95,7 @@ public class SQL {
     if ( foundClause.getRest() == null ) {
       return;
     }
-    foundClause = ThinUtil.findClauseWithRest( foundClause.getRest(), "FROM", "WHERE", "GROUP BY", "ORDER BY", "LIMIT" );
+    foundClause = ThinUtil.findClauseWithRest( foundClause.getRest(), "FROM", "WHERE", "GROUP BY", "HAVING", "ORDER BY", "LIMIT" );
     serviceClause = foundClause.getClause();
     parseServiceClause();
     if ( foundClause.getRest() == null ) {
