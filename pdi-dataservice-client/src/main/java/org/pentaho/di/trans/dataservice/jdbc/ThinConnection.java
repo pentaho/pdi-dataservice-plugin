@@ -31,11 +31,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.database.BaseDatabaseMeta;
 import org.pentaho.di.core.util.HttpClientManager;
@@ -534,24 +530,21 @@ public class ThinConnection extends ThinBase implements Connection {
       HttpClientContext clientContext = null;
       clientBuilder.setSocketTimeout( 0 );
       clientBuilder.setConnectionTimeout( 0 );
-
-      if ( StringUtils.isNotBlank( username ) ) {
-        clientBuilder.setCredentials( username, password );
-        clientContext = HttpClientContext.create();
-        CredentialsProvider provider = new BasicCredentialsProvider();
-        UsernamePasswordCredentials credentials =
-          new UsernamePasswordCredentials( username, password );
-        provider.setCredentials( AuthScope.ANY, credentials );
-        clientContext.setCredentialsProvider( provider );
+      String user = connection.username;
+      String pass = connection.password;
+      if ( StringUtils.isNotBlank( user ) ) {
+        URI uri = connection.baseURI;
+        clientBuilder.setCredentials( user, pass );
+        clientContext = HttpClientUtil.createPreemptiveBasicAuthentication(
+          uri.getHost(), uri.getPort(), user, pass, uri.getScheme() );
       }
 
       if ( StringUtils.isNotBlank( proxyHostname ) && StringUtils.isNotBlank( proxyPort )
         && ( StringUtils.isBlank( nonProxyHosts ) || ( StringUtils.isNotBlank( nonProxyHosts ) && !getHostname()
         .matches( nonProxyHosts ) ) ) ) {
-        int proxyPort = Integer.parseInt( ThinConnection.this.proxyPort );
+        int proxyPort = Integer.parseInt( connection.proxyPort );
         clientBuilder.setProxy( proxyHostname, proxyPort );
-        clientContext =
-          HttpClientUtil.createPreemptiveBasicAuthentication( proxyHostname, proxyPort, username, password );
+        clientContext = HttpClientUtil.createPreemptiveBasicAuthentication( proxyHostname, proxyPort, user, pass );
       }
 
       return new RemoteClient( connection, clientBuilder.build(), clientContext );
