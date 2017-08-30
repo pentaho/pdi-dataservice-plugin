@@ -33,6 +33,8 @@ import org.pentaho.di.core.row.ValueMeta;
 import org.pentaho.di.core.row.ValueMetaInterface;
 
 import junit.framework.TestCase;
+import org.pentaho.di.core.row.value.ValueMetaNumber;
+import org.pentaho.di.core.row.value.ValueMetaString;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -519,6 +521,33 @@ public class SQLTest extends TestCase {
     final Condition condition = sql.getHavingCondition().getCondition();
     assertEquals( "customerCount", condition.getLeftValuename() );
     assertEquals( Condition.FUNC_EQUAL, condition.getFunction() );
+  }
+
+  public void testAliasHandlingWithHavingEqualsWhereClauseNotInSelect() throws KettleSQLException {
+    // "count(D)" is not in the select.
+    String sqlString =
+      "SELECT A, count(B) as customerCount FROM service GROUP BY A HAVING count(D) = 10";
+    SQL sql = new SQL( sqlString );
+    RowMetaInterface rowMeta = generateTest4RowMeta();
+    sql.parse( rowMeta );
+
+    final Condition condition = sql.getHavingCondition().getCondition();
+    assertFalse( condition.getFunction() == Condition.FUNC_TRUE );
+    assertEquals( "count(D)", condition.getLeftValuename() );
+    assertEquals( Condition.FUNC_EQUAL, condition.getFunction() );
+  }
+
+  public void testLiteralChecksWithMondrianSQL() throws KettleSQLException {
+    // http://jira.pentaho.com/browse/BACKLOG-18470
+    String query = "SELECT \"table\".\"field\" AS \"c0\" FROM \"Kettle\".\"table\" AS \"table\" GROUP BY \"table\""
+      + ".\"field\" HAVING (SUM(\"table\".\"anotherField\") = 1.0) ORDER BY CASE WHEN \"table\".\"field\" IS NULL "
+      + "THEN 1 ELSE 0 END, \"table\".\"field\" ASC";
+    RowMetaInterface rowMeta = new RowMeta();
+    rowMeta.addValueMeta( new ValueMetaString( "field" ) );
+    rowMeta.addValueMeta( new ValueMetaNumber( "anotherField" ) );
+    SQL sql = new SQL( query );
+    sql.parse( rowMeta );
+
   }
 
   public void testAliasHandlingWithHavingGt() throws KettleSQLException {

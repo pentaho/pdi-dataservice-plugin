@@ -49,13 +49,6 @@ import org.pentaho.di.core.row.value.ValueMetaNumber;
 import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.core.xml.XMLHandler;
 
-/**
- * Static methods provided by this class should be copied to their respective projects
- *
- * Data Service client code is now available in the pdi-dataservice-plugin project
- *
- */
-@Deprecated
 public class ThinUtil {
 
   public static String stripNewlines( String sql ) {

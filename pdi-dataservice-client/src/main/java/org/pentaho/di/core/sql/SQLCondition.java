@@ -30,6 +30,7 @@ import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaAndData;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaString;
+import org.pentaho.di.core.util.Utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -215,7 +216,7 @@ public class SQLCondition {
     if ( Const.isEmpty( parameterName ) ) {
       throw new KettleSQLException( "A parameter name cannot be empty in : " + clause );
     }
-    if ( Const.isEmpty( parameterValue ) || parameterValue.equals( "''" ) ) {
+    if ( Utils.isEmpty( parameterValue ) || parameterValue.equals( "''" ) ) {
       throw new KettleSQLException( "A parameter value cannot be empty in : " + clause );
     }
   }
@@ -330,20 +331,33 @@ public class SQLCondition {
     }
   }
 
-  private boolean isEqualityComparisonOfLiteralValues( List<String> clauseElements ) {
+  private boolean isEqualityComparisonOfLiteralValues( List<String> clauseElements ) throws KettleSQLException {
     String left = clauseElements.get( 0 );
     int opFunction = Condition.getFunction( clauseElements.get( 1 ) );
     String right = clauseElements.get( 2 );
-    return isLiteral( left ) && isLiteral( right ) && opFunction == Condition.FUNC_EQUAL;
+    return isLiteral( left )
+      && isLiteral( right )
+      && opFunction == Condition.FUNC_EQUAL;
+  }
+
+  private boolean isAggregateField( String left ) throws KettleSQLException {
+    // match scheme is consistent with the current impl of SQLField.
+    // refactoring SQLField to extract agg expression determination is
+    // too risky to mess with.
+    return Arrays.stream( SQLAggregation.values() )
+      .filter( agg -> left.trim().toUpperCase().startsWith( agg + "(" ) )
+      .findFirst()
+      .isPresent();
   }
 
   /**
    * If the element is not determined to have an alias, and doesn't map to a service field,
    * then we'll assume it's a literal value.
    */
-  private boolean isLiteral( String element ) {
+  private boolean isLiteral( String element ) throws KettleSQLException {
     return !getAlias( element ).isPresent()
-      && !ThinUtil.getValueMetaInterface( getCleansedName( element ), getServiceFields() ).isPresent();
+      && !ThinUtil.getValueMetaInterface( getCleansedName( element ), getServiceFields() ).isPresent()
+      && !isAggregateField( element );
   }
 
   /**
@@ -390,7 +404,7 @@ public class SQLCondition {
    * @throws KettleSQLException
    */
   private List<String> splitConditionClause( String clause ) throws KettleSQLException {
-    List<String> strings = new ArrayList<String>();
+    List<String> strings = new ArrayList<>();
 
     String[]
       operators =
@@ -418,7 +432,7 @@ public class SQLCondition {
             String op = Condition.functions[ functions[ functionIndex ] ];
             String right = Const.trim( clause.substring( index + operator.length() ) );
 
-            return Arrays.<String>asList( left, op, right );
+            return Arrays.asList( left, op, right );
           }
         }
       }
@@ -499,11 +513,11 @@ public class SQLCondition {
    */
   public List<SQLField> extractHavingFields( List<SQLField> selectFields, List<SQLField> aggFields,
                                              RowMetaInterface rowMeta ) throws KettleSQLException {
-    List<SQLField> list = new ArrayList<SQLField>();
+    List<SQLField> list = new ArrayList<>();
 
     // Get a list of all the lowest level field names and see if we can parse them as aggregation fields
     //
-    List<String> expressions = new ArrayList<String>();
+    List<String> expressions = new ArrayList<>();
     addExpressions( condition, expressions );
 
     for ( String expression : expressions ) {
