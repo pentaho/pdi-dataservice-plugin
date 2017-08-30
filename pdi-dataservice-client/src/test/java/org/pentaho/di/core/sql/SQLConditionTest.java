@@ -32,7 +32,6 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.pentaho.di.core.sql.SQLTest.mockRowMeta;
 
 public class SQLConditionTest extends TestCase {
@@ -986,5 +985,18 @@ public class SQLConditionTest extends TestCase {
     assertThat( children.get( 1 ).getFunctionDesc(), is( ">" ) );
     assertThat( children.get( 1 ).getLeftValuename(), is( "Space Field" ) );
     assertTrue( condition.isComposite() );
+  }
+
+  @Test
+  public void testHavingConditionWithEquals() throws KettleSQLException {
+    RowMetaInterface rowMeta = mockRowMeta( "Led Zeppelin", "Rulz!" );
+
+    SQLCondition sqlCondition = new SQLCondition(
+      "table", "SUM('Led Zeppelin') = 0", rowMeta );
+    Condition condition = sqlCondition.getCondition();
+    assertThat( condition.getFunctionDesc(), is( "=" ) );
+    assertThat( condition.getLeftValuename(), is( "SUM('Led Zeppelin')" ) );
+    assertThat( condition.getRightExact().getValueData(), is( 0l ) );
+    assertTrue( condition.isAtomic() );
   }
 }
