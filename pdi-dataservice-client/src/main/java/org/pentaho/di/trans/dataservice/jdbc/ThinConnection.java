@@ -551,8 +551,7 @@ public class ThinConnection extends ThinBase implements Connection {
     }
 
     private URI baseUri() throws SQLException {
-      boolean isSecure = "true".equalsIgnoreCase( arguments.get( ARG_ISSECURE ) )
-              || "https".equalsIgnoreCase( uri.getScheme() );
+      boolean isSecure = "true".equalsIgnoreCase( arguments.get( ARG_ISSECURE ) );
 
       String pathPrefix = "";
       if ( arguments.containsKey( ARG_WEBAPPNAME ) ) {
