@@ -29,6 +29,7 @@ import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.repository.Repository;
+import org.pentaho.di.trans.dataservice.jdbc.ThinConnection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -77,6 +78,9 @@ public class DataServiceConnectionInformation implements ProvidesDatabaseConnect
           Integer.toString( uri.getPort() ), repository.getUserInfo().getLogin(),
           repository.getUserInfo().getPassword() );
       databaseMeta.setDBName( uri.getPath().substring( 1 ) );
+      if ( uri.getScheme() != null && uri.getScheme().equalsIgnoreCase( "https" ) ) {
+        databaseMeta.addExtraOption( databaseMeta.getPluginId(), ThinConnection.ARG_ISSECURE, "true" );
+      }
       return databaseMeta;
     } catch ( URISyntaxException e ) {
       throw new KettleException( e );
