@@ -78,7 +78,7 @@ public class ThinResultSetMetaDataTest {
   @Test
   public void getColumnType_bignumber() throws Exception {
     when( valueMeta.getType() ).thenReturn( ValueMetaInterface.TYPE_BIGNUMBER );
-    assertEquals( Types.DECIMAL, resultSetMetaData.getColumnType( 1 ) );
+    assertEquals( Types.JAVA_OBJECT, resultSetMetaData.getColumnType( 1 ) );
   }
 
   @Test

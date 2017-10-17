@@ -98,7 +98,7 @@ public class ThinResultSetMetaData extends ThinBase implements ResultSetMetaData
       case ValueMetaInterface.TYPE_DATE:
         return java.sql.Types.TIMESTAMP;
       case ValueMetaInterface.TYPE_BIGNUMBER:
-        return java.sql.Types.DECIMAL;
+        return java.sql.Types.JAVA_OBJECT;
       case ValueMetaInterface.TYPE_INTEGER:
         return java.sql.Types.BIGINT;
       case ValueMetaInterface.TYPE_BOOLEAN:
