@@ -25,8 +25,12 @@ package org.pentaho.di.trans.dataservice.jdbc;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import org.hamcrest.CustomMatcher;
+import org.hamcrest.Matcher;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -38,6 +42,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 
 import static org.hamcrest.Matchers.*;
@@ -62,8 +67,12 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
   private static String host = "localhost";
   private static int port = 8080;
   private static String debugTrans = "debugTrans";
+  private Matcher<String> noBangMatcher;
 
   private String url;
+
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
 
   public ThinConnectionTest() {
     super( ThinConnection.class );
@@ -81,6 +90,17 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     connection.setClientService( clientService );
 
     //when( connectionManager.createHttpClient() ).thenReturn( httpClient );
+
+    // This sets up a rule about exception messages not containing exclamation-points.
+    // By default, BaseMessages.getString will return the key passed in surrounded by exclamation-points
+    // if the message cannot be found in the bundle. This makes sure that all messages for the unsupported
+    // exceptions are able to be found.
+    noBangMatcher = new CustomMatcher<String>( "No Bangs" ) {
+      public boolean matches( Object object ) {
+        return ( object instanceof String ) && !( ( String )object).contains( "!" );
+      }
+    };
+
   }
 
   @Test
@@ -240,4 +260,105 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     verify( (ConnectionAbortingSupport) clientService, times( 1 ) ).disconnect();
     verify( spyConnection, times( 1 ) ).closeAllOpenStatements();
   }
+
+  // PDI-14430 - Exception Testing
+  @Test
+  public void testCommitNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.commit();
+  }
+
+  @Test
+  public void testArrayNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.createArrayOf( "Abc", new String[3] );
+  }
+
+  @Test
+  public void testCreateBlobNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.createBlob();
+  }
+
+  @Test
+  public void testCreateClobNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.createClob();
+  }
+
+  @Test
+  public void testCreateNClobNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.createNClob();
+  }
+
+  @Test
+  public void testCreateSQLXMLNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.createSQLXML();
+  }
+
+  @Test
+  public void testCreateStructNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.createStruct( "foo", new String[3] );
+  }
+
+  @Test
+  public void testGetClientInfoNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.getClientInfo( "foo" );
+  }
+
+  @Test
+  public void testNativeSQLNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.nativeSQL( "select *" );
+  }
+
+  @Test
+  public void testPrepareCallNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.prepareCall( "select *" );
+  }
+
+  @Test
+  public void testSavepointCallNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.setSavepoint();
+  }
+
+  @Test
+  public void testAbortConnectionNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.abort( null );
+  }
+
+  @Test
+  public void testNetworkTimeoutNotSupportedExceptions() throws SQLException {
+    expectedException.expect( SQLFeatureNotSupportedException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.getNetworkTimeout( );
+  }
+
+  @Test
+  public void testGetLocalClientException() throws SQLException {
+    connection.localClient = null;
+    expectedException.expect( SQLException.class );
+    expectedException.expectMessage( noBangMatcher );
+    connection.getLocalClient();
+  }
+
 }
