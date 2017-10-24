@@ -70,7 +70,7 @@ public class DataServiceClientPlugin extends BaseDatabaseMeta implements Databas
   }
 
   @Override public String getExtraOptionsHelpText() {
-    return Const.getDocUrl( "0L0/0Y0/090/040" );
+    return Const.getDocUrl( "Products/Data_Integration/Data_Services/040" );
   }
 
   @Override
