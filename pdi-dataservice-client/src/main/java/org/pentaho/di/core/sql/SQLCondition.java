@@ -281,15 +281,7 @@ public class SQLCondition {
 
         part = Const.trim( part );
 
-        // Remove the quotes around the string...
-        //
-        if ( part.startsWith( "'" ) && part.endsWith( "'" ) ) {
-          part = part.substring( 1, part.length() - 1 );
-        }
-
-        // Undo escaping...
-        //
-        part = part.replace( "''", "'" );
+        part = ThinUtil.extractConstant( part ).toString();
 
         // Escape semi-colons
         //
