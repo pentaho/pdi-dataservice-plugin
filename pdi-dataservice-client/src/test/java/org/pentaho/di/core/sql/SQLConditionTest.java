@@ -916,6 +916,28 @@ public class SQLConditionTest extends TestCase {
     assertEquals( "'\\;';Toys 'R' us", condition.getRightExactString() );
   }
 
+  public void testCondition31() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+
+    String fieldsClause = "ORDERDATE";
+    String conditionClause = "ORDERDATE IN (DATE '2004-01-15', DATE '2004-02-20', DATE '2004-05-18')"; // BACKLOG-19534
+
+    // Correctness of the next statement is tested in SQLFieldsTest
+    //
+    SQLFields fields = new SQLFields( "Service", rowMeta, fieldsClause );
+
+    SQLCondition sqlCondition = new SQLCondition( "Service", conditionClause, rowMeta, fields );
+    Condition condition = sqlCondition.getCondition();
+
+    assertNotNull( condition );
+    assertFalse( condition.isEmpty() );
+    assertTrue( condition.isAtomic() );
+    assertEquals( Condition.FUNC_IN_LIST, condition.getFunction() );
+
+    assertEquals( "ORDERDATE", condition.getLeftValuename() );
+    assertEquals( "2004-01-15;2004-02-20;2004-05-18", condition.getRightExactString() );
+  }
+
   @Test
   public void testNegatedTrueFuncEvaluatesAsFalse() throws Exception {
     RowMetaInterface rowMeta = SQLTest.generateServiceRowMeta();

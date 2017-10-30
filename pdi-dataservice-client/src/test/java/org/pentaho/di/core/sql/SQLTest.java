@@ -631,6 +631,7 @@ public class SQLTest extends TestCase {
     rowMeta.addValueMeta( new ValueMeta( "MONTH_ID", ValueMetaInterface.TYPE_INTEGER, 4 ) );
     rowMeta.addValueMeta( new ValueMeta( "YEAR_ID", ValueMetaInterface.TYPE_INTEGER, 2 ) );
     rowMeta.addValueMeta( new ValueMeta( "STATE", ValueMetaInterface.TYPE_STRING, 30 ) );
+    rowMeta.addValueMeta( new ValueMeta( "ORDERDATE", ValueMetaInterface.TYPE_DATE, 60 ) );
     return rowMeta;
   }
 
