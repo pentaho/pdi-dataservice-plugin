@@ -36,6 +36,7 @@ import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.database.BaseDatabaseMeta;
 import org.pentaho.di.core.util.HttpClientManager;
 import org.pentaho.di.core.util.HttpClientUtil;
+import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.dataservice.client.ConnectionAbortingSupport;
 import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
@@ -76,6 +77,8 @@ public class ThinConnection extends ThinBase implements Connection {
   public static final String ARG_LOCAL = "local";
   public static final String ARG_WEB_APPLICATION_NAME = BaseDatabaseMeta.ATTRIBUTE_PREFIX_EXTRA_OPTION
       + "KettleThin.webappname";
+
+  private static Class<?> PKG = ThinConnection.class; // for i18n purposes, needed by Translator2!!
 
   public static DataServiceClientService localClient;
   private DataServiceClientService clientService;
@@ -124,32 +127,32 @@ public class ThinConnection extends ThinBase implements Connection {
 
   @Override @NotSupported
   public void commit() throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Transactions are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Plural", BaseMessages.getString( PKG, "ThinConnection.Transactions" ) ) );
   }
 
   @Override @NotSupported
   public Array createArrayOf( String arg0, Object[] arg1 ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Arrays are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Plural", BaseMessages.getString( PKG, "ThinConnection.Arrays" ) ) );
   }
 
   @Override @NotSupported
   public Blob createBlob() throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Creating BLOBs is not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Singular", BaseMessages.getString( PKG, "ThinConnection.Blobs.Create" ) ) );
   }
 
   @Override @NotSupported
   public Clob createClob() throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Creating CLOBs is not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Singular", BaseMessages.getString( PKG, "ThinConnection.Clobs.Create" ) ) );
   }
 
   @Override @NotSupported
   public NClob createNClob() throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Creating NCLOBs is not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Singular", BaseMessages.getString( PKG, "ThinConnection.NClobs.Create" ) ) );
   }
 
   @Override @NotSupported
   public SQLXML createSQLXML() throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Creating SQL XML is not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Singular", BaseMessages.getString( PKG, "ThinConnection.SQL.XML.Create" ) ) );
   }
 
   @Override
@@ -169,7 +172,7 @@ public class ThinConnection extends ThinBase implements Connection {
 
   @Override @NotSupported
   public Struct createStruct( String arg0, Object[] arg1 ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Creating structs is not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Singular", BaseMessages.getString( PKG, "ThinConnection.Structs.Create" ) ) );
   }
 
   @Override
@@ -189,7 +192,7 @@ public class ThinConnection extends ThinBase implements Connection {
 
   @Override @NotSupported
   public String getClientInfo( String arg0 ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Client Info is not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Singular", BaseMessages.getString( PKG, "ThinConnection.Client.Info" ) ) );
   }
 
   @Override
@@ -241,23 +244,22 @@ public class ThinConnection extends ThinBase implements Connection {
 
   @Override @NotSupported
   public String nativeSQL( String arg0 ) throws SQLException {
-    throw new SQLFeatureNotSupportedException(
-      "Native SQL statements are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Singular", BaseMessages.getString( PKG, "ThinConnection.Native.SQL" ) ) );
   }
 
   @Override @NotSupported
   public CallableStatement prepareCall( String arg0 ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Perpared calls are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Plural", BaseMessages.getString( PKG, "ThinConnection.Prepared.Calls" ) ) );
   }
 
   @Override @NotSupported
   public CallableStatement prepareCall( String arg0, int arg1, int arg2 ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Perpared calls are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Plural", BaseMessages.getString( PKG, "ThinConnection.Prepared.Calls" ) ) );
   }
 
   @Override @NotSupported
   public CallableStatement prepareCall( String arg0, int arg1, int arg2, int arg3 ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Perpared calls are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Plural", BaseMessages.getString( PKG, "ThinConnection.Prepared.Calls" ) ) );
   }
 
   @Override
@@ -294,17 +296,17 @@ public class ThinConnection extends ThinBase implements Connection {
 
   @Override @NotSupported
   public void releaseSavepoint( Savepoint arg0 ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Transactions are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Plural", BaseMessages.getString( PKG, "ThinConnection.Save.Points" ) ) );
   }
 
   @Override @NotSupported
   public void rollback() throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Transactions are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Plural", BaseMessages.getString( PKG, "ThinConnection.Transactions" ) ) );
   }
 
   @Override @NotSupported
   public void rollback( Savepoint arg0 ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Transactions are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Plural", BaseMessages.getString( PKG, "ThinConnection.Transactions" ) ) );
   }
 
   @Override
@@ -337,17 +339,17 @@ public class ThinConnection extends ThinBase implements Connection {
 
   @Override @NotSupported
   public Savepoint setSavepoint() throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Safepoints calls are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Plural", BaseMessages.getString( PKG, "ThinConnection.Save.Points" ) ) );
   }
 
   @Override @NotSupported
   public Savepoint setSavepoint( String arg0 ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Safepoints calls are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Plural", BaseMessages.getString( PKG, "ThinConnection.Save.Points" ) ) );
   }
 
   @Override @NotSupported
   public void setTransactionIsolation( int arg0 ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Transactions are not supported by the thin Kettle JDBC driver" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Plural", BaseMessages.getString( PKG, "ThinConnection.Transactions" ) ) );
   }
 
   @Override
@@ -425,17 +427,17 @@ public class ThinConnection extends ThinBase implements Connection {
 
   @Override @NotSupported
   public void abort( Executor executor ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Abort Connection not supported" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Singular", BaseMessages.getString( PKG, "ThinConnection.Abort.Connection" ) ) );
   }
 
   @Override @NotSupported
   public void setNetworkTimeout( Executor executor, int milliseconds ) throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Network Timeout not supported" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Singular", BaseMessages.getString( PKG, "ThinConnection.Network.Timeout" ) ) );
   }
 
   @Override @NotSupported
   public int getNetworkTimeout() throws SQLException {
-    throw new SQLFeatureNotSupportedException( "Network Timeout not supported" );
+    throw new SQLFeatureNotSupportedException( BaseMessages.getString( PKG, "ThinConnection.Not.Supported.Singular", BaseMessages.getString( PKG, "ThinConnection.Network.Timeout" ) ) );
   }
 
   public boolean isLocal() {
@@ -448,7 +450,7 @@ public class ThinConnection extends ThinBase implements Connection {
 
   public static DataServiceClientService getLocalClient() throws SQLException {
     if ( localClient == null ) {
-      throw new SQLException( "Local client service is not installed" );
+      throw new SQLException( BaseMessages.getString( PKG, "ThinConnection.Local.Client.Missing" ) );
     }
     return ThinConnection.localClient;
   }
@@ -510,7 +512,7 @@ public class ThinConnection extends ThinBase implements Connection {
         }
       } catch ( Exception e ) {
         Throwables.propagateIfPossible( e, SQLException.class );
-        throw new SQLException( "Invalid connection URL: " + url, e );
+        throw new SQLException( BaseMessages.getString( PKG, "ThinConnection.Invalid.Connection.URL" ), url, e );
       }
 
       return this;
@@ -563,8 +565,7 @@ public class ThinConnection extends ThinBase implements Connection {
 
       String pathPrefix = "";
       if ( arguments.containsKey( ARG_WEBAPPNAME ) ) {
-        ThinDriver.logger.warning( ARG_WEBAPPNAME + " is deprecated. "
-          + "Please instead use the form jdbc:pdi://myserver.mydomain.com:8080/webAppName/kettle" );
+        ThinDriver.logger.warning( BaseMessages.getString( PKG, "ThinConnection.Deprecated.Webapp", ARG_WEBAPPNAME  ) );
         pathPrefix = "/" + arguments.get( ARG_WEBAPPNAME );
       }
 
@@ -579,7 +580,7 @@ public class ThinConnection extends ThinBase implements Connection {
           null
         );
       } catch ( URISyntaxException e ) {
-        throw new SQLException( "Unable to create a connection", e );
+        throw new SQLException( BaseMessages.getString( PKG, "ThinConnection.Unable.Connect" ), e );
       }
     }
   }
