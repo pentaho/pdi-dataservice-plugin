@@ -30,6 +30,7 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.pentaho.di.cluster.SlaveConnectionManager;
@@ -534,11 +535,13 @@ public class ThinConnection extends ThinBase implements Connection {
       clientBuilder.setConnectionTimeout( 0 );
       String user = connection.username;
       String pass = connection.password;
-      if ( StringUtils.isNotBlank( user ) ) {
+      String unescapedUsername = StringEscapeUtils.unescapeHtml( user );
+      String unescapedPassword = StringEscapeUtils.unescapeHtml( pass );
+      if ( StringUtils.isNotBlank( unescapedUsername ) ) {
         URI uri = connection.baseURI;
-        clientBuilder.setCredentials( user, pass );
+        clientBuilder.setCredentials( unescapedUsername, unescapedPassword );
         clientContext = HttpClientUtil.createPreemptiveBasicAuthentication(
-          uri.getHost(), uri.getPort(), user, pass, uri.getScheme() );
+          uri.getHost(), uri.getPort(), unescapedUsername, unescapedPassword, uri.getScheme() );
       }
 
       if ( StringUtils.isNotBlank( proxyHostname ) && StringUtils.isNotBlank( proxyPort )
@@ -546,7 +549,6 @@ public class ThinConnection extends ThinBase implements Connection {
         .matches( nonProxyHosts ) ) ) ) {
         int proxyPort = Integer.parseInt( connection.proxyPort );
         clientBuilder.setProxy( proxyHostname, proxyPort );
-        clientContext = HttpClientUtil.createPreemptiveBasicAuthentication( proxyHostname, proxyPort, user, pass );
       }
 
       return new RemoteClient( connection, clientBuilder.build(), clientContext );
