@@ -67,6 +67,19 @@ public class SQLField {
     this.valueMeta = valueMeta;
   }
 
+  private String unsanitizeString( String str ) {
+    return ThinUtil.stripQuotes( Const.trim( str.replaceAll( "\"\"", "\"" ) ), '"' );
+  }
+  private String unQuote( String str ) {
+    StringBuilder builder = new StringBuilder( str );
+    if ( builder.length() > 0 && builder.charAt( 0 ) == '"'
+      && builder.charAt( builder.length() - 1 ) == '"' ) {
+      builder.deleteCharAt( builder.length() - 1 );
+      builder.deleteCharAt( 0 );
+    }
+    return builder.toString();
+  }
+
   public SQLField( String tableAlias, String fieldClause, RowMetaInterface serviceFields ) throws KettleSQLException {
     this( tableAlias, fieldClause, serviceFields, false );
   }
@@ -228,7 +241,7 @@ public class SQLField {
 
       } else {
         if ( valueMeta == null ) {
-          field = ThinUtil.resolveFieldName( field, serviceFields );
+          field = ThinUtil.resolveFieldName( unsanitizeString( unQuote( field ) ), serviceFields );
           valueMeta = serviceFields.searchValueMeta( field );
           if ( orderField && selectFields != null ) {
             // See if this isn't an aliased select field that we're ordering on
