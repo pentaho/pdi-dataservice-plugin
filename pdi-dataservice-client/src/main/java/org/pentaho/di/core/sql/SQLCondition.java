@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -278,6 +278,7 @@ public class SQLCondition {
     //
     left = ThinUtil.resolveFieldName( ThinUtil.stripQuoteTableAlias( left, tableAlias ),
       getServiceFields() );
+    left = ThinUtil.unQuote( left.replaceAll( "\"\"", "\"" ) );
     String operatorString = strings.get( 1 );
     String right = strings.get( 2 );
     boolean negation = Pattern.matches( "^NULL$", right.trim().toUpperCase() );
