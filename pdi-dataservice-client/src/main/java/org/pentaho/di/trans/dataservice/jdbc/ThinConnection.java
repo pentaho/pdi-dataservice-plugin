@@ -33,6 +33,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.BaseDatabaseMeta;
@@ -461,7 +462,9 @@ public class ThinConnection extends ThinBase implements Connection {
   }
 
   private void addCredentials( HttpClient client ) {
-    UsernamePasswordCredentials credentials = new UsernamePasswordCredentials( username, password );
+    String unescapedUsername = StringEscapeUtils.unescapeHtml( username );
+    String unescapedPassword = StringEscapeUtils.unescapeHtml( password );
+    UsernamePasswordCredentials credentials = new UsernamePasswordCredentials( unescapedUsername, unescapedPassword );
     client.getParams().setAuthenticationPreemptive( true );
     client.getState().setCredentials( AuthScope.ANY, credentials );
   }
