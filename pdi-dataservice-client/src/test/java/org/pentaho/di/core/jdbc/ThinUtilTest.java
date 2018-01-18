@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -34,7 +34,12 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -66,15 +71,15 @@ public class ThinUtilTest {
 
   @SuppressWarnings( "deprecation" )
   @Test
-  public void testAttemptDateValueExtraction() throws Exception {
+  public void testAttemptDateValueExtraction() {
     ValueMetaAndData timestamp = ThinUtil.attemptDateValueExtraction( "TIMESTAMP '2014-01-01 00:00:00'" );
     ValueMetaAndData date = ThinUtil.attemptDateValueExtraction( "DATE '2014-01-01'" );
 
     assertNotNull( timestamp );
-    assertEquals( "2014-01-01 00:00:00", timestamp.toString() );
+    assertEquals( "2014/01/01 00:00:00.000", timestamp.toString() );
 
     assertNotNull( date );
-    assertEquals( "2014-01-01", date.toString() );
+    assertEquals( "2014/01/01 00:00:00.000", date.toString() );
   }
 
   @SuppressWarnings( "deprecation" )

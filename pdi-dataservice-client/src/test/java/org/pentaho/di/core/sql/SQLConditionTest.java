@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -32,6 +32,10 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.mock;
 import static org.pentaho.di.core.sql.SQLTest.mockRowMeta;
 
 public class SQLConditionTest extends TestCase {
@@ -935,7 +939,7 @@ public class SQLConditionTest extends TestCase {
     assertEquals( Condition.FUNC_IN_LIST, condition.getFunction() );
 
     assertEquals( "ORDERDATE", condition.getLeftValuename() );
-    assertEquals( "2004-01-15;2004-02-20;2004-05-18", condition.getRightExactString() );
+    assertEquals( "2004/01/15 00:00:00.000;2004/02/20 00:00:00.000;2004/05/18 00:00:00.000", condition.getRightExactString() );
   }
 
   @Test
@@ -1020,5 +1024,33 @@ public class SQLConditionTest extends TestCase {
     assertThat( condition.getLeftValuename(), is( "SUM('Led Zeppelin')" ) );
     assertThat( condition.getRightExact().getValueData(), is( 0l ) );
     assertTrue( condition.isAtomic() );
+  }
+
+  @Test
+  public void testSearchForWord() throws KettleSQLException {
+    SQLCondition sqlCondition = mock( SQLCondition.class );
+    doCallRealMethod().when( sqlCondition ).searchForWord( anyString(), anyString(), anyInt() );
+
+    assertEquals( 0, sqlCondition.searchForWord( "AND", "AND", 0 ) );
+    assertEquals( -1, sqlCondition.searchForWord( "AND", "AND", 1 ) );
+    assertEquals( 1, sqlCondition.searchForWord( " AND", "AND", 0 ) );
+    assertEquals( 1, sqlCondition.searchForWord( " AND", "AND", 1 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " AND", "AND", 2 ) );
+    assertEquals( 0, sqlCondition.searchForWord( "AND ", "AND", 0 ) );
+    assertEquals( -1, sqlCondition.searchForWord( "AND ", "AND", 1 ) );
+    assertEquals( 1, sqlCondition.searchForWord( " AND ", "AND", 0 ) );
+    assertEquals( 1, sqlCondition.searchForWord( " AND ", "AND", 1 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " AND ", "AND", 2 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " ANDY ", "AND", 0 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " ANDY", "AND", 0 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " DANDY ", "AND", 0 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " DANDY ", "AND", 1 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " DANDY ", "AND", 2 ) );
+    assertEquals( 3, sqlCondition.searchForWord( " D AND Y ", "AND", 0 ) );
+    assertEquals( 3, sqlCondition.searchForWord( " D AND Y AND ", "AND", 0 ) );
+    assertEquals( 3, sqlCondition.searchForWord( " D and Y AND ", "AND", 0 ) );
+    assertEquals( 3, sqlCondition.searchForWord( " D AND Y AND ", "and", 0 ) );
+    assertEquals( 3, sqlCondition.searchForWord( " D\nAND\nY AND ", "and", 0 ) );
+    assertEquals( 4, sqlCondition.searchForWord( " D\r\nAND\r\nY AND ", "and", 0 ) );
   }
 }
