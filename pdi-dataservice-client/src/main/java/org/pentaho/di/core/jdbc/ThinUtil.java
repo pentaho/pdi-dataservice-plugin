@@ -386,7 +386,7 @@ public class ThinUtil {
         } else {
           // Make sure to take escaping into account for single quotes
           //
-          index = findNext( sql, nextChar, index, skipChar == '\'' );
+          index = findNext( sql, nextChar, index, skipChar == '\'' || skipChar == '\"' );
         }
         if ( index >= sql.length() ) {
           break;

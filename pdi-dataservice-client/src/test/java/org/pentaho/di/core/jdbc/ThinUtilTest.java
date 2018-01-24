@@ -23,6 +23,7 @@
 package org.pentaho.di.core.jdbc;
 
 import com.google.common.collect.ImmutableMap;
+import org.junit.Assert;
 import org.junit.Test;
 import org.pentaho.di.core.exception.KettleSQLException;
 import org.pentaho.di.core.exception.KettleValueException;
@@ -32,6 +33,8 @@ import org.pentaho.di.core.row.ValueMetaInterface;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertNull;
@@ -329,5 +332,41 @@ public class ThinUtilTest {
           ThinUtil.stripQuotesIfNoWhitespace( test.replace( '"', quote ), quote ) );
       }
     }
+  }
+
+  @Test
+  public void testSkipChars(){
+    List<String> checkList = new ArrayList<String>();
+    checkList.add("SELECT functionN \"transaction:a\" LIMIT ? OFFSET ?");
+    checkList.add("SELECT \"functionN\" \"transaction:a\" LIMIT ? OFFSET ?");
+    checkList.add("SELECT \"function'N'\" \"transaction:a\" LIMIT ? OFFSET ?");
+    checkList.add("SELECT \"function\"\"N\"\"\" \"transaction:a\" LIMIT ? OFFSET ?");
+
+    for ( String sql: checkList) {
+      checkSkipChars( sql);
+    }
+
+
+
+  }
+  private void checkSkipChars( String _sql) {
+    List<Integer> placeholderIndexes = new ArrayList<Integer>();
+    try {
+      int index = 0;
+      while (index < _sql.length()) {
+        index = ThinUtil.skipChars(_sql, index, '\'', '"');
+        if (index < _sql.length()) {
+          if (_sql.charAt(index) == '?') {
+            // placeholder found.
+            placeholderIndexes.add(index);
+          }
+        }
+
+        index++;
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    Assert.assertEquals( placeholderIndexes.size(), 2 );
   }
 }
