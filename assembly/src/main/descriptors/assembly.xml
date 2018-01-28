@@ -44,6 +44,7 @@
         <include>commons-lang:commons-lang:*</include>
         <include>commons-logging:commons-logging:*</include>
         <include>org.apache.httpcomponents:httpclient:*</include>
+		<include>org.apache.httpcomponents:httpcore:*</include>
         <include>net.sf.scannotation:scannotation:*</include>
         <include>log4j:log4j:jar:*</include>
         <include>javassist:javassist:*</include>
