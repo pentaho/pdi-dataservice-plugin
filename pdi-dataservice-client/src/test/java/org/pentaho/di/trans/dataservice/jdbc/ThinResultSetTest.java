@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -32,7 +32,7 @@ import org.mockito.stubbing.Answer;
 import org.pentaho.di.core.exception.KettleEOFException;
 import org.pentaho.di.core.exception.KettleFileException;
 import org.pentaho.di.core.row.value.ValueMetaString;
-import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 
 import java.io.DataInputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -53,7 +53,16 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 @RunWith( MockitoJUnitRunner.class )
 public class ThinResultSetTest extends BaseResultSetTest {
@@ -61,7 +70,7 @@ public class ThinResultSetTest extends BaseResultSetTest {
   ThinResultSet thinResultSet;
   ThinResultHeader resultHeader;
   @Mock DataInputStream dataInputStream;
-  @Mock DataServiceClientService client;
+  @Mock IDataServiceClientService client;
   Object[] nextRow = new Object[0];
 
   public ThinResultSetTest() {

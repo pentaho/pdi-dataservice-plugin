@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2017-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -26,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.jdbc.ThinConnection;
 
 import static junit.framework.TestCase.assertNotSame;
@@ -53,7 +54,7 @@ public class DataServiceLocalClientBinderTest {
 
   @Test
   public void testBind() throws Exception {
-    DataServiceClientService clientService = mock( DataServiceClientService.class );
+    IDataServiceClientService clientService = mock( IDataServiceClientService.class );
     binder.bind( clientService );
 
     assertSame( ThinConnection.localClient, clientService );
@@ -61,12 +62,12 @@ public class DataServiceLocalClientBinderTest {
 
   @Test
   public void testReBind() throws Exception {
-    DataServiceClientService clientService = mock( DataServiceClientService.class );
+    IDataServiceClientService clientService = mock( IDataServiceClientService.class );
     binder.bind( clientService );
 
     assertSame( ThinConnection.localClient, clientService );
 
-    DataServiceClientService anotherClientService = mock( DataServiceClientService.class );
+    IDataServiceClientService anotherClientService = mock( IDataServiceClientService.class );
     binder.bind( anotherClientService );
 
     assertNotSame( ThinConnection.localClient, clientService );
@@ -75,7 +76,7 @@ public class DataServiceLocalClientBinderTest {
 
   @Test
   public void testUnbind() throws Exception {
-    DataServiceClientService clientService = mock( DataServiceClientService.class );
+    IDataServiceClientService clientService = mock( IDataServiceClientService.class );
     binder.bind( clientService );
 
     assertSame( ThinConnection.localClient, clientService );
@@ -87,12 +88,12 @@ public class DataServiceLocalClientBinderTest {
 
   @Test
   public void testUnbindDifferentReference() throws Exception {
-    DataServiceClientService clientService = mock( DataServiceClientService.class );
+    IDataServiceClientService clientService = mock( IDataServiceClientService.class );
     binder.bind( clientService );
 
     assertSame( ThinConnection.localClient, clientService );
 
-    DataServiceClientService anotherClientService = mock( DataServiceClientService.class );
+    IDataServiceClientService anotherClientService = mock( IDataServiceClientService.class );
     binder.unbind( anotherClientService );
 
     assertNotSame( ThinConnection.localClient, anotherClientService );
@@ -101,7 +102,7 @@ public class DataServiceLocalClientBinderTest {
 
   @Test
   public void testUnbindNull() throws Exception {
-    DataServiceClientService clientService = mock( DataServiceClientService.class );
+    IDataServiceClientService clientService = mock( IDataServiceClientService.class );
     binder.bind( clientService );
 
     assertSame( ThinConnection.localClient, clientService );

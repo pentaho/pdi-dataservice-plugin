@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -23,8 +23,9 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.trans.dataservice.jdbc.api.IThinServiceInformation;
 
-public class ThinServiceInformation {
+public class ThinServiceInformation implements IThinServiceInformation {
   private String name;
   private RowMetaInterface serviceFields;
 

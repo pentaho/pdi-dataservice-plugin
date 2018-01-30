@@ -12,7 +12,7 @@
   ~ without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
   ~ See the GNU Lesser General Public License for more details.
   ~
-  ~ Copyright 2015 - 2017 Hitachi Vantara. All rights reserved.
+  ~ Copyright 2015 - 2018 Hitachi Vantara. All rights reserved.
   -->
 
 <assembly>
@@ -39,6 +39,7 @@
         <include>pentaho-kettle:kettle-core:jar:*</include>
         <include>pentaho-kettle:kettle-engine:jar:*</include>
         <include>pentaho:pdi-dataservice-client-plugin:jar:*</include>
+        <include>pentaho:pdi-dataservice-client-plugin-api:jar:*</include>
         <include>org.apache.commons:commons-vfs2:*</include>
         <include>commons-codec:commons-codec:*</include>
         <include>commons-lang:commons-lang:*</include>

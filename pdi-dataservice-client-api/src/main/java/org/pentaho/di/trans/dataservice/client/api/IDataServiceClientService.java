@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -20,22 +20,22 @@
  *
  ******************************************************************************/
 
-package org.pentaho.di.trans.dataservice.client;
+package org.pentaho.di.trans.dataservice.client.api;
 
 import org.pentaho.di.repository.Repository;
-import org.pentaho.di.trans.dataservice.jdbc.ThinServiceInformation;
+import org.pentaho.di.trans.dataservice.jdbc.api.IThinServiceInformation;
 import org.pentaho.metastore.api.IMetaStore;
 
 import java.io.DataInputStream;
 import java.sql.SQLException;
 import java.util.List;
 
-public interface DataServiceClientService {
+public interface IDataServiceClientService {
   void setMetaStore( IMetaStore metaStore );
   void setRepository( Repository repository );
   DataInputStream query( String sql, int maxRows ) throws SQLException;
-  List<ThinServiceInformation> getServiceInformation() throws SQLException;
-  ThinServiceInformation getServiceInformation( String name ) throws SQLException;
+  List<IThinServiceInformation> getServiceInformation() throws SQLException;
+  IThinServiceInformation getServiceInformation( String name ) throws SQLException;
   List<String> getServiceNames() throws SQLException;
   List<String> getServiceNames( String serviceName ) throws SQLException;
 }

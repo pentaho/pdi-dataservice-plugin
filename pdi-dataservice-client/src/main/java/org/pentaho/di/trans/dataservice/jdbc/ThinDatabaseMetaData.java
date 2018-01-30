@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -30,6 +30,7 @@ import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMeta;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaString;
+import org.pentaho.di.trans.dataservice.jdbc.api.IThinServiceInformation;
 import org.pentaho.di.version.BuildVersion;
 
 import java.sql.Connection;
@@ -175,8 +176,8 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
     return new RowsResultSet( rowMeta, new ArrayList<Object[]>() );
   }
 
-  private List<ThinServiceInformation> getServices( String tableNamePattern ) throws Exception {
-    List<ThinServiceInformation> services = new ArrayList<ThinServiceInformation>();
+  private List<IThinServiceInformation> getServices( String tableNamePattern ) throws Exception {
+    List<IThinServiceInformation> services = new ArrayList<IThinServiceInformation>();
 
     if ( Const.isEmpty( tableNamePattern ) ) {
       services = getServiceInformation();
@@ -235,7 +236,7 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
       rowMeta.addValueMeta( new ValueMetaString( "SOURCE_CURRENCY_SYMBOL" ) ); // Mask currency symbol
 
       List<Object[]> rows = new ArrayList<Object[]>();
-      for ( ThinServiceInformation service : getServices( tableNamePattern ) ) {
+      for ( IThinServiceInformation service : getServices( tableNamePattern ) ) {
         int ordinal = 1;
         for ( ValueMetaInterface valueMeta : service.getServiceFields().getValueMetaList() ) {
           if ( Const.isEmpty( columnNamePattern ) || ThinUtil.like( valueMeta.getName(), columnNamePattern ) ) {
@@ -592,11 +593,11 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
     return new RowsResultSet( new RowMeta(), new ArrayList<Object[]>() ); // empty set
   }
 
-  public List<ThinServiceInformation> getServiceInformation() throws SQLException {
+  public List<IThinServiceInformation> getServiceInformation() throws SQLException {
     return connection.getClientService().getServiceInformation();
   }
 
-  public ThinServiceInformation getServiceInformation( String name ) throws SQLException {
+  public IThinServiceInformation getServiceInformation( String name ) throws SQLException {
     return connection.getClientService().getServiceInformation( name );
   }
 
@@ -661,7 +662,7 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
       rowMeta.addValueMeta( new ValueMeta( "REF_GENERATION", ValueMetaInterface.TYPE_STRING ) );
 
       List<Object[]> rows = new ArrayList<Object[]>();
-      for ( ThinServiceInformation service : getServices( tableNamePattern ) ) {
+      for ( IThinServiceInformation service : getServices( tableNamePattern ) ) {
         Object[] row = RowDataUtil.allocateRowData( rowMeta.size() );
         int index = 0;
         row[index++] = null; // TABLE_CAT

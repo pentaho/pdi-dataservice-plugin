@@ -13,8 +13,9 @@
   <packaging>pom</packaging>
   <name>Dataservice client parent project</name>
   <modules>
+    <module>pdi-dataservice-client-api</module>
     <module>pdi-dataservice-client</module>
-    <module>assembly</module>
+    <module>assemblies</module>
   </modules>
   <scm>
     <connection>scm:git:git@github.com:pentaho/${project.artifactId}.git</connection>
@@ -29,9 +30,13 @@
     </site>
   </distributionManagement>
   <properties>
+    <karaf-maven-plugin.aggregateFeatures>false</karaf-maven-plugin.aggregateFeatures>
+    <karaf-maven-plugin.version>3.0.8</karaf-maven-plugin.version>
     <mockito.version>1.9.5</mockito.version>
     <guava.version>17.0</guava.version>
+    <commons.collections.version>3.2.2</commons.collections.version>
     <pdi.version>8.1.0.0-SNAPSHOT</pdi.version>
+    <pentaho-metastore.version>8.1.0.0-SNAPSHOT</pentaho-metastore.version>
   </properties>
   <profiles>
     <profile>
@@ -82,8 +87,39 @@
         </plugins>
       </reporting>
     </profile>
+    <profile>
+      <id>feature-generation</id>
+      <activation>
+        <file>
+          <exists>${basedir}/src/main/feature</exists>
+        </file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.karaf.tooling</groupId>
+            <artifactId>karaf-maven-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.karaf.tooling</groupId>
+          <artifactId>karaf-maven-plugin</artifactId>
+          <version>${karaf-maven-plugin.version}</version>
+          <extensions>true</extensions>
+          <configuration>
+            <aggregateFeatures>${karaf-maven-plugin.aggregateFeatures}</aggregateFeatures>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 
   <repositories>
     <repository>

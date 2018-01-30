@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -29,7 +29,7 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 
 import java.io.DataInputStream;
 import java.lang.reflect.Method;
@@ -66,7 +66,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
 
   @Mock ThinConnection connection;
   @Mock ThinResultSet resultSet;
-  @Mock DataServiceClientService clientService;
+  @Mock IDataServiceClientService clientService;
   @Mock ThinResultFactory resultFactory;
   @Mock ThinResultHeader header;
   ThinStatement statement;
@@ -89,7 +89,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
     when( resultSet.getHeader() ).thenReturn( header );
     when( header.getServiceObjectId() ).thenReturn( SERVICE_OBJECT_ID );
     when( connection.getClientService() ).thenReturn( clientService );
-    when( resultFactory.loadResultSet( any( DataInputStream.class ), any( DataServiceClientService.class ) ) )
+    when( resultFactory.loadResultSet( any( DataInputStream.class ), any( IDataServiceClientService.class ) ) )
         .thenReturn( resultSet );
   }
 

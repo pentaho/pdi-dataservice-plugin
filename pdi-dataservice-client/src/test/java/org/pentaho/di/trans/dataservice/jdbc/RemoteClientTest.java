@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -50,17 +50,22 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.pentaho.di.trans.dataservice.jdbc.api.IThinServiceInformation;
 
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.sql.SQLException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.emptyOrNullString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -181,7 +186,7 @@ public class RemoteClientTest {
 
     remoteClient.setResponse( xml );
 
-    ThinServiceInformation serviceInformation = Iterables.getOnlyElement( remoteClient.getServiceInformation() );
+    IThinServiceInformation serviceInformation = Iterables.getOnlyElement( remoteClient.getServiceInformation() );
 
     verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
     assertThat( httpMethodCaptor.getValue().getURI().toString(), equalTo( url ) );

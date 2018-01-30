@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -32,7 +32,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.value.ValueMetaString;
-import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 
 import java.lang.reflect.Method;
 import java.sql.DatabaseMetaData;
@@ -52,7 +52,7 @@ import static org.mockito.Mockito.when;
 public class ThinDatabaseMetaDataTest extends JDBCTestBase<ThinDatabaseMetaData> {
 
   @Mock ThinConnection connection;
-  @Mock DataServiceClientService clientService;
+  @Mock IDataServiceClientService clientService;
   @InjectMocks ThinDatabaseMetaData metaData;
 
   @Before

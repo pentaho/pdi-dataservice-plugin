@@ -9,7 +9,7 @@
         <pen:di-plugin type="org.pentaho.di.core.plugins.DatabasePluginType" />
     </bean>
 
-    <reference id="dataServiceClientService"  interface="org.pentaho.di.trans.dataservice.client.DataServiceClientService" availability="optional">
+    <reference id="dataServiceClientService"  interface="org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService" availability="optional">
         <reference-listener ref="dataServiceLocalClientBinder" bind-method="bind" unbind-method="unbind" />
         <reference-listener ref="spoonDataServiceLocalClientConfigurer" bind-method="bind" unbind-method="unbind" />
     </reference>

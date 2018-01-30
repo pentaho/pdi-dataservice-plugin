@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2017-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -30,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.pentaho.di.core.lifecycle.LifeEventHandler;
 import org.pentaho.di.repository.Repository;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.stores.delegate.DelegatingMetaStore;
@@ -67,7 +68,7 @@ public class SpoonDataServiceLocalClientConfigurerTest {
 
   @Test
   public void testDataServiceClientServiceIsConfiguredAtStartWhenBindingIsBeforeStart() throws Exception {
-    DataServiceClientService clientService = mock( DataServiceClientService.class );
+    IDataServiceClientService clientService = mock( IDataServiceClientService.class );
     lifecycleListener.bind( clientService );
 
     verify( clientService, never() ).setRepository( any( Repository.class ) );
@@ -83,7 +84,7 @@ public class SpoonDataServiceLocalClientConfigurerTest {
   public void testDataServiceClientServiceIsConfiguredWhenBindingIsAfterStart() throws Exception {
     lifecycleListener.onStart( mock( LifeEventHandler.class ) );
 
-    DataServiceClientService clientService = mock( DataServiceClientService.class );
+    IDataServiceClientService clientService = mock( IDataServiceClientService.class );
     lifecycleListener.bind( clientService );
 
     verify( clientService, times( 1 ) ).setRepository( any( Repository.class ) );
@@ -95,7 +96,7 @@ public class SpoonDataServiceLocalClientConfigurerTest {
     lifecycleListener.onStart( mock( LifeEventHandler.class ) );
     lifecycleListener.onExit( mock( LifeEventHandler.class ) );
 
-    DataServiceClientService clientService = mock( DataServiceClientService.class );
+    IDataServiceClientService clientService = mock( IDataServiceClientService.class );
     lifecycleListener.bind( clientService );
 
     verify( clientService, never() ).setRepository( any( Repository.class ) );
@@ -112,7 +113,7 @@ public class SpoonDataServiceLocalClientConfigurerTest {
 
   @Test
   public void testSpoonSupplierNotCalledIfNotStarted() throws Exception {
-    DataServiceClientService clientService = mock( DataServiceClientService.class );
+    IDataServiceClientService clientService = mock( IDataServiceClientService.class );
     lifecycleListener.bind( clientService );
 
     // Spoon instance is not requested until onStart has been called and service is bound
@@ -121,7 +122,7 @@ public class SpoonDataServiceLocalClientConfigurerTest {
 
   @Test
   public void testSpoonSupplierCalledAtStartWhenDataServiceClientServiceIsBound() throws Exception {
-    DataServiceClientService clientService = mock( DataServiceClientService.class );
+    IDataServiceClientService clientService = mock( IDataServiceClientService.class );
     lifecycleListener.bind( clientService );
 
     verify( spoonSupplier, never() ).get();
@@ -137,7 +138,7 @@ public class SpoonDataServiceLocalClientConfigurerTest {
 
     verify( spoonSupplier, never() ).get();
 
-    DataServiceClientService clientService = mock( DataServiceClientService.class );
+    IDataServiceClientService clientService = mock( IDataServiceClientService.class );
     lifecycleListener.bind( clientService );
 
     // Spoon instance is not requested until onStart has been called and service is bound
