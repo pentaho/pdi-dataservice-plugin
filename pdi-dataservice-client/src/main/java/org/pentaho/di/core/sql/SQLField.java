@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -65,19 +65,6 @@ public class SQLField {
     this.alias = alias;
     this.aggregation = aggregation;
     this.valueMeta = valueMeta;
-  }
-
-  private String unsanitizeString( String str ) {
-    return ThinUtil.stripQuotes( Const.trim( str.replaceAll( "\"\"", "\"" ) ), '"' );
-  }
-  private String unQuote( String str ) {
-    StringBuilder builder = new StringBuilder( str );
-    if ( builder.length() > 0 && builder.charAt( 0 ) == '"'
-      && builder.charAt( builder.length() - 1 ) == '"' ) {
-      builder.deleteCharAt( builder.length() - 1 );
-      builder.deleteCharAt( 0 );
-    }
-    return builder.toString();
   }
 
   public SQLField( String tableAlias, String fieldClause, RowMetaInterface serviceFields ) throws KettleSQLException {
@@ -241,7 +228,7 @@ public class SQLField {
 
       } else {
         if ( valueMeta == null ) {
-          field = ThinUtil.resolveFieldName( unsanitizeString( unQuote( field ) ), serviceFields );
+          field = ThinUtil.resolveFieldName( ThinUtil.unQuote( field.replaceAll( "\"\"", "\"" ) ), serviceFields );
           valueMeta = serviceFields.searchValueMeta( field );
           if ( orderField && selectFields != null ) {
             // See if this isn't an aliased select field that we're ordering on
