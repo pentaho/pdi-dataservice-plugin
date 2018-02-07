@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2017-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -27,6 +27,7 @@ import org.pentaho.di.core.annotations.LifecyclePlugin;
 import org.pentaho.di.core.lifecycle.LifeEventHandler;
 import org.pentaho.di.core.lifecycle.LifecycleException;
 import org.pentaho.di.core.lifecycle.LifecycleListener;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.ui.spoon.Spoon;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,8 +37,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class SpoonDataServiceLocalClientConfigurer implements LifecycleListener {
 
   private final Supplier<Spoon> spoonSupplier;
-  private final AtomicReference<DataServiceClientService> dataServiceClientService =
-      new AtomicReference<DataServiceClientService>();
+  private final AtomicReference<IDataServiceClientService> dataServiceClientService =
+      new AtomicReference<IDataServiceClientService>();
   private final AtomicBoolean enabled = new AtomicBoolean( false );
 
   public SpoonDataServiceLocalClientConfigurer() {
@@ -53,13 +54,13 @@ public class SpoonDataServiceLocalClientConfigurer implements LifecycleListener 
     this.spoonSupplier = spoonSupplier;
   }
 
-  public void bind( DataServiceClientService service ) {
+  public void bind( IDataServiceClientService service ) {
     dataServiceClientService.set( service );
 
     setup( service );
   }
 
-  public void unbind( DataServiceClientService service ) {
+  public void unbind( IDataServiceClientService service ) {
     dataServiceClientService.set( null );
 
     setup( null );
@@ -79,7 +80,7 @@ public class SpoonDataServiceLocalClientConfigurer implements LifecycleListener 
     }
   }
 
-  private synchronized void setup( DataServiceClientService clientService ) {
+  private synchronized void setup( IDataServiceClientService clientService ) {
     if ( enabled.get() && clientService != null ) {
       Spoon spoon = spoonSupplier.get();
 

@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -24,7 +24,7 @@ package org.pentaho.di.trans.dataservice.jdbc;
 
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleFileException;
-import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -39,10 +39,10 @@ public class ThinResultSet extends BaseResultSet {
   private final ThinResultHeader thinResultHeader;
   private final AtomicBoolean stopped = new AtomicBoolean( false );
   private DataInputStream dataInputStream;
-  private DataServiceClientService client;
+  private IDataServiceClientService client;
   private int size = 1;
 
-  public ThinResultSet( ThinResultHeader header, DataInputStream dataInputStream, DataServiceClientService client ) {
+  public ThinResultSet( ThinResultHeader header, DataInputStream dataInputStream, IDataServiceClientService client ) {
     super( header.getRowMeta() );
     this.thinResultHeader = header;
     this.dataInputStream = dataInputStream;

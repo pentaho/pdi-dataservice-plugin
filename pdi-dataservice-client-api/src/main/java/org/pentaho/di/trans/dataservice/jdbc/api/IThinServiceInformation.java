@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2017-2018 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -20,27 +20,11 @@
  *
  ******************************************************************************/
 
-package org.pentaho.di.trans.dataservice.client;
+package org.pentaho.di.trans.dataservice.jdbc.api;
 
-import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
-import org.pentaho.di.trans.dataservice.jdbc.ThinConnection;
+import org.pentaho.di.core.row.RowMetaInterface;
 
-import java.util.concurrent.atomic.AtomicReference;
-
-public class DataServiceLocalClientBinder {
-
-  private final AtomicReference<IDataServiceClientService> dataServiceClientService = new AtomicReference<IDataServiceClientService>();
-
-  public void bind( IDataServiceClientService service ) {
-    dataServiceClientService.set( service );
-
-    ThinConnection.localClient = service;
-  }
-
-  public void unbind( IDataServiceClientService service ) {
-    if ( dataServiceClientService.compareAndSet( service, null ) ) {
-      ThinConnection.localClient = null;
-    }
-  }
-
+public interface IThinServiceInformation {
+  String getName();
+  RowMetaInterface getServiceFields();
 }

@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -39,7 +39,7 @@ import org.pentaho.di.core.util.HttpClientManager;
 import org.pentaho.di.core.util.HttpClientUtil;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.dataservice.client.ConnectionAbortingSupport;
-import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 
 import java.io.UnsupportedEncodingException;
@@ -81,8 +81,8 @@ public class ThinConnection extends ThinBase implements Connection {
 
   private static Class<?> PKG = ThinConnection.class; // for i18n purposes, needed by Translator2!!
 
-  public static DataServiceClientService localClient;
-  private DataServiceClientService clientService;
+  public static IDataServiceClientService localClient;
+  private IDataServiceClientService clientService;
 
   private String url;
   private URI baseURI;
@@ -449,18 +449,18 @@ public class ThinConnection extends ThinBase implements Connection {
     return baseURI.getScheme().equals( "https" );
   }
 
-  public static DataServiceClientService getLocalClient() throws SQLException {
+  public static IDataServiceClientService getLocalClient() throws SQLException {
     if ( localClient == null ) {
       throw new SQLException( BaseMessages.getString( PKG, "ThinConnection.Local.Client.Missing" ) );
     }
     return ThinConnection.localClient;
   }
 
-  protected void setClientService( DataServiceClientService clientService ) {
+  protected void setClientService( IDataServiceClientService clientService ) {
     this.clientService = clientService;
   }
 
-  public DataServiceClientService getClientService() {
+  public IDataServiceClientService getClientService() {
     return Preconditions.checkNotNull( clientService, "Client Service not set for connection" );
   }
 

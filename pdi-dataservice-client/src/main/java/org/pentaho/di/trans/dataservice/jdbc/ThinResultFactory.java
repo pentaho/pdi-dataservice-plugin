@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -25,7 +25,7 @@ package org.pentaho.di.trans.dataservice.jdbc;
 import com.google.common.base.Throwables;
 import org.pentaho.di.core.KettleClientEnvironment;
 import org.pentaho.di.core.row.RowMeta;
-import org.pentaho.di.trans.dataservice.client.DataServiceClientService;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 
 import java.io.DataInputStream;
 import java.sql.SQLException;
@@ -34,7 +34,7 @@ import java.sql.SQLException;
  * @author nhudak
  */
 public class ThinResultFactory {
-  public ThinResultSet loadResultSet( DataInputStream dataInputStream, DataServiceClientService client )
+  public ThinResultSet loadResultSet( DataInputStream dataInputStream, IDataServiceClientService client )
       throws SQLException {
     return new ThinResultSet( loadHeader( dataInputStream ), dataInputStream, client );
   }
