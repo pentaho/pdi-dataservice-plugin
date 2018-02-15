@@ -48,6 +48,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -86,6 +87,13 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
       }
     } );
 
+    when( clientService.query( anyString(), anyInt(), anyInt(), anyLong(), anyLong() ) )
+            .then( new Answer<DataInputStream>() {
+      @Override public DataInputStream answer( InvocationOnMock invocation ) throws Throwable {
+        return mock( DataInputStream.class );
+      }
+    } );
+
     when( resultSet.getHeader() ).thenReturn( header );
     when( header.getServiceObjectId() ).thenReturn( SERVICE_OBJECT_ID );
     when( connection.getClientService() ).thenReturn( clientService );
@@ -113,6 +121,29 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
     assertThat( statement.getMaxRows(), equalTo( 32 ) );
 
     assertThat( statement.executeQuery( SQL ), sameInstance( (ResultSet) resultSet ) );
+    assertThat( statement.getResultSet(), sameInstance( (ResultSet) resultSet ) );
+    verify( resultSet ).setStatement( statement );
+
+    when( resultSet.getConcurrency() ).thenReturn( ResultSet.CONCUR_READ_ONLY );
+    when( resultSet.getHoldability() ).thenReturn( ResultSet.HOLD_CURSORS_OVER_COMMIT );
+    when( resultSet.isClosed() ).thenReturn( false );
+    assertThat( statement.getResultSetConcurrency(), is( ResultSet.CONCUR_READ_ONLY ) );
+    assertThat( statement.getResultSetHoldability(), is( ResultSet.HOLD_CURSORS_OVER_COMMIT ) );
+    assertThat( statement.isClosed(), is( false ) );
+
+    statement.close();
+    verify( resultSet ).close();
+  }
+
+  @Test
+  public void testExecuteQueryWindow() throws Exception {
+    DataInputStream inputStream = MockDataInput.dual().toDataInputStream();
+    when( clientService.query( SQL, 32, 1, 2, 3 ) ).thenReturn( inputStream );
+
+    statement.setMaxRows( 32 );
+    assertThat( statement.getMaxRows(), equalTo( 32 ) );
+
+    assertThat( statement.executeQuery( SQL, 1, 2, 3 ), sameInstance( (ResultSet) resultSet ) );
     assertThat( statement.getResultSet(), sameInstance( (ResultSet) resultSet ) );
     verify( resultSet ).setStatement( statement );
 

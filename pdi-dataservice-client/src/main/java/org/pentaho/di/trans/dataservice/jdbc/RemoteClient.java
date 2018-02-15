@@ -64,6 +64,9 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
 
   private static final String SQL = "SQL";
   private static final String MAX_ROWS = "MaxRows";
+  private static final String WINDOW_ROW_SIZE = "WindowSize";
+  private static final String WINDOW_TIME = "WindowTime";
+  private static final String WINDOW_RATE = "UpdateRate";
   private static final String CONTENT_CHARSET = "utf-8";
   private static final int MAX_SQL_LENGTH = 7500;
 
@@ -95,12 +98,61 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
         method.addHeader( new BasicHeader( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
         method.addHeader( new BasicHeader( MAX_ROWS, Integer.toString( maxRows ) ) );
       }
-      postParameters.add( new BasicNameValuePair( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
-      postParameters.add( new BasicNameValuePair( MAX_ROWS, Integer.toString( maxRows ) ) );
 
       for ( Map.Entry<String, String> parameterEntry : connection.getParameters().entrySet() ) {
         postParameters.add( new BasicNameValuePair( parameterEntry.getKey(), parameterEntry.getValue() ) );
       }
+
+      postParameters.add( new BasicNameValuePair( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
+      postParameters.add( new BasicNameValuePair( MAX_ROWS, Integer.toString( maxRows ) ) );
+
+      if ( !Strings.isNullOrEmpty( connection.getDebugTransFilename() ) ) {
+        postParameters.add( new BasicNameValuePair( ThinConnection.ARG_DEBUGTRANS, connection.getDebugTransFilename() ) );
+      }
+
+      method.setEntity( new UrlEncodedFormEntity( postParameters, CONTENT_CHARSET ) );
+
+      activeMethods.add( method );
+      HttpResponse httpResponse = execMethod( method );
+      return new DataInputStream( HttpClientUtil.responseToInputStream( httpResponse ) );
+    } catch ( Exception e ) {
+      throw serverException( e );
+    } finally {
+      activeMethods.remove( method );
+    }
+  }
+
+  @Override
+  public DataInputStream query( String sql, int maxRows, int windowSize, long windowMillis,
+                                long windowRate )
+          throws SQLException {
+    HttpPost method = null;
+    try {
+      String url = connection.constructUrl( SERVICE_PATH );
+      method = new HttpPost( url );
+
+      method.getParams().setParameter( "http.socket.timeout", 0 );
+
+      ArrayList<NameValuePair> postParameters = new ArrayList<NameValuePair>();
+      // Kept in for backwards compatibility, but should be removed in next major release
+      if ( sql.length() < MAX_SQL_LENGTH ) {
+        method.addHeader( new BasicHeader( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
+        method.addHeader( new BasicHeader( MAX_ROWS, Integer.toString( maxRows ) ) );
+        method.addHeader( new BasicHeader( WINDOW_ROW_SIZE, Integer.toString( windowSize ) ) );
+        method.addHeader( new BasicHeader( WINDOW_TIME, Long.toString( windowMillis ) ) );
+        method.addHeader( new BasicHeader( WINDOW_RATE, Long.toString( windowRate ) ) );
+      }
+
+      for ( Map.Entry<String, String> parameterEntry : connection.getParameters().entrySet() ) {
+        postParameters.add( new BasicNameValuePair( parameterEntry.getKey(), parameterEntry.getValue() ) );
+      }
+
+      postParameters.add( new BasicNameValuePair( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
+      postParameters.add( new BasicNameValuePair( MAX_ROWS, Integer.toString( maxRows ) ) );
+      postParameters.add( new BasicNameValuePair( WINDOW_ROW_SIZE, Integer.toString( windowSize ) ) );
+      postParameters.add( new BasicNameValuePair( WINDOW_TIME, Long.toString( windowMillis ) ) );
+      postParameters.add( new BasicNameValuePair( WINDOW_RATE, Long.toString( windowRate ) ) );
+
       if ( !Strings.isNullOrEmpty( connection.getDebugTransFilename() ) ) {
         postParameters.add( new BasicNameValuePair( ThinConnection.ARG_DEBUGTRANS, connection.getDebugTransFilename() ) );
       }

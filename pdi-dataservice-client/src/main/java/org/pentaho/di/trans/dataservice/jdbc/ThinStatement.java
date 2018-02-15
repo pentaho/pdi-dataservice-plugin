@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -23,6 +23,7 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
+import org.pentaho.di.trans.dataservice.jdbc.api.IThinStatement;
 
 import java.io.DataInputStream;
 import java.sql.Connection;
@@ -31,7 +32,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 
-public class ThinStatement extends ThinBase implements Statement {
+public class ThinStatement extends ThinBase implements IThinStatement {
 
   protected final ThinConnection connection;
   private final ThinResultFactory resultFactory;
@@ -100,6 +101,15 @@ public class ThinStatement extends ThinBase implements Statement {
   @Override
   public ResultSet executeQuery( String sql ) throws SQLException {
     DataInputStream dataInputStream = connection.getClientService().query( sql, maxRows );
+    resultSet = resultFactory.loadResultSet( dataInputStream, connection.getClientService() );
+    resultSet.setStatement( this );
+    return resultSet;
+  }
+
+  @Override
+  public ResultSet executeQuery( String sql, int windowRowSize, long windowMillisSize, long windowRate  ) throws SQLException {
+    DataInputStream dataInputStream = connection.getClientService().query( sql, maxRows, windowRowSize,
+            windowMillisSize, windowRate );
     resultSet = resultFactory.loadResultSet( dataInputStream, connection.getClientService() );
     resultSet.setStatement( this );
     return resultSet;

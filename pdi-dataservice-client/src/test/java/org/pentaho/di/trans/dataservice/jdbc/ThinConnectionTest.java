@@ -56,13 +56,15 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.doThrow;
 
 /**
  * Created by bmorrise on 9/28/15.
@@ -75,10 +77,16 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
 
   @Mock
   private RemoteClient clientService;
+  @Mock
+  private ThinStatement stm;
 
   private static String host = "localhost";
   private static int port = 8080;
   private static String debugTrans = "debugTrans";
+  private static String maxRows = "100";
+  private static String windowRows = "1";
+  private static String windowTime = "2";
+  private static String windowRate = "3";
   private Matcher<String> noBangMatcher;
 
   private String url;
@@ -97,6 +105,10 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     properties = new Properties();
     properties.setProperty( "user", "username" );
     properties.setProperty( "password", "password" );
+    properties.setProperty( "maxrows", maxRows );
+    properties.setProperty( "windowrows", windowRows );
+    properties.setProperty( "windowtime", windowTime );
+    properties.setProperty( "windowrate", windowRate );
 
     connection = new ThinConnection( url, URI.create( "http://localhost:8080/pentaho/kettle" ) );
     connection.setClientService( clientService );
@@ -128,6 +140,10 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     assertEquals( port, connection.getPort() );
 
     assertEquals( "username", connection.getUsername() );
+    assertEquals( maxRows, connection.getMaxRows() );
+    assertEquals( windowRows, connection.getWindowRows() );
+    assertEquals( windowTime, connection.getWindowTime() );
+    assertEquals( windowRate, connection.getWindowRate() );
 
     assertThat( connection.getDebugTransFilename(), is( debugTrans ) );
     assertEquals( false, connection.isLocal() );
@@ -165,6 +181,10 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
       put( "debugtrans", debugTrans ).
       put( "secure", "true" ).
       put( "local", "false" ).
+      put( "maxRows", maxRows ).
+      put( "windowrows", windowRows ).
+      put( "windowtime", windowTime ).
+      put( "windowrate", windowRate ).
       put( "PARAMETER_HELLO_WORLD", URLEncoder.encode( "test value", Charsets.UTF_8.name() ) ).
       build();
     url = "jdbc:pdi://localhost:8080/kettle?" + Joiner.on( "&" ).withKeyValueSeparator( "=" ).join( args );
@@ -178,6 +198,10 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     assertEquals( host, thinConnection.getHostname() );
     assertEquals( port, thinConnection.getPort() );
     assertEquals( "username", thinConnection.getUsername() );
+    assertEquals( maxRows, thinConnection.getMaxRows() );
+    assertEquals( windowRows, thinConnection.getWindowRows() );
+    assertEquals( windowTime, thinConnection.getWindowTime() );
+    assertEquals( windowRate, thinConnection.getWindowRate() );
     assertEquals( proxyHostName, thinConnection.getProxyHostname() );
     assertEquals( proxyPort, thinConnection.getProxyPort() );
     assertEquals( nonProxyHosts, thinConnection.getNonProxyHosts() );
@@ -271,6 +295,25 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     assertThat( spyConnection.isClosed(), is( true ) );
     verify( (ConnectionAbortingSupport) clientService, times( 1 ) ).disconnect();
     verify( spyConnection, times( 1 ) ).closeAllOpenStatements();
+  }
+
+  @Test( expected = SQLException.class )
+  public void testCloseConnectionException() throws Exception {
+    SQLException expected = new SQLException();
+    ThinConnection spyConnection = spy( connection );
+    assertThat( spyConnection.isClosed(), is( false ) );
+
+    doThrow( expected ).when( stm ).close();
+
+    spyConnection.registerStatement( stm );
+
+    try {
+      spyConnection.close();
+      fail( "Should fail" );
+    } catch( Exception e ) {
+      assertEquals( e, expected );
+      throw e;
+    }
   }
 
   // PDI-14430 - Exception Testing
