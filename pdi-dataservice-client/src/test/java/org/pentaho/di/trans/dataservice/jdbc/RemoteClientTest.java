@@ -192,6 +192,13 @@ public class RemoteClientTest {
     assertThat( httpMethodCaptor.getValue().getURI().toString(), equalTo( url ) );
 
     assertThat( serviceInformation.getName(), is( "sequence" ) );
+    assertThat( serviceInformation.isStreaming(), is( false ) );
+    assertThat( serviceInformation.getServiceFields().getFieldNames(), arrayContaining( "valuename" ) );
+
+    serviceInformation = remoteClient.getServiceInformation( "sequence" );
+
+    assertThat( serviceInformation.getName(), is( "sequence" ) );
+    assertThat( serviceInformation.isStreaming(), is( false ) );
     assertThat( serviceInformation.getServiceFields().getFieldNames(), arrayContaining( "valuename" ) );
   }
 

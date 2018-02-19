@@ -45,9 +45,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
-/**
- * @author nhudak
- */
 @RunWith( MockitoJUnitRunner.class )
 public class ThinDatabaseMetaDataTest extends JDBCTestBase<ThinDatabaseMetaData> {
 
@@ -62,10 +59,10 @@ public class ThinDatabaseMetaDataTest extends JDBCTestBase<ThinDatabaseMetaData>
     RowMeta rowMeta = new RowMeta();
     rowMeta.addValueMeta( new ValueMetaString( "valuename" ) );
     when( clientService.getServiceInformation( anyString() ) ).thenReturn(
-      new ThinServiceInformation( "sequence", rowMeta )
+      new ThinServiceInformation( "sequence", false, rowMeta )
     );
     when( clientService.getServiceInformation() ).thenReturn(
-      ImmutableList.of( new ThinServiceInformation( "sequence", rowMeta ) )
+      ImmutableList.of( new ThinServiceInformation( "sequence", false, rowMeta ) )
     );
     when( clientService.getServiceNames( anyString() ) ).thenReturn(
       ImmutableList.of( "sequence" )
