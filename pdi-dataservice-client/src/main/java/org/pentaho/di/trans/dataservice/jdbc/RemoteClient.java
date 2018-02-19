@@ -60,9 +60,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/**
- * @author nhudak
- */
 class RemoteClient implements IDataServiceClientService, ConnectionAbortingSupport {
 
   private static final String SQL = "SQL";
@@ -131,9 +128,10 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
 
       for ( Node serviceNode : serviceNodes ) {
         String name = XMLHandler.getTagValue( serviceNode, "name" );
+        boolean streaming = Boolean.parseBoolean( XMLHandler.getTagValue( serviceNode, "streaming" ) );
         Node rowMetaNode = XMLHandler.getSubNode( serviceNode, RowMeta.XML_META_TAG );
         RowMetaInterface serviceFields = new RowMeta( rowMetaNode );
-        ThinServiceInformation service = new ThinServiceInformation( name, serviceFields );
+        ThinServiceInformation service = new ThinServiceInformation( name, streaming, serviceFields );
         services.add( service );
       }
     } catch ( Exception e ) {
@@ -152,10 +150,11 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
 
       for ( Node serviceNode : serviceNodes ) {
         String serviceName = XMLHandler.getTagValue( serviceNode, "name" );
+        boolean streaming = Boolean.parseBoolean( XMLHandler.getTagValue( serviceNode, "streaming" ) );
         if ( serviceName.equals( name ) ) {
           Node rowMetaNode = XMLHandler.getSubNode( serviceNode, RowMeta.XML_META_TAG );
           RowMetaInterface serviceFields = new RowMeta( rowMetaNode );
-          return new ThinServiceInformation( serviceName, serviceFields );
+          return new ThinServiceInformation( serviceName, streaming, serviceFields );
         }
       }
 

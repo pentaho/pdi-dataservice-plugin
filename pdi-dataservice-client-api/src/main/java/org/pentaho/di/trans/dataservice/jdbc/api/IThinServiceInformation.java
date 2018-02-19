@@ -26,5 +26,6 @@ import org.pentaho.di.core.row.RowMetaInterface;
 
 public interface IThinServiceInformation {
   String getName();
+  boolean isStreaming();
   RowMetaInterface getServiceFields();
 }

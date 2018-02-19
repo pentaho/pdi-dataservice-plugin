@@ -27,10 +27,12 @@ import org.pentaho.di.trans.dataservice.jdbc.api.IThinServiceInformation;
 
 public class ThinServiceInformation implements IThinServiceInformation {
   private String name;
+  private boolean isStreaming;
   private RowMetaInterface serviceFields;
 
-  public ThinServiceInformation( String name, RowMetaInterface serviceFields ) {
+  public ThinServiceInformation( String name, boolean isStreaming, RowMetaInterface serviceFields ) {
     this.name = name;
+    this.isStreaming = isStreaming;
     this.serviceFields = serviceFields;
   }
 
@@ -39,6 +41,13 @@ public class ThinServiceInformation implements IThinServiceInformation {
    */
   public String getName() {
     return name;
+  }
+
+  /**
+   * @return a boolean indicating if the data service is a streaming data service
+   */
+  public boolean isStreaming() {
+    return isStreaming;
   }
 
   /**
