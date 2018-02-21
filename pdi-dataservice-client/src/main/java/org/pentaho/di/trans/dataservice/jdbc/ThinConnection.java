@@ -41,6 +41,7 @@ import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.dataservice.client.ConnectionAbortingSupport;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
+import org.pentaho.di.trans.dataservice.jdbc.api.IThinStatement;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -76,6 +77,10 @@ public class ThinConnection extends ThinBase implements Connection {
   public static final String ARG_DEBUGTRANS = "debugtrans";
   public static final String ARG_ISSECURE = "secure";
   public static final String ARG_LOCAL = "local";
+  public static final String ARG_MAX_ROWS = "maxrows";
+  public static final String ARG_WINDOW_ROW_SIZE = "windowrows";
+  public static final String ARG_WINDOW_TIME_SIZE = "windowtime";
+  public static final String ARG_WINDOW_UPDATE_RATE = "windowrate";
   public static final String ARG_WEB_APPLICATION_NAME = BaseDatabaseMeta.ATTRIBUTE_PREFIX_EXTRA_OPTION
       + "KettleThin.webappname";
 
@@ -89,6 +94,12 @@ public class ThinConnection extends ThinBase implements Connection {
 
   private String username;
   private String password;
+
+  // Streaming parameters
+  private String maxRows;
+  private String windowRows;
+  private String windowTime;
+  private String windowRate;
 
   private String proxyHostname;
   private String proxyPort;
@@ -157,17 +168,17 @@ public class ThinConnection extends ThinBase implements Connection {
   }
 
   @Override
-  public Statement createStatement() throws SQLException {
+  public IThinStatement createStatement() throws SQLException {
     return new ThinStatement( this );
   }
 
   @Override
-  public Statement createStatement( int resultSetType, int resultSetConcurrency ) throws SQLException {
+  public IThinStatement createStatement( int resultSetType, int resultSetConcurrency ) throws SQLException {
     return new ThinStatement( this );
   }
 
   @Override
-  public Statement createStatement( int resultSetType, int resultSetConcurrency, int resultSetHoldability ) {
+  public IThinStatement createStatement( int resultSetType, int resultSetConcurrency, int resultSetHoldability ) {
     return new ThinStatement( this );
   }
 
@@ -409,6 +420,34 @@ public class ThinConnection extends ThinBase implements Connection {
   }
 
   /**
+   * @return the maxRows
+   */
+  public String getMaxRows() {
+    return maxRows;
+  }
+
+  /**
+   * @return the windowRows
+   */
+  public String getWindowRows() {
+    return windowRows;
+  }
+
+  /**
+   * @return the windowTime
+   */
+  public String getWindowTime() {
+    return windowTime;
+  }
+
+  /**
+   * @return the windowRate
+   */
+  public String getWindowRate() {
+    return windowRate;
+  }
+
+  /**
    * @return the debugTransFilename
    */
   public String getDebugTransFilename() {
@@ -465,6 +504,10 @@ public class ThinConnection extends ThinBase implements Connection {
   }
 
   private ThinConnection extractProperties( Map<String, String> arguments ) {
+    maxRows = arguments.get( ARG_MAX_ROWS );
+    windowRows = arguments.get( ARG_WINDOW_ROW_SIZE );
+    windowTime = arguments.get( ARG_WINDOW_TIME_SIZE );
+    windowRate = arguments.get( ARG_WINDOW_UPDATE_RATE );
     proxyHostname = arguments.get( ARG_PROXYHOSTNAME );
     proxyPort = arguments.get( ARG_PROXYPORT );
     nonProxyHosts = arguments.get( ARG_NONPROXYHOSTS );

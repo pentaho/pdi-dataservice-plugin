@@ -138,7 +138,45 @@ public class RemoteClientTest {
     EntityUtils.consume( httpPost.getEntity() );
     actual = URLDecoder.decode( actual, "UTF-8" );
     assertThat( actual, equalTo(
-      "SQL=SELECT * FROM myService WHERE id = 3&MaxRows=200&PARAMETER_ECHO=hello world&debugtrans=/tmp/genTrans.ktr"
+      "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3&MaxRows=200&debugtrans=/tmp/genTrans.ktr"
+    ) );
+    assertThat( (Integer) httpPost.getParams().getParameter( "http.socket.timeout" ), equalTo( 0 ) );
+  }
+
+  @Test
+  public void testStreamQuery() throws Exception {
+    String sql = "SELECT * FROM myService\nWHERE id = 3";
+    String debugTrans = "/tmp/genTrans.ktr";
+    int maxRows = 200;
+
+    when( connection.getDebugTransFilename() ).thenReturn( debugTrans );
+    when( connection.getParameters() ).thenReturn( ImmutableMap.of( "PARAMETER_ECHO", "hello world" ) );
+
+    when( response.getStatusLine() ).thenReturn( statusLine );
+    when( statusLine.getStatusCode() ).thenReturn( 200 );
+    when( response.getEntity() ).thenReturn( entity );
+
+    when( httpClient.execute( any( HttpUriRequest.class ), any( HttpContext.class ) ) ).thenReturn( response );
+
+    MockDataInput mockDataInput = new MockDataInput();
+    mockDataInput.writeUTF( "Query Response" );
+
+    remoteClient.query( sql, maxRows, 1, 2, 3 );
+
+    verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
+    HttpPost httpPost = (HttpPost) httpMethodCaptor.getValue();
+
+    assertThat( httpPost.getURI().toString(), equalTo( "http://localhost:8080/pentaho/kettle/sql/" ) );
+    assertThat( httpPost.getHeaders( "SQL" )[ 0 ].getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
+    assertThat( httpPost.getHeaders( "MaxRows" )[ 0 ].getValue(), equalTo( "200" ) );
+    assertThat( httpPost.getHeaders( "WindowSize" )[ 0 ].getValue(), equalTo( "1" ) );
+    assertThat( httpPost.getHeaders( "WindowTime" )[ 0 ].getValue(), equalTo( "2" ) );
+    assertThat( httpPost.getHeaders( "UpdateRate" )[ 0 ].getValue(), equalTo( "3" ) );
+    String actual = EntityUtils.toString( httpPost.getEntity() );
+    EntityUtils.consume( httpPost.getEntity() );
+    actual = URLDecoder.decode( actual, "UTF-8" );
+    assertThat( actual, equalTo(
+            "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3&MaxRows=200&WindowSize=1&WindowTime=2&UpdateRate=3&debugtrans=/tmp/genTrans.ktr"
     ) );
     assertThat( (Integer) httpPost.getParams().getParameter( "http.socket.timeout" ), equalTo( 0 ) );
   }
@@ -172,6 +210,44 @@ public class RemoteClientTest {
     assertTrue(
       actual.contains( "SQL=SELECT * FROM myService WHERE id = 3 /" + StringUtils.repeat( "*", 8000 ) + "/" ) );
     assertTrue( actual.contains( "MaxRows=200" ) );
+  }
+
+  @Test
+  public void testLargeStreamQuery() throws Exception {
+    String sql = "SELECT * FROM myService\nWHERE id = 3 /" + StringUtils.repeat( "*", 8000 ) + "/";
+
+    when( connection.getDebugTransFilename() ).thenReturn( null );
+    when( connection.getParameters() ).thenReturn( ImmutableMap.<String, String>of() );
+
+    when( response.getStatusLine() ).thenReturn( statusLine );
+    when( statusLine.getStatusCode() ).thenReturn( 200 );
+    when( response.getEntity() ).thenReturn( entity );
+    when( httpClient.execute( isA( HttpPost.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
+
+    MockDataInput mockDataInput = new MockDataInput();
+    mockDataInput.writeUTF( "Query Response" );
+
+    remoteClient.query( sql, 200, 1, 2, 3 );
+
+    verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
+    HttpPost httpMethod = (HttpPost) httpMethodCaptor.getValue();
+
+    assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:8080/pentaho/kettle/sql/" ) );
+    assertThat( httpMethod.getHeaders( "SQL" ), is( Matchers.<Header>emptyArray() ) );
+    assertThat( httpMethod.getHeaders( "MaxRows" ), is( Matchers.<Header>emptyArray() ) );
+    assertThat( httpMethod.getHeaders( "WindowSize" ), is( Matchers.<Header>emptyArray() ) );
+    assertThat( httpMethod.getHeaders( "WindowTime" ), is( Matchers.<Header>emptyArray() ) );
+    assertThat( httpMethod.getHeaders( "UpdateRate" ), is( Matchers.<Header>emptyArray() ) );
+
+    String actual = EntityUtils.toString( httpMethod.getEntity(), Charsets.UTF_8 );
+    EntityUtils.consume( httpMethod.getEntity() );
+    actual = URLDecoder.decode( actual, "UTF-8" );
+    assertTrue(
+            actual.contains( "SQL=SELECT * FROM myService WHERE id = 3 /" + StringUtils.repeat( "*", 8000 ) + "/" ) );
+    assertTrue( actual.contains( "MaxRows=200" ) );
+    assertTrue( actual.contains( "WindowSize=1" ) );
+    assertTrue( actual.contains( "WindowTime=2" ) );
+    assertTrue( actual.contains( "UpdateRate=3" ) );
   }
 
   @Test
