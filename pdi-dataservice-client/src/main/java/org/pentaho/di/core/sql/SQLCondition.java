@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -92,23 +92,33 @@ public class SQLCondition {
   }
 
   /**
-   * Searches for the given string in a clause and returns the start index if found, -1 if not found. This method skips
+   * Searches for the given word in a clause and returns the start index if found, -1 if not found. This method skips
    * brackets and single quotes. Case is ignored
    *
    * @param clause     the clause
-   * @param string     the string to search
+   * @param word       the word to search
    * @param startIndex the index to start searching
-   * @return the index if the string is found, -1 if not found
+   * @return the index if the word is found, -1 if not found
    * @throws KettleSQLException
    */
-  private int searchForString( String clause, String string, int startIndex ) throws KettleSQLException {
+  int searchForWord( String clause, String word, int startIndex ) throws KettleSQLException {
     int index = startIndex;
     while ( index < clause.length() ) {
       index = ThinUtil.skipChars( clause, index, '\'', '(' );
-      if ( index + string.length() > clause.length() ) {
+      if ( index + word.length() > clause.length() ) {
         return -1; // done.
       }
-      if ( clause.substring( index ).toUpperCase().startsWith( string.toUpperCase() ) ) {
+      if ( clause.substring( index ).toUpperCase().startsWith( word.toUpperCase() ) ) {
+        if ( index > 0 && String.valueOf( clause.charAt( index - 1 ) ).matches( "\\S" ) ) {
+          // symbol before is not a whitespace character
+          index++;
+          continue;
+        }
+        if ( index + word.length() < clause.length() && String.valueOf( clause.charAt( index + word.length() ) ).matches( "\\S" ) ) {
+          // symbol after is not a whitespace character
+          index++;
+          continue;
+        }
         return index;
       }
       index++;
@@ -139,18 +149,17 @@ public class SQLCondition {
     // First try to split by OR, leaving grouped AND blocks.
     // e.g. A OR B AND C OR D --> A OR ( B AND C ) OR D --> A, B AND C, D
     //
-    String orOperatorString = " OR ";
-    int orConditionOperator = Condition.OPERATOR_OR;
-    int lastIndex = splitByOperator( clause, parentCondition, orOperatorString, orConditionOperator );
+    int lastIndex = splitByOperator( clause, parentCondition, "OR", Condition.OPERATOR_OR );
     if ( lastIndex == 0 ) {
 
-      // No AND operator(s) found, now we can look for OR operators in the clause...
-      // Try to split by OR
+      // No OR operator(s) was found, now we can look for AND operators in the clause...
+      // Try to split by AND
       //
-      String andOperatorString = " AND ";
-      int andConditionOperator = Condition.OPERATOR_AND;
-      lastIndex = splitByOperator( clause, parentCondition, andOperatorString, andConditionOperator );
+      lastIndex = splitByOperator( clause, parentCondition, "AND", Condition.OPERATOR_AND );
       if ( lastIndex == 0 ) {
+
+        // No AND operator(s) was found
+        //
         String cleaned = Const.trim( clause );
         boolean negation = false;
 
@@ -164,7 +173,7 @@ public class SQLCondition {
           validateParam( clause, parameterName, parameterValue );
 
           parentCondition
-            .addCondition( createParameterCondition( orConditionOperator, parameterName, parameterValue ) );
+            .addCondition( createParameterCondition( Condition.OPERATOR_OR, parameterName, parameterValue ) );
         } else {
 
           // See if this elementary block is a NOT ( ) construct
@@ -189,7 +198,7 @@ public class SQLCondition {
             // Atomic condition
             //
             Condition subCondition = parseAtomicCondition( cleaned );
-            subCondition.setOperator( orConditionOperator );
+            subCondition.setOperator( Condition.OPERATOR_OR );
             parentCondition.addCondition( subCondition );
           }
         }
@@ -225,7 +234,7 @@ public class SQLCondition {
     throws KettleSQLException {
     int lastIndex = 0;
     int index = 0;
-    while ( index < clause.length() && ( index = searchForString( clause, operatorString, index ) ) >= 0 ) {
+    while ( index < clause.length() && ( index = searchForWord( clause, operatorString, index ) ) >= 0 ) {
       // Split on the index --> ( clause1 ), ( clause2), (clause 3)
       //
       String left = clause.substring( lastIndex, index );
@@ -281,7 +290,12 @@ public class SQLCondition {
 
         part = Const.trim( part );
 
-        part = ThinUtil.extractConstant( part ).toString();
+        ValueMetaAndData extractedConstraint = ThinUtil.extractConstant( part );
+        if ( extractedConstraint == null ) {
+          throw new KettleSQLException( "Condition parsing error: [" + part + "]" );
+        } else {
+          part = extractedConstraint.toString();
+        }
 
         // Escape semi-colons
         //
