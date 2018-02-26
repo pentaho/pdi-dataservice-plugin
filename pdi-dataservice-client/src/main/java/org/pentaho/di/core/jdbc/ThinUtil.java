@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -160,15 +160,12 @@ public class ThinUtil {
       String unquoted = string.substring( 1, string.length() - 1 );
       if ( unquoted.length() >= 9 && unquoted.charAt( 4 ) == '/' && unquoted.charAt( 7 ) == '/' ) {
         Date date = XMLHandler.stringToDate( unquoted );
-        String format = "yyyy/MM/dd HH:mm:ss.SSS";
         if ( date == null ) {
           try {
             date = new SimpleDateFormat( "yyyy/MM/dd HH:mm:ss" ).parse( unquoted );
-            format = "yyyy/MM/dd HH:mm:ss";
           } catch ( ParseException e1 ) {
             try {
               date = new SimpleDateFormat( "yyyy/MM/dd" ).parse( unquoted );
-              format = "yyyy/MM/dd";
             } catch ( ParseException e2 ) {
               date = null;
             }
@@ -176,7 +173,8 @@ public class ThinUtil {
         }
         if ( date != null ) {
           ValueMetaInterface valueMeta = new ValueMeta( "iif-date", ValueMetaInterface.TYPE_DATE );
-          valueMeta.setConversionMask( format );
+          // default conversion mask is used for data saving irrespective of locale differences
+          valueMeta.setConversionMask( ValueMetaAndData.VALUE_REPOSITORY_DATE_CONVERSION_MASK );
           return new ValueMetaAndData( valueMeta, date );
         }
       }
@@ -202,7 +200,8 @@ public class ThinUtil {
           }
           if ( date != null ) {
             ValueMetaInterface valueMeta = new ValueMeta( "iff-date", ValueMetaInterface.TYPE_DATE );
-            valueMeta.setConversionMask( format );
+            // default conversion mask is used for data saving irrespective of locale differences
+            valueMeta.setConversionMask( ValueMetaAndData.VALUE_REPOSITORY_DATE_CONVERSION_MASK );
             return new ValueMetaAndData( valueMeta, date );
           }
         }
