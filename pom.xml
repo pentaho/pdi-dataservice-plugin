@@ -13,6 +13,7 @@
   <packaging>pom</packaging>
   <name>Dataservice client parent project</name>
   <modules>
+    <module>pdi-dataservice-jdbc-api</module>
     <module>pdi-dataservice-client-api</module>
     <module>pdi-dataservice-client</module>
     <module>assemblies</module>
