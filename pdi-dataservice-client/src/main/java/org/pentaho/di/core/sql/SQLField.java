@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -228,7 +228,7 @@ public class SQLField {
 
       } else {
         if ( valueMeta == null ) {
-          field = ThinUtil.resolveFieldName( field, serviceFields );
+          field = ThinUtil.resolveFieldName( ThinUtil.unQuote( field.replaceAll( "\"\"", "\"" ) ), serviceFields );
           valueMeta = serviceFields.searchValueMeta( field );
           if ( orderField && selectFields != null ) {
             // See if this isn't an aliased select field that we're ordering on
