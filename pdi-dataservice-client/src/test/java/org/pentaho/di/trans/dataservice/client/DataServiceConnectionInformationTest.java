@@ -2,7 +2,7 @@
  *
  * Pentaho Community Edition Project: data-refinery-pdi-plugin
  *
- * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  * *******************************************************************************
  *
@@ -41,7 +41,6 @@ import org.pentaho.di.core.plugins.PluginTypeInterface;
 import org.pentaho.di.repository.IUser;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.repository.RepositoryMeta;
-import org.pentaho.di.trans.dataservice.client.DataServiceClientPlugin;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,7 +48,10 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class DataServiceConnectionInformationTest {
   private static PluginInterface mockDbPlugin;
@@ -170,7 +172,7 @@ public class DataServiceConnectionInformationTest {
     DataServiceConnectionInformation connectInfo =
       new DataServiceConnectionInformation( dataServiceName, repository, log );
     assertLocalConnection( dataServiceName, connectInfo );
-    verify( log ).logDebug( "\n\"Element repository_location_url not found in Repository Meta XML\"\n" );
+    verify( log ).logDebug( Mockito.contains( "Element repository_location_url not found in Repository Meta XML" ) );
   }
 
   @Test
