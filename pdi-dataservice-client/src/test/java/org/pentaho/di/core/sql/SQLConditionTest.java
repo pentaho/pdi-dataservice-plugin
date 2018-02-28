@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -32,7 +32,10 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.mock;
 import static org.pentaho.di.core.sql.SQLTest.mockRowMeta;
 
 public class SQLConditionTest extends TestCase {
@@ -917,6 +920,28 @@ public class SQLConditionTest extends TestCase {
     assertEquals( "'\\;';Toys 'R' us", condition.getRightExactString() );
   }
 
+  public void testCondition31() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+
+    String fieldsClause = "ORDERDATE";
+    String conditionClause = "ORDERDATE IN (DATE '2004-01-15', DATE '2004-02-20', DATE '2004-05-18')"; // BACKLOG-19534
+
+    // Correctness of the next statement is tested in SQLFieldsTest
+    //
+    SQLFields fields = new SQLFields( "Service", rowMeta, fieldsClause );
+
+    SQLCondition sqlCondition = new SQLCondition( "Service", conditionClause, rowMeta, fields );
+    Condition condition = sqlCondition.getCondition();
+
+    assertNotNull( condition );
+    assertFalse( condition.isEmpty() );
+    assertTrue( condition.isAtomic() );
+    assertEquals( Condition.FUNC_IN_LIST, condition.getFunction() );
+
+    assertEquals( "ORDERDATE", condition.getLeftValuename() );
+    assertEquals( "2004/01/15 00:00:00.000;2004/02/20 00:00:00.000;2004/05/18 00:00:00.000", condition.getRightExactString() );
+  }
+
   @Test
   public void testNegatedTrueFuncEvaluatesAsFalse() throws Exception {
     RowMetaInterface rowMeta = SQLTest.generateServiceRowMeta();
@@ -986,5 +1011,33 @@ public class SQLConditionTest extends TestCase {
     assertThat( children.get( 1 ).getFunctionDesc(), is( ">" ) );
     assertThat( children.get( 1 ).getLeftValuename(), is( "Space Field" ) );
     assertTrue( condition.isComposite() );
+  }
+
+  @Test
+  public void testSearchForWord() throws KettleSQLException {
+    SQLCondition sqlCondition = mock( SQLCondition.class );
+    doCallRealMethod().when( sqlCondition ).searchForWord( anyString(), anyString(), anyInt() );
+
+    assertEquals( 0, sqlCondition.searchForWord( "AND", "AND", 0 ) );
+    assertEquals( -1, sqlCondition.searchForWord( "AND", "AND", 1 ) );
+    assertEquals( 1, sqlCondition.searchForWord( " AND", "AND", 0 ) );
+    assertEquals( 1, sqlCondition.searchForWord( " AND", "AND", 1 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " AND", "AND", 2 ) );
+    assertEquals( 0, sqlCondition.searchForWord( "AND ", "AND", 0 ) );
+    assertEquals( -1, sqlCondition.searchForWord( "AND ", "AND", 1 ) );
+    assertEquals( 1, sqlCondition.searchForWord( " AND ", "AND", 0 ) );
+    assertEquals( 1, sqlCondition.searchForWord( " AND ", "AND", 1 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " AND ", "AND", 2 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " ANDY ", "AND", 0 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " ANDY", "AND", 0 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " DANDY ", "AND", 0 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " DANDY ", "AND", 1 ) );
+    assertEquals( -1, sqlCondition.searchForWord( " DANDY ", "AND", 2 ) );
+    assertEquals( 3, sqlCondition.searchForWord( " D AND Y ", "AND", 0 ) );
+    assertEquals( 3, sqlCondition.searchForWord( " D AND Y AND ", "AND", 0 ) );
+    assertEquals( 3, sqlCondition.searchForWord( " D and Y AND ", "AND", 0 ) );
+    assertEquals( 3, sqlCondition.searchForWord( " D AND Y AND ", "and", 0 ) );
+    assertEquals( 3, sqlCondition.searchForWord( " D\nAND\nY AND ", "and", 0 ) );
+    assertEquals( 4, sqlCondition.searchForWord( " D\r\nAND\r\nY AND ", "and", 0 ) );
   }
 }
