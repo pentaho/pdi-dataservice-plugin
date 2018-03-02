@@ -287,6 +287,7 @@ public class SQLCondition {
     //
     left = ThinUtil.resolveFieldName( ThinUtil.stripQuoteTableAlias( left, tableAlias ),
       getServiceFields() );
+    left = ThinUtil.unQuote( left.replaceAll( "\"\"", "\"" ) );
     String operatorString = strings.get( 1 );
     String right = strings.get( 2 );
     boolean negation = Pattern.matches( "^NULL$", right.trim().toUpperCase() );

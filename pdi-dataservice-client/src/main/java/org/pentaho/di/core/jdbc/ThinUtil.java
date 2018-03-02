@@ -392,7 +392,7 @@ public class ThinUtil {
         } else {
           // Make sure to take escaping into account for single quotes
           //
-          index = findNext( sql, nextChar, index, skipChar == '\'' );
+          index = findNext( sql, nextChar, index, skipChar == '\'' || skipChar == '\"' );
         }
         if ( index >= sql.length() ) {
           break;
@@ -655,4 +655,15 @@ public class ThinUtil {
     }
     return valueMeta == null ? field : valueMeta.getName();
   }
+
+  /**
+  * Remove first and last quote if string contains double quote
+  * */
+  public static String unQuote( String str ) {
+    if ( str.contains( "\"\"" ) &&  str.length() > 0 && str.startsWith( "\"" ) && str.endsWith( "\"" ) ) {
+      return str.substring( 1, str.length() - 1 );
+    }
+    return str;
+  }
+
 }
