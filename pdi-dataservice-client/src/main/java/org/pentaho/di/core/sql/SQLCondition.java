@@ -261,6 +261,7 @@ public class SQLCondition {
           + clause + "]" );
     }
     String left = getCleansedName( getAlias( clauseElements.get( 0 ) ).orElse( clauseElements.get( 0 ) ) );
+    left = ThinUtil.unQuote( left.replaceAll( "\"\"", "\"" ) );
     int opFunction = Condition.getFunction( clauseElements.get( 1 ) );
     String right = getCleansedName( clauseElements.get( 2 ) );
 
