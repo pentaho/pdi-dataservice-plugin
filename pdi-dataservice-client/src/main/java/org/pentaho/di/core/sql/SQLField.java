@@ -167,7 +167,7 @@ public class SQLField {
             throw new KettleSQLException( "AS keyword expected between the field and the alias in field clause: ["
               + fieldClause + "]" );
           }
-          alias = ThinUtil.stripQuotes( Const.trim( strings.get( 2 ) ), '"' );
+          alias = ThinUtil.unQuote( Const.trim( strings.get( 2 ) ) ).replaceAll( "\"\"", "\"" );
         }
       }
     }
@@ -234,7 +234,10 @@ public class SQLField {
             // See if this isn't an aliased select field that we're ordering on
             //
             for ( SQLField selectField : selectFields.getFields() ) {
-              if ( field.equalsIgnoreCase( selectField.getAlias() ) ) {
+              if ( selectField.getAlias() == null ) {
+                continue;
+              }
+              if ( field.equalsIgnoreCase( ThinUtil.unQuote( selectField.getAlias() ).replaceAll( "\"\"", "\"" ) ) ) {
                 valueMeta = selectField.getValueMeta();
                 break;
               }
