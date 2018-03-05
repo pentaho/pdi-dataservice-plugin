@@ -661,7 +661,7 @@ public class ThinUtil {
   * Remove first and last quote if string contains double quote
   * */
   public static String unQuote( String str ) {
-    if ( str.contains( "\"\"" ) &&  str.length() > 0 && str.startsWith( "\"" ) && str.endsWith( "\"" ) ) {
+    if ( !str.contains( "\".\"" ) &&  str.length() > 0 && str.startsWith( "\"" ) && str.endsWith( "\"" ) ) {
       return str.substring( 1, str.length() - 1 );
     }
     return str;

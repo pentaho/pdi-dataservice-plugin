@@ -367,9 +367,9 @@ public class ThinUtilTest {
 
   @Test
   public void testUnQuote(){
-    Assert.assertEquals( "\"string\"", ThinUtil.unQuote( "\"string\"" ) );
+    Assert.assertEquals( "string", ThinUtil.unQuote( "\"string\"" ) );
     Assert.assertEquals( "\"string\".\"string2\"", ThinUtil.unQuote( "\"string\".\"string2\"" ) );
-    Assert.assertEquals( "\"string\"N\"", ThinUtil.unQuote( "\"string\"N\"" ) );
+    Assert.assertEquals( "string\"N", ThinUtil.unQuote( "\"string\"N\"" ) );
     Assert.assertEquals( "string\"\"N\"\"", ThinUtil.unQuote( "\"string\"\"N\"\"\"" ) );
   }
 
