@@ -3,6 +3,7 @@
 <services>
     <service>
         <name>sequence</name>
+        <streaming>N</streaming>
         <row-meta><value-meta><type>Integer</type>
             <storagetype>normal</storagetype>
             <name>valuename</name>

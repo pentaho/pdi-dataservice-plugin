@@ -180,7 +180,7 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
 
       for ( Node serviceNode : serviceNodes ) {
         String name = XMLHandler.getTagValue( serviceNode, "name" );
-        boolean streaming = Boolean.parseBoolean( XMLHandler.getTagValue( serviceNode, "streaming" ) );
+        boolean streaming = XMLHandler.getTagValue( serviceNode, "streaming" ).equals( "Y" );
         Node rowMetaNode = XMLHandler.getSubNode( serviceNode, RowMeta.XML_META_TAG );
         RowMetaInterface serviceFields = new RowMeta( rowMetaNode );
         ThinServiceInformation service = new ThinServiceInformation( name, streaming, serviceFields );
@@ -202,7 +202,7 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
 
       for ( Node serviceNode : serviceNodes ) {
         String serviceName = XMLHandler.getTagValue( serviceNode, "name" );
-        boolean streaming = Boolean.parseBoolean( XMLHandler.getTagValue( serviceNode, "streaming" ) );
+        boolean streaming = XMLHandler.getTagValue( serviceNode, "streaming" ).equals( "Y" );
         if ( serviceName.equals( name ) ) {
           Node rowMetaNode = XMLHandler.getSubNode( serviceNode, RowMeta.XML_META_TAG );
           RowMetaInterface serviceFields = new RowMeta( rowMetaNode );
