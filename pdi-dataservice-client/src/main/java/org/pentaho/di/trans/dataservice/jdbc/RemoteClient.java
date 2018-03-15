@@ -64,9 +64,10 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
 
   private static final String SQL = "SQL";
   private static final String MAX_ROWS = "MaxRows";
-  private static final String WINDOW_ROW_SIZE = "WindowSize";
-  private static final String WINDOW_TIME = "WindowTime";
-  private static final String WINDOW_RATE = "UpdateRate";
+  private static final String WINDOW_MODE = "WindowMode";
+  private static final String WINDOW_SIZE = "WindowSize";
+  private static final String WINDOW_EVERY = "WindowEvery";
+  private static final String WINDOW_LIMIT = "WindowLimit";
   private static final String CONTENT_CHARSET = "utf-8";
   private static final int MAX_SQL_LENGTH = 7500;
 
@@ -123,8 +124,8 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
   }
 
   @Override
-  public DataInputStream query( String sql, int maxRows, int windowSize, long windowMillis,
-                                long windowRate )
+  public DataInputStream query( String sql, StreamingMode windowMode, long windowSize, long windowEvery,
+                                long windowLimit  )
           throws SQLException {
     HttpPost method = null;
     try {
@@ -137,10 +138,10 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
       // Kept in for backwards compatibility, but should be removed in next major release
       if ( sql.length() < MAX_SQL_LENGTH ) {
         method.addHeader( new BasicHeader( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
-        method.addHeader( new BasicHeader( MAX_ROWS, Integer.toString( maxRows ) ) );
-        method.addHeader( new BasicHeader( WINDOW_ROW_SIZE, Integer.toString( windowSize ) ) );
-        method.addHeader( new BasicHeader( WINDOW_TIME, Long.toString( windowMillis ) ) );
-        method.addHeader( new BasicHeader( WINDOW_RATE, Long.toString( windowRate ) ) );
+        method.addHeader( new BasicHeader( WINDOW_MODE, windowMode.toString() ) );
+        method.addHeader( new BasicHeader( WINDOW_SIZE, Long.toString( windowSize ) ) );
+        method.addHeader( new BasicHeader( WINDOW_EVERY, Long.toString( windowEvery ) ) );
+        method.addHeader( new BasicHeader( WINDOW_LIMIT, Long.toString( windowLimit ) ) );
       }
 
       for ( Map.Entry<String, String> parameterEntry : connection.getParameters().entrySet() ) {
@@ -148,10 +149,10 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
       }
 
       postParameters.add( new BasicNameValuePair( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
-      postParameters.add( new BasicNameValuePair( MAX_ROWS, Integer.toString( maxRows ) ) );
-      postParameters.add( new BasicNameValuePair( WINDOW_ROW_SIZE, Integer.toString( windowSize ) ) );
-      postParameters.add( new BasicNameValuePair( WINDOW_TIME, Long.toString( windowMillis ) ) );
-      postParameters.add( new BasicNameValuePair( WINDOW_RATE, Long.toString( windowRate ) ) );
+      postParameters.add( new BasicNameValuePair( WINDOW_MODE, windowMode.toString() ) );
+      postParameters.add( new BasicNameValuePair( WINDOW_SIZE, Long.toString( windowSize ) ) );
+      postParameters.add( new BasicNameValuePair( WINDOW_EVERY, Long.toString( windowEvery ) ) );
+      postParameters.add( new BasicNameValuePair( WINDOW_LIMIT, Long.toString( windowLimit ) ) );
 
       if ( !Strings.isNullOrEmpty( connection.getDebugTransFilename() ) ) {
         postParameters.add( new BasicNameValuePair( ThinConnection.ARG_DEBUGTRANS, connection.getDebugTransFilename() ) );

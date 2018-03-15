@@ -22,6 +22,8 @@
 
 package org.pentaho.di.trans.dataservice.jdbc.api;
 
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -39,10 +41,16 @@ public interface IThinStatement extends Statement {
    * is discarded.
    *
    * @param sql The sql query.
-   * @param windowRowSize The query window row size.
-   * @param windowMillisSize The query window time based size.
-   * @param windowRate The query window rate.
+   * @param windowMode The streaming window mode.
+   * @param windowSize The query window size. Number of rows for a ROW_BASED streamingType and milliseconds for a
+   *                 TIME_BASED streamingType.
+   * @param windowEvery The query window rate. Number of rows for a ROW_BASED streamingType and milliseconds for a
+   *                 TIME_BASED streamingType.
+   * @param windowLimit The query window limit. Number of rows for a TIME_BASED streamingType and milliseconds for a
+   *                 ROW_BASED streamingType.
    * @return The query ResultSet.
    */
-  ResultSet executeQuery( String sql, int windowRowSize, long windowMillisSize, long windowRate ) throws SQLException;
+  ResultSet executeQuery(  String sql, IDataServiceClientService.StreamingMode windowMode,
+                           long windowSize, long windowEvery,
+                           long windowLimit  ) throws SQLException;
 }

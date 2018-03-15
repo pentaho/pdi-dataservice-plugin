@@ -87,7 +87,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
       }
     } );
 
-    when( clientService.query( anyString(), anyInt(), anyInt(), anyLong(), anyLong() ) )
+    when( clientService.query( anyString(), any(), anyLong(), anyLong(), anyLong() ) )
             .then( new Answer<DataInputStream>() {
       @Override public DataInputStream answer( InvocationOnMock invocation ) throws Throwable {
         return mock( DataInputStream.class );
@@ -138,12 +138,14 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
   @Test
   public void testExecuteQueryWindow() throws Exception {
     DataInputStream inputStream = MockDataInput.dual().toDataInputStream();
-    when( clientService.query( SQL, 32, 1, 2, 3 ) ).thenReturn( inputStream );
+    when( clientService.query( SQL, IDataServiceClientService.StreamingMode.ROW_BASED,
+            1, 2, 3 ) ).thenReturn( inputStream );
 
     statement.setMaxRows( 32 );
     assertThat( statement.getMaxRows(), equalTo( 32 ) );
 
-    assertThat( statement.executeQuery( SQL, 1, 2, 3 ), sameInstance( (ResultSet) resultSet ) );
+    assertThat( statement.executeQuery( SQL, IDataServiceClientService.StreamingMode.ROW_BASED,
+            1, 2, 3 ), sameInstance( (ResultSet) resultSet ) );
     assertThat( statement.getResultSet(), sameInstance( (ResultSet) resultSet ) );
     verify( resultSet ).setStatement( statement );
 

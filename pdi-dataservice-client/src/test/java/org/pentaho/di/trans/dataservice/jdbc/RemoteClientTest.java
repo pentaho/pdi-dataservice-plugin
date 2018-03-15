@@ -50,6 +50,7 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.jdbc.api.IThinServiceInformation;
 
 import java.io.IOException;
@@ -161,22 +162,25 @@ public class RemoteClientTest {
     MockDataInput mockDataInput = new MockDataInput();
     mockDataInput.writeUTF( "Query Response" );
 
-    remoteClient.query( sql, maxRows, 1, 2, 3 );
+    remoteClient.query( sql, IDataServiceClientService.StreamingMode.ROW_BASED, 1, 2,
+            3 );
 
     verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
     HttpPost httpPost = (HttpPost) httpMethodCaptor.getValue();
 
     assertThat( httpPost.getURI().toString(), equalTo( "http://localhost:8080/pentaho/kettle/sql/" ) );
     assertThat( httpPost.getHeaders( "SQL" )[ 0 ].getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
-    assertThat( httpPost.getHeaders( "MaxRows" )[ 0 ].getValue(), equalTo( "200" ) );
+    assertThat( httpPost.getHeaders( "WindowMode" )[ 0 ].getValue(),
+            equalTo( IDataServiceClientService.StreamingMode.ROW_BASED.toString() ) );
     assertThat( httpPost.getHeaders( "WindowSize" )[ 0 ].getValue(), equalTo( "1" ) );
-    assertThat( httpPost.getHeaders( "WindowTime" )[ 0 ].getValue(), equalTo( "2" ) );
-    assertThat( httpPost.getHeaders( "UpdateRate" )[ 0 ].getValue(), equalTo( "3" ) );
+    assertThat( httpPost.getHeaders( "WindowEvery" )[ 0 ].getValue(), equalTo( "2" ) );
+    assertThat( httpPost.getHeaders( "WindowLimit" )[ 0 ].getValue(), equalTo( "3" ) );
     String actual = EntityUtils.toString( httpPost.getEntity() );
     EntityUtils.consume( httpPost.getEntity() );
     actual = URLDecoder.decode( actual, "UTF-8" );
     assertThat( actual, equalTo(
-            "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3&MaxRows=200&WindowSize=1&WindowTime=2&UpdateRate=3&debugtrans=/tmp/genTrans.ktr"
+            "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3&WindowMode=ROW_BASED" +
+                    "&WindowSize=1&WindowEvery=2&WindowLimit=3&debugtrans=/tmp/genTrans.ktr"
     ) );
     assertThat( (Integer) httpPost.getParams().getParameter( "http.socket.timeout" ), equalTo( 0 ) );
   }
@@ -227,27 +231,28 @@ public class RemoteClientTest {
     MockDataInput mockDataInput = new MockDataInput();
     mockDataInput.writeUTF( "Query Response" );
 
-    remoteClient.query( sql, 200, 1, 2, 3 );
+    remoteClient.query( sql, IDataServiceClientService.StreamingMode.ROW_BASED,
+            1, 2, 3 );
 
     verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
     HttpPost httpMethod = (HttpPost) httpMethodCaptor.getValue();
 
     assertThat( httpMethod.getURI().toString(), equalTo( "http://localhost:8080/pentaho/kettle/sql/" ) );
     assertThat( httpMethod.getHeaders( "SQL" ), is( Matchers.<Header>emptyArray() ) );
-    assertThat( httpMethod.getHeaders( "MaxRows" ), is( Matchers.<Header>emptyArray() ) );
+    assertThat( httpMethod.getHeaders( "WindowMode" ), is( Matchers.<Header>emptyArray() ) );
     assertThat( httpMethod.getHeaders( "WindowSize" ), is( Matchers.<Header>emptyArray() ) );
-    assertThat( httpMethod.getHeaders( "WindowTime" ), is( Matchers.<Header>emptyArray() ) );
-    assertThat( httpMethod.getHeaders( "UpdateRate" ), is( Matchers.<Header>emptyArray() ) );
+    assertThat( httpMethod.getHeaders( "WindowEvery" ), is( Matchers.<Header>emptyArray() ) );
+    assertThat( httpMethod.getHeaders( "WindowLimit" ), is( Matchers.<Header>emptyArray() ) );
 
     String actual = EntityUtils.toString( httpMethod.getEntity(), Charsets.UTF_8 );
     EntityUtils.consume( httpMethod.getEntity() );
     actual = URLDecoder.decode( actual, "UTF-8" );
     assertTrue(
             actual.contains( "SQL=SELECT * FROM myService WHERE id = 3 /" + StringUtils.repeat( "*", 8000 ) + "/" ) );
-    assertTrue( actual.contains( "MaxRows=200" ) );
+    assertTrue( actual.contains( "WindowMode=ROW_BASED" ) );
     assertTrue( actual.contains( "WindowSize=1" ) );
-    assertTrue( actual.contains( "WindowTime=2" ) );
-    assertTrue( actual.contains( "UpdateRate=3" ) );
+    assertTrue( actual.contains( "WindowEvery=2" ) );
+    assertTrue( actual.contains( "WindowLimit=3" ) );
   }
 
   @Test
