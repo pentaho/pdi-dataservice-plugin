@@ -658,6 +658,7 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
       rowMeta.addValueMeta( new ValueMeta( "TYPE_CAT", ValueMetaInterface.TYPE_STRING ) );
       rowMeta.addValueMeta( new ValueMeta( "TYPE_SCHEM", ValueMetaInterface.TYPE_STRING ) );
       rowMeta.addValueMeta( new ValueMeta( "TYPE_NAME", ValueMetaInterface.TYPE_STRING ) );
+      rowMeta.addValueMeta( new ValueMeta( "STREAMING", ValueMetaInterface.TYPE_BOOLEAN ) );
       rowMeta.addValueMeta( new ValueMeta( "SELF_REFERENCING_COL_NAME", ValueMetaInterface.TYPE_STRING ) );
       rowMeta.addValueMeta( new ValueMeta( "REF_GENERATION", ValueMetaInterface.TYPE_STRING ) );
 
@@ -673,6 +674,7 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
         row[index++] = null; // TYPE_CAT
         row[index++] = null; // TYPE_SCHEM
         row[index++] = null; // TYPE_NAME
+        row[index++] = service.isStreaming(); // STREAMING
         row[index++] = null; // SELF_REFERENCING_COL_NAME
         row[index] = null; // REF_GENERATION
         rows.add( row );
