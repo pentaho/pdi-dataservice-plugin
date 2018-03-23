@@ -22,6 +22,7 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 import org.pentaho.di.trans.dataservice.jdbc.api.IThinStatement;
 
@@ -107,9 +108,11 @@ public class ThinStatement extends ThinBase implements IThinStatement {
   }
 
   @Override
-  public ResultSet executeQuery( String sql, int windowRowSize, long windowMillisSize, long windowRate  ) throws SQLException {
-    DataInputStream dataInputStream = connection.getClientService().query( sql, maxRows, windowRowSize,
-            windowMillisSize, windowRate );
+  public ResultSet executeQuery( String sql, IDataServiceClientService.StreamingMode windowMode,
+                                long windowSize, long windowEvery,
+                                long windowLimit ) throws SQLException {
+    DataInputStream dataInputStream = connection.getClientService().query( sql, windowMode, windowSize,
+            windowEvery, windowLimit );
     resultSet = resultFactory.loadResultSet( dataInputStream, connection.getClientService() );
     resultSet.setStatement( this );
     return resultSet;

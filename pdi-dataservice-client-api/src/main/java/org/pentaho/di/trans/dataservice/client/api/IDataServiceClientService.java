@@ -31,11 +31,14 @@ import java.sql.SQLException;
 import java.util.List;
 
 public interface IDataServiceClientService {
+  enum StreamingMode {
+    TIME_BASED, ROW_BASED
+  }
   void setMetaStore( IMetaStore metaStore );
   void setRepository( Repository repository );
   DataInputStream query( String sql, int maxRows ) throws SQLException;
-  DataInputStream query( String sql, int maxRows, int windowRowSize, long windowMillisSize,
-                         long windowRate ) throws SQLException;
+  DataInputStream query( String sql, StreamingMode windowMode, long windowSize, long windowEvery,
+                         long windowLimit ) throws SQLException;
   List<IThinServiceInformation> getServiceInformation() throws SQLException;
   IThinServiceInformation getServiceInformation( String name ) throws SQLException;
   List<String> getServiceNames() throws SQLException;
