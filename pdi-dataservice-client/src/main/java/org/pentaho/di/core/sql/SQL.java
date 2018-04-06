@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -101,7 +101,7 @@ public class SQL {
     if ( foundClause.getRest() == null ) {
       return;
     }
-    foundClause = ThinUtil.findClauseWithRest( foundClause.getRest(), "WHERE", "GROUP BY", "ORDER BY", "LIMIT" );
+    foundClause = ThinUtil.findClauseWithRest( foundClause.getRest(), "WHERE", "GROUP BY", "HAVING", "ORDER BY", "LIMIT" );
     whereClause = foundClause.getClause();
     if ( foundClause.getRest() == null ) {
       return;

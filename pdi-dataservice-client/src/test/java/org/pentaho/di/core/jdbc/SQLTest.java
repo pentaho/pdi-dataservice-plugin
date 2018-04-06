@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -73,6 +73,23 @@ public class SQLTest {
 
   @Test
   public void testExample4() throws KettleSQLException {
+    String select = "A, B, sum(C)";
+    String from = "Step";
+    String where = "D > 6 AND E = 'abcd'";
+    String having = "sum(C) > 100";
+    String order = "sum(C) DESC";
+    SQL sql =
+        new SQL( "SELECT " + select + " FROM " + from + " WHERE " + where + " HAVING " + having
+            + " ORDER BY " + order );
+    assertEquals( select, sql.getSelectClause() );
+    assertEquals( from, sql.getServiceName() );
+    assertEquals( where, sql.getWhereClause() );
+    assertEquals( having, sql.getHavingClause() );
+    assertEquals( order, sql.getOrderClause() );
+  }
+
+  @Test
+  public void testExample5() throws KettleSQLException {
     String select = "A, B, sum(C)";
     String from = "Step";
     String where = "D > 6 AND E = 'abcd'";
