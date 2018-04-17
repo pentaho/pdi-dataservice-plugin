@@ -101,7 +101,7 @@ public class ThinStatement extends ThinBase implements IThinStatement {
 
   @Override
   public ResultSet executeQuery( String sql ) throws SQLException {
-    DataInputStream dataInputStream = connection.getClientService().query( sql, maxRows );
+    DataInputStream dataInputStream = connection.getClientService().query( sql, maxRows, connection.getParameters() );
     resultSet = resultFactory.loadResultSet( dataInputStream, connection.getClientService() );
     resultSet.setStatement( this );
     return resultSet;
@@ -112,7 +112,7 @@ public class ThinStatement extends ThinBase implements IThinStatement {
                                 long windowSize, long windowEvery,
                                 long windowLimit ) throws SQLException {
     DataInputStream dataInputStream = connection.getClientService().query( sql, windowMode, windowSize,
-            windowEvery, windowLimit );
+            windowEvery, windowLimit, connection.getParameters() );
     resultSet = resultFactory.loadResultSet( dataInputStream, connection.getClientService() );
     resultSet.setStatement( this );
     return resultSet;

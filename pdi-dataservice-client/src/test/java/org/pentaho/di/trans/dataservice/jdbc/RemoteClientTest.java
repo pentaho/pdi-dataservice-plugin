@@ -109,11 +109,8 @@ public class RemoteClientTest {
     } );
   }
 
-  @Test
-  public void testQuery() throws Exception {
-    String sql = "SELECT * FROM myService\nWHERE id = 3";
+  private void testQueryBefore() throws Exception {
     String debugTrans = "/tmp/genTrans.ktr";
-    int maxRows = 200;
 
     when( connection.getDebugTransFilename() ).thenReturn( debugTrans );
     when( connection.getParameters() ).thenReturn( ImmutableMap.of( "PARAMETER_ECHO", "hello world" ) );
@@ -126,9 +123,9 @@ public class RemoteClientTest {
 
     MockDataInput mockDataInput = new MockDataInput();
     mockDataInput.writeUTF( "Query Response" );
+  }
 
-    remoteClient.query( sql, maxRows );
-
+  private void testQueryAux() throws Exception {
     verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
     HttpPost httpPost = (HttpPost) httpMethodCaptor.getValue();
 
@@ -139,32 +136,37 @@ public class RemoteClientTest {
     EntityUtils.consume( httpPost.getEntity() );
     actual = URLDecoder.decode( actual, "UTF-8" );
     assertThat( actual, equalTo(
-      "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3&MaxRows=200&debugtrans=/tmp/genTrans.ktr"
+            "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3&MaxRows=200&debugtrans=/tmp/genTrans.ktr"
     ) );
     assertThat( (Integer) httpPost.getParams().getParameter( "http.socket.timeout" ), equalTo( 0 ) );
   }
 
   @Test
-  public void testStreamQuery() throws Exception {
+  public void testQuery() throws Exception {
     String sql = "SELECT * FROM myService\nWHERE id = 3";
-    String debugTrans = "/tmp/genTrans.ktr";
     int maxRows = 200;
 
-    when( connection.getDebugTransFilename() ).thenReturn( debugTrans );
-    when( connection.getParameters() ).thenReturn( ImmutableMap.of( "PARAMETER_ECHO", "hello world" ) );
+    testQueryBefore();
 
-    when( response.getStatusLine() ).thenReturn( statusLine );
-    when( statusLine.getStatusCode() ).thenReturn( 200 );
-    when( response.getEntity() ).thenReturn( entity );
+    remoteClient.query( sql, maxRows );
 
-    when( httpClient.execute( any( HttpUriRequest.class ), any( HttpContext.class ) ) ).thenReturn( response );
+    testQueryAux();
+  }
 
-    MockDataInput mockDataInput = new MockDataInput();
-    mockDataInput.writeUTF( "Query Response" );
+  @Test
+  public void testQueryParams() throws Exception {
+    String sql = "SELECT * FROM myService\nWHERE id = 3";
+    int maxRows = 200;
+    ImmutableMap<String, String> params = ImmutableMap.of();
 
-    remoteClient.query( sql, IDataServiceClientService.StreamingMode.ROW_BASED, 1, 2,
-            3 );
+    testQueryBefore();
 
+    remoteClient.query( sql, maxRows, params );
+
+    testQueryAux();
+  }
+
+  private void testStreamQueryAux() throws Exception {
     verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
     HttpPost httpPost = (HttpPost) httpMethodCaptor.getValue();
 
@@ -183,6 +185,31 @@ public class RemoteClientTest {
                     "&WindowSize=1&WindowEvery=2&WindowLimit=3&debugtrans=/tmp/genTrans.ktr"
     ) );
     assertThat( (Integer) httpPost.getParams().getParameter( "http.socket.timeout" ), equalTo( 0 ) );
+  }
+
+  @Test
+  public void testStreamQuery() throws Exception {
+    String sql = "SELECT * FROM myService\nWHERE id = 3";
+
+    testQueryBefore();
+
+    remoteClient.query( sql, IDataServiceClientService.StreamingMode.ROW_BASED, 1, 2,
+            3 );
+
+    testStreamQueryAux();
+  }
+
+  @Test
+  public void testStreamQueryParams() throws Exception {
+    String sql = "SELECT * FROM myService\nWHERE id = 3";
+    ImmutableMap<String, String> params = ImmutableMap.of();
+
+    testQueryBefore();
+
+    remoteClient.query( sql, IDataServiceClientService.StreamingMode.ROW_BASED, 1, 2,
+            3, params );
+
+    testStreamQueryAux();
   }
 
   @Test

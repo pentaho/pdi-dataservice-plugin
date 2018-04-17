@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -32,7 +32,9 @@ import org.pentaho.di.core.row.value.ValueMetaDate;
 import org.pentaho.di.core.row.value.ValueMetaInteger;
 import org.pentaho.di.core.row.value.ValueMetaNumber;
 import org.pentaho.di.core.row.value.ValueMetaString;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
+import org.pentaho.di.trans.dataservice.jdbc.api.IThinPreparedStatement;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -43,7 +45,6 @@ import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
-import java.sql.PreparedStatement;
 import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -60,7 +61,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-public class ThinPreparedStatement extends ThinStatement implements PreparedStatement {
+public class ThinPreparedStatement extends ThinStatement implements IThinPreparedStatement {
 
   public static final SimpleDateFormat FORMAT = new SimpleDateFormat( "'['yyyy/MM/dd HH:mm:ss.SSS']'" );
   private final String sql; // contains ? placeholders
@@ -185,6 +186,13 @@ public class ThinPreparedStatement extends ThinStatement implements PreparedStat
   @Override
   public ResultSet executeQuery() throws SQLException {
     return executeQuery( replaceSql() );
+  }
+
+  @Override
+  public ResultSet executeQuery( IDataServiceClientService.StreamingMode windowMode,
+                                 long windowSize, long windowEvery,
+                                 long windowLimit ) throws SQLException {
+    return executeQuery( replaceSql(), windowMode, windowSize, windowEvery, windowLimit );
   }
 
   @Override @NotSupported

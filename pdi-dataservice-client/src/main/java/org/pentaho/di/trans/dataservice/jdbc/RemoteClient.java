@@ -86,6 +86,11 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
 
   @Override
   public DataInputStream query( String sql, int maxRows ) throws SQLException {
+    return query( sql, maxRows, null );
+  }
+
+  @Override
+  public DataInputStream query( String sql, int maxRows, Map<String, String> params ) throws SQLException {
     HttpPost method = null;
     try {
       String url = connection.constructUrl( SERVICE_PATH );
@@ -104,11 +109,13 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
         postParameters.add( new BasicNameValuePair( parameterEntry.getKey(), parameterEntry.getValue() ) );
       }
 
-      postParameters.add( new BasicNameValuePair( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
+      postParameters.add( new BasicNameValuePair( SQL, CharMatcher.anyOf( "\n\r" )
+              .collapseFrom( sql, ' ' ) ) );
       postParameters.add( new BasicNameValuePair( MAX_ROWS, Integer.toString( maxRows ) ) );
 
       if ( !Strings.isNullOrEmpty( connection.getDebugTransFilename() ) ) {
-        postParameters.add( new BasicNameValuePair( ThinConnection.ARG_DEBUGTRANS, connection.getDebugTransFilename() ) );
+        postParameters.add( new BasicNameValuePair( ThinConnection.ARG_DEBUGTRANS,
+                connection.getDebugTransFilename() ) );
       }
 
       method.setEntity( new UrlEncodedFormEntity( postParameters, CONTENT_CHARSET ) );
@@ -125,7 +132,13 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
 
   @Override
   public DataInputStream query( String sql, StreamingMode windowMode, long windowSize, long windowEvery,
-                                long windowLimit  )
+                                long windowLimit ) throws SQLException {
+    return query( sql, windowMode, windowSize, windowEvery, windowLimit, null );
+  }
+
+  @Override
+  public DataInputStream query( String sql, StreamingMode windowMode, long windowSize, long windowEvery,
+                                long windowLimit, Map<String, String> params  )
           throws SQLException {
     HttpPost method = null;
     try {
