@@ -22,6 +22,7 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import com.google.common.collect.ImmutableMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,6 +50,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -70,6 +72,8 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
   @Mock IDataServiceClientService clientService;
   @Mock ThinResultFactory resultFactory;
   @Mock ThinResultHeader header;
+  @Mock ImmutableMap<String, String> mockParameters;
+
   ThinStatement statement;
 
   public ThinStatementTest() {
@@ -78,6 +82,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
 
   @Before
   public void setUp() throws Exception {
+    when( connection.getParameters() ).thenReturn( mockParameters );
     statement = new ThinStatement( connection, resultFactory );
     assertThat( statement.getConnection(), sameInstance( (Connection) connection ) );
 
@@ -107,7 +112,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
     for ( Method method : Statement.class.getMethods() ) {
       if ( "execute".equals( method.getName() ) ) {
         assertThat( invoke( statement, method ), equalTo( (Object) Boolean.TRUE ) );
-        verify( clientService, times( ++n ) ).query( anyString(), anyInt() );
+        verify( clientService, times( ++n ) ).query( anyString(), anyInt(), anyMap() );
       }
     }
   }
@@ -115,7 +120,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
   @Test
   public void testExecuteQuery() throws Exception {
     DataInputStream inputStream = MockDataInput.dual().toDataInputStream();
-    when( clientService.query( SQL, 32 ) ).thenReturn( inputStream );
+    when( clientService.query( SQL, 32, mockParameters ) ).thenReturn( inputStream );
 
     statement.setMaxRows( 32 );
     assertThat( statement.getMaxRows(), equalTo( 32 ) );
@@ -139,7 +144,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
   public void testExecuteQueryWindow() throws Exception {
     DataInputStream inputStream = MockDataInput.dual().toDataInputStream();
     when( clientService.query( SQL, IDataServiceClientService.StreamingMode.ROW_BASED,
-            1, 2, 3 ) ).thenReturn( inputStream );
+            1, 2, 3, mockParameters ) ).thenReturn( inputStream );
 
     statement.setMaxRows( 32 );
     assertThat( statement.getMaxRows(), equalTo( 32 ) );
