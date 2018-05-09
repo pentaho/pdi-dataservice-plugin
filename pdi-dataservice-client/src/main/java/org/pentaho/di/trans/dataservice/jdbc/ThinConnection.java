@@ -78,9 +78,10 @@ public class ThinConnection extends ThinBase implements Connection {
   public static final String ARG_ISSECURE = "secure";
   public static final String ARG_LOCAL = "local";
   public static final String ARG_MAX_ROWS = "maxrows";
-  public static final String ARG_WINDOW_ROW_SIZE = "windowrows";
-  public static final String ARG_WINDOW_TIME_SIZE = "windowtime";
-  public static final String ARG_WINDOW_UPDATE_RATE = "windowrate";
+  public static final String ARG_WINDOW_MODE = "windowmode";
+  public static final String ARG_WINDOW_SIZE = "windowsize";
+  public static final String ARG_WINDOW_EVERY = "windowevery";
+  public static final String ARG_WINDOW_LIMIT = "windowlimit";
   public static final String ARG_WEB_APPLICATION_NAME = BaseDatabaseMeta.ATTRIBUTE_PREFIX_EXTRA_OPTION
       + "KettleThin.webappname";
 
@@ -97,9 +98,10 @@ public class ThinConnection extends ThinBase implements Connection {
 
   // Streaming parameters
   private String maxRows;
-  private String windowRows;
-  private String windowTime;
-  private String windowRate;
+  private String windowMode;
+  private String windowSize;
+  private String windowEvery;
+  private String windowLimit;
 
   private String proxyHostname;
   private String proxyPort;
@@ -427,24 +429,31 @@ public class ThinConnection extends ThinBase implements Connection {
   }
 
   /**
-   * @return the windowRows
+   * @return the windowMode
    */
-  public String getWindowRows() {
-    return windowRows;
+  public String getWindowMode() {
+    return windowMode;
   }
 
   /**
-   * @return the windowTime
+   * @return the windowSize
    */
-  public String getWindowTime() {
-    return windowTime;
+  public String getWindowSize() {
+    return windowSize;
   }
 
   /**
-   * @return the windowRate
+   * @return the windowEvery
    */
-  public String getWindowRate() {
-    return windowRate;
+  public String getWindowEvery() {
+    return windowEvery;
+  }
+
+  /**
+   * @return the windowLimit
+   */
+  public String getWindowLimit() {
+    return windowLimit;
   }
 
   /**
@@ -505,9 +514,10 @@ public class ThinConnection extends ThinBase implements Connection {
 
   private ThinConnection extractProperties( Map<String, String> arguments ) {
     maxRows = arguments.get( ARG_MAX_ROWS );
-    windowRows = arguments.get( ARG_WINDOW_ROW_SIZE );
-    windowTime = arguments.get( ARG_WINDOW_TIME_SIZE );
-    windowRate = arguments.get( ARG_WINDOW_UPDATE_RATE );
+    windowMode = arguments.get( ARG_WINDOW_MODE );
+    windowSize = arguments.get( ARG_WINDOW_SIZE );
+    windowEvery = arguments.get( ARG_WINDOW_EVERY );
+    windowLimit = arguments.get( ARG_WINDOW_LIMIT );
     proxyHostname = arguments.get( ARG_PROXYHOSTNAME );
     proxyPort = arguments.get( ARG_PROXYPORT );
     nonProxyHosts = arguments.get( ARG_NONPROXYHOSTS );

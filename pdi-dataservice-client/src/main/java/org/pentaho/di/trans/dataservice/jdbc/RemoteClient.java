@@ -98,11 +98,29 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
 
       method.getParams().setParameter( "http.socket.timeout", 0 );
 
+      String windowMode = connection.getWindowMode();
+      String windowSize = connection.getWindowSize();
+      String windowEvery = connection.getWindowEvery();
+      String windowLimit = connection.getWindowLimit();
+
       ArrayList<NameValuePair> postParameters = new ArrayList<NameValuePair>();
       // Kept in for backwards compatibility, but should be removed in next major release
       if ( sql.length() < MAX_SQL_LENGTH ) {
         method.addHeader( new BasicHeader( SQL, CharMatcher.anyOf( "\n\r" ).collapseFrom( sql, ' ' ) ) );
         method.addHeader( new BasicHeader( MAX_ROWS, Integer.toString( maxRows ) ) );
+
+        if ( !Strings.isNullOrEmpty( windowMode ) ) {
+          method.addHeader( new BasicHeader( WINDOW_MODE, windowMode ) );
+        }
+        if ( !Strings.isNullOrEmpty( windowSize ) ) {
+          method.addHeader( new BasicHeader( WINDOW_SIZE, windowSize ) );
+        }
+        if ( !Strings.isNullOrEmpty( windowEvery ) ) {
+          method.addHeader( new BasicHeader( WINDOW_EVERY, windowEvery ) );
+        }
+        if ( !Strings.isNullOrEmpty( windowLimit ) ) {
+          method.addHeader( new BasicHeader( WINDOW_LIMIT, windowLimit ) );
+        }
       }
 
       for ( Map.Entry<String, String> parameterEntry : connection.getParameters().entrySet() ) {
@@ -112,6 +130,19 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
       postParameters.add( new BasicNameValuePair( SQL, CharMatcher.anyOf( "\n\r" )
               .collapseFrom( sql, ' ' ) ) );
       postParameters.add( new BasicNameValuePair( MAX_ROWS, Integer.toString( maxRows ) ) );
+
+      if ( !Strings.isNullOrEmpty( windowMode ) ) {
+        postParameters.add( new BasicNameValuePair( WINDOW_MODE, windowMode ) );
+      }
+      if ( !Strings.isNullOrEmpty( windowSize ) ) {
+        postParameters.add( new BasicNameValuePair( WINDOW_SIZE, windowSize ) );
+      }
+      if ( !Strings.isNullOrEmpty( windowEvery ) ) {
+        postParameters.add( new BasicNameValuePair( WINDOW_EVERY, windowEvery ) );
+      }
+      if ( !Strings.isNullOrEmpty( windowLimit ) ) {
+        postParameters.add( new BasicNameValuePair( WINDOW_LIMIT, windowLimit ) );
+      }
 
       if ( !Strings.isNullOrEmpty( connection.getDebugTransFilename() ) ) {
         postParameters.add( new BasicNameValuePair( ThinConnection.ARG_DEBUGTRANS,
