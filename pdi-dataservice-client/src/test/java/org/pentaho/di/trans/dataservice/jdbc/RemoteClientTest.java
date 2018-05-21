@@ -76,6 +76,10 @@ import static org.mockito.Mockito.when;
  */
 @RunWith( MockitoJUnitRunner.class )
 public class RemoteClientTest {
+  private static final String TEST_WINDOW_MODE = IDataServiceClientService.StreamingMode.ROW_BASED.toString();
+  private static final String TEST_WINDOW_SIZE = "1";
+  private static final String TEST_WINDOW_EVERY = "2";
+  private static final String TEST_WINDOW_LIMIT = "3";
 
   @Mock
   private ThinConnection connection;
@@ -166,6 +170,46 @@ public class RemoteClientTest {
     testQueryAux();
   }
 
+  @Test
+  public void testQueryStreamingParams() throws Exception {
+    String sql = "SELECT * FROM myService\nWHERE id = 3";
+    int maxRows = 200;
+    ImmutableMap<String, String> params = ImmutableMap.of();
+
+    when( connection.getWindowMode() ).thenReturn( TEST_WINDOW_MODE );
+    when( connection.getWindowSize() ).thenReturn( TEST_WINDOW_SIZE );
+    when( connection.getWindowEvery() ).thenReturn( TEST_WINDOW_EVERY );
+    when( connection.getWindowLimit() ).thenReturn( TEST_WINDOW_LIMIT );
+
+    testQueryBefore();
+
+    remoteClient.query( sql, maxRows, params );
+
+    testQueryStreamParamsAux();
+  }
+
+  private void testQueryStreamParamsAux() throws Exception {
+    verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
+    HttpPost httpPost = (HttpPost) httpMethodCaptor.getValue();
+
+    assertThat( httpPost.getURI().toString(), equalTo( "http://localhost:8080/pentaho/kettle/sql/" ) );
+    assertThat( httpPost.getHeaders( "SQL" )[ 0 ].getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
+    assertThat( httpPost.getHeaders( "WindowMode" )[ 0 ].getValue(),
+            equalTo( TEST_WINDOW_MODE ) );
+    assertThat( httpPost.getHeaders( "WindowSize" )[ 0 ].getValue(), equalTo( TEST_WINDOW_SIZE ) );
+    assertThat( httpPost.getHeaders( "WindowEvery" )[ 0 ].getValue(), equalTo( TEST_WINDOW_EVERY ) );
+    assertThat( httpPost.getHeaders( "WindowLimit" )[ 0 ].getValue(), equalTo( TEST_WINDOW_LIMIT ) );
+    String actual = EntityUtils.toString( httpPost.getEntity() );
+    EntityUtils.consume( httpPost.getEntity() );
+    actual = URLDecoder.decode( actual, "UTF-8" );
+    assertThat( actual, equalTo(
+            "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3" +
+                    "&MaxRows=200&WindowMode=ROW_BASED&WindowSize=1" +
+                    "&WindowEvery=2&WindowLimit=3&debugtrans=/tmp/genTrans.ktr"
+    ) );
+    assertThat( (Integer) httpPost.getParams().getParameter( "http.socket.timeout" ), equalTo( 0 ) );
+  }
+
   private void testStreamQueryAux() throws Exception {
     verify( httpClient ).execute( httpMethodCaptor.capture(), httpContextCaptor.capture() );
     HttpPost httpPost = (HttpPost) httpMethodCaptor.getValue();
@@ -173,16 +217,16 @@ public class RemoteClientTest {
     assertThat( httpPost.getURI().toString(), equalTo( "http://localhost:8080/pentaho/kettle/sql/" ) );
     assertThat( httpPost.getHeaders( "SQL" )[ 0 ].getValue(), equalTo( "SELECT * FROM myService WHERE id = 3" ) );
     assertThat( httpPost.getHeaders( "WindowMode" )[ 0 ].getValue(),
-            equalTo( IDataServiceClientService.StreamingMode.ROW_BASED.toString() ) );
-    assertThat( httpPost.getHeaders( "WindowSize" )[ 0 ].getValue(), equalTo( "1" ) );
-    assertThat( httpPost.getHeaders( "WindowEvery" )[ 0 ].getValue(), equalTo( "2" ) );
-    assertThat( httpPost.getHeaders( "WindowLimit" )[ 0 ].getValue(), equalTo( "3" ) );
+            equalTo( TEST_WINDOW_MODE ) );
+    assertThat( httpPost.getHeaders( "WindowSize" )[ 0 ].getValue(), equalTo( TEST_WINDOW_SIZE ) );
+    assertThat( httpPost.getHeaders( "WindowEvery" )[ 0 ].getValue(), equalTo( TEST_WINDOW_EVERY ) );
+    assertThat( httpPost.getHeaders( "WindowLimit" )[ 0 ].getValue(), equalTo( TEST_WINDOW_LIMIT ) );
     String actual = EntityUtils.toString( httpPost.getEntity() );
     EntityUtils.consume( httpPost.getEntity() );
     actual = URLDecoder.decode( actual, "UTF-8" );
     assertThat( actual, equalTo(
-            "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3&WindowMode=ROW_BASED" +
-                    "&WindowSize=1&WindowEvery=2&WindowLimit=3&debugtrans=/tmp/genTrans.ktr"
+            "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3" +
+                    "&WindowMode=ROW_BASED&WindowSize=1&WindowEvery=2&WindowLimit=3&debugtrans=/tmp/genTrans.ktr"
     ) );
     assertThat( (Integer) httpPost.getParams().getParameter( "http.socket.timeout" ), equalTo( 0 ) );
   }
@@ -193,8 +237,8 @@ public class RemoteClientTest {
 
     testQueryBefore();
 
-    remoteClient.query( sql, IDataServiceClientService.StreamingMode.ROW_BASED, 1, 2,
-            3 );
+    remoteClient.query( sql, IDataServiceClientService.StreamingMode.ROW_BASED, Long.parseLong( TEST_WINDOW_SIZE ),
+            Long.parseLong( TEST_WINDOW_EVERY ), Long.parseLong( TEST_WINDOW_LIMIT ) );
 
     testStreamQueryAux();
   }
@@ -206,8 +250,8 @@ public class RemoteClientTest {
 
     testQueryBefore();
 
-    remoteClient.query( sql, IDataServiceClientService.StreamingMode.ROW_BASED, 1, 2,
-            3, params );
+    remoteClient.query( sql, IDataServiceClientService.StreamingMode.ROW_BASED, Long.parseLong( TEST_WINDOW_SIZE ),
+            Long.parseLong( TEST_WINDOW_EVERY ), Long.parseLong( TEST_WINDOW_LIMIT ), params );
 
     testStreamQueryAux();
   }

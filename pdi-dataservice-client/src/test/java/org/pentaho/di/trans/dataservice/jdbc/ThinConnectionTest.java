@@ -56,6 +56,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyMap;
@@ -85,9 +86,10 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
   private static int port = 8080;
   private static String debugTrans = "debugTrans";
   private static String maxRows = "100";
-  private static String windowRows = "1";
-  private static String windowTime = "2";
-  private static String windowRate = "3";
+  private static String windowMode = IDataServiceClientService.StreamingMode.ROW_BASED.toString();
+  private static String windowSize = "10";
+  private static String windowEvery = "5";
+  private static String windowLimit = "50000";
   private Matcher<String> noBangMatcher;
 
   private String url;
@@ -107,9 +109,10 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     properties.setProperty( "user", "username" );
     properties.setProperty( "password", "password" );
     properties.setProperty( "maxrows", maxRows );
-    properties.setProperty( "windowrows", windowRows );
-    properties.setProperty( "windowtime", windowTime );
-    properties.setProperty( "windowrate", windowRate );
+    properties.setProperty( "windowmode", windowMode );
+    properties.setProperty( "windowsize", windowSize );
+    properties.setProperty( "windowevery", windowEvery );
+    properties.setProperty( "windowlimit", windowLimit );
 
     connection = new ThinConnection( url, URI.create( "http://localhost:8080/pentaho/kettle" ) );
     connection.setClientService( clientService );
@@ -142,9 +145,10 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
 
     assertEquals( "username", connection.getUsername() );
     assertEquals( maxRows, connection.getMaxRows() );
-    assertEquals( windowRows, connection.getWindowRows() );
-    assertEquals( windowTime, connection.getWindowTime() );
-    assertEquals( windowRate, connection.getWindowRate() );
+    assertEquals( windowMode, connection.getWindowMode() );
+    assertEquals( windowSize, connection.getWindowSize() );
+    assertEquals( windowEvery, connection.getWindowEvery() );
+    assertEquals( windowLimit, connection.getWindowLimit() );
 
     assertThat( connection.getDebugTransFilename(), is( debugTrans ) );
     assertEquals( false, connection.isLocal() );
@@ -183,9 +187,10 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
       put( "secure", "true" ).
       put( "local", "false" ).
       put( "maxRows", maxRows ).
-      put( "windowrows", windowRows ).
-      put( "windowtime", windowTime ).
-      put( "windowrate", windowRate ).
+      put( "windowmode", windowMode ).
+      put( "windowsize", windowSize ).
+      put( "windowevery", windowEvery ).
+      put( "windowlimit", windowLimit ).
       put( "PARAMETER_HELLO_WORLD", URLEncoder.encode( "test value", Charsets.UTF_8.name() ) ).
       build();
     url = "jdbc:pdi://localhost:8080/kettle?" + Joiner.on( "&" ).withKeyValueSeparator( "=" ).join( args );
@@ -200,9 +205,10 @@ public class ThinConnectionTest extends JDBCTestBase<ThinConnection> {
     assertEquals( port, thinConnection.getPort() );
     assertEquals( "username", thinConnection.getUsername() );
     assertEquals( maxRows, thinConnection.getMaxRows() );
-    assertEquals( windowRows, thinConnection.getWindowRows() );
-    assertEquals( windowTime, thinConnection.getWindowTime() );
-    assertEquals( windowRate, thinConnection.getWindowRate() );
+    assertEquals( windowMode, thinConnection.getWindowMode() );
+    assertEquals( windowSize, thinConnection.getWindowSize() );
+    assertEquals( windowEvery, thinConnection.getWindowEvery() );
+    assertEquals( windowLimit, thinConnection.getWindowLimit() );
     assertEquals( proxyHostName, thinConnection.getProxyHostname() );
     assertEquals( proxyPort, thinConnection.getProxyPort() );
     assertEquals( nonProxyHosts, thinConnection.getNonProxyHosts() );
