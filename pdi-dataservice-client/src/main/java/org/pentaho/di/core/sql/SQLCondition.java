@@ -34,7 +34,11 @@ import org.pentaho.di.core.util.Utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,10 +50,15 @@ public class SQLCondition {
   private Condition condition;
   private String conditionClause;
   private SQLFields selectFields;
+  private Map<String, DateToStrFunction> dateToStrFunctions = Collections.emptyMap();
 
   private static final Pattern
     PARAMETER_REGEX_PATTERN =
     Pattern.compile( "(?i)^PARAMETER\\s*\\(\\s*'(.*)'\\s*\\)\\s*=\\s*'?([^']*)'?$" );
+
+  private static final Pattern
+    DATE_TO_STR_REGEX_PATTERN =
+    Pattern.compile( "(?i)^DATE_TO_STR\\s*\\(\\s*([^,]*)\\s*,?\\s*'?([^']*)'?\\s*\\)$" );
 
   public SQLCondition( String tableAlias, String conditionSql, RowMetaInterface serviceFields )
     throws KettleSQLException {
@@ -265,6 +274,10 @@ public class SQLCondition {
     int opFunction = Condition.getFunction( clauseElements.get( 1 ) );
     String right = getCleansedName( clauseElements.get( 2 ) );
 
+    // Process instances of DATE_TO_STR
+    left = processDateToStr( left );
+    right = processDateToStr( right );
+
     if ( isEqualityComparisonOfLiteralValues( clauseElements ) ) {
       // comparison of literals, e.g. ( 1 = 0 ) or ( 1 = 1 )
       // not currently supporting general literal comparisons.
@@ -338,6 +351,56 @@ public class SQLCondition {
     }
   }
 
+  /**
+   * Replace DATE_TO_STR() call with internal field name and store call to name mapping.
+   * @param element Atomic element to match.
+   * @return Internal field name for call result if it is a DATE_TO_STR() call, otherwise returns the original value.
+   */
+  private String processDateToStr( String element ) throws KettleSQLException {
+    Matcher dateToStrMatcher = DATE_TO_STR_REGEX_PATTERN.matcher( element );
+    if ( dateToStrMatcher.matches() ) {
+      String dateToStrFieldName = dateToStrMatcher.group( 1 );
+      String dateToStrMatcherValue = dateToStrMatcher.group( 2 );
+
+      // get clean field name
+      dateToStrFieldName = getCleansedName( getAlias( dateToStrFieldName ).orElse( dateToStrFieldName ) );
+
+      validateDateToStrField( element, dateToStrFieldName );
+
+      // placeholder field name & lookup key
+      String resultFieldName = "__date_to_str_" + dateToStrFieldName.toLowerCase() + "_" + dateToStrMatcherValue;
+      if ( dateToStrFunctions.containsKey( resultFieldName ) ) {
+        return dateToStrFunctions.get( resultFieldName ).getResultName();
+      }
+
+      // create new mapping
+      if ( dateToStrFunctions.isEmpty() ) {
+        // on first use, replace with a mutable instance
+        dateToStrFunctions = new HashMap<>();
+      }
+      dateToStrFunctions.put( resultFieldName, new DateToStrFunction( dateToStrFieldName, dateToStrMatcherValue, resultFieldName ) );
+      return resultFieldName;
+    } else {
+      return element;
+    }
+  }
+
+  private void validateDateToStrField( String element, String dateToStrFieldName ) throws KettleSQLException {
+    // field name must exist in serviceFields and be either a date or timestamp
+    int dateToStrFieldIndex = this.serviceFields.indexOfValue( dateToStrFieldName );
+    if ( dateToStrFieldIndex < 0 ) {
+      throw new KettleSQLException( "Unknown field '" + dateToStrFieldName + "' in : " + element );
+    } else {
+      int dateToStrFieldType = this.serviceFields.getValueMeta( dateToStrFieldIndex ).getType();
+      if ( !(
+            dateToStrFieldType == ValueMetaInterface.TYPE_DATE
+            || dateToStrFieldType == ValueMetaInterface.TYPE_TIMESTAMP
+            ) ) {
+        throw new KettleSQLException( "Invalid field type in : " + element + " : type must be DATE or TIMESTAMP" );
+      }
+    }
+  }
+
   private boolean isEqualityComparisonOfLiteralValues( List<String> clauseElements ) throws KettleSQLException {
     String left = clauseElements.get( 0 );
     int opFunction = Condition.getFunction( clauseElements.get( 1 ) );
@@ -357,6 +420,11 @@ public class SQLCondition {
       .isPresent();
   }
 
+  private boolean isDateToStrTemporaryField( String element ) {
+    Matcher dateToStrMatcher = DATE_TO_STR_REGEX_PATTERN.matcher( element );
+    return dateToStrMatcher.matches();
+  }
+
   /**
    * If the element is not determined to have an alias, and doesn't map to a service field,
    * then we'll assume it's a literal value.
@@ -364,7 +432,8 @@ public class SQLCondition {
   private boolean isLiteral( String element ) throws KettleSQLException {
     return !getAlias( element ).isPresent()
       && !ThinUtil.getValueMetaInterface( getCleansedName( element ), getServiceFields() ).isPresent()
-      && !isAggregateField( element );
+      && !isAggregateField( element )
+      && !isDateToStrTemporaryField( element );
   }
 
   /**
@@ -554,5 +623,12 @@ public class SQLCondition {
         addExpressions( child, expressions );
       }
     }
+  }
+
+  /**
+   * @return all unique calls to DATE_TO_STR present in this condition
+   */
+  public Collection<DateToStrFunction> getDateToStrFunctions() {
+    return dateToStrFunctions.values();
   }
 }

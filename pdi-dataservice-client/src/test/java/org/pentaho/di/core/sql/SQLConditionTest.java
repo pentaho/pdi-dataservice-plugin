@@ -28,6 +28,7 @@ import org.pentaho.di.core.Condition;
 import org.pentaho.di.core.exception.KettleSQLException;
 import org.pentaho.di.core.row.RowMetaInterface;
 
+import java.util.Collection;
 import java.util.List;
 
 import static org.hamcrest.core.Is.is;
@@ -1052,5 +1053,99 @@ public class SQLConditionTest extends TestCase {
     assertEquals( 3, sqlCondition.searchForWord( " D AND Y AND ", "and", 0 ) );
     assertEquals( 3, sqlCondition.searchForWord( " D\nAND\nY AND ", "and", 0 ) );
     assertEquals( 4, sqlCondition.searchForWord( " D\r\nAND\r\nY AND ", "and", 0 ) );
+  }
+
+  // DATE_TO_STR
+  //
+
+  @Test
+  public void testDateToStrConditionLeftField() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+
+    SQLCondition sqlCondition = new SQLCondition(
+        "table", "DATE_TO_STR(ORDERDATE, 'yyyy-MM') = '2018-02'", rowMeta );
+
+    Collection<DateToStrFunction> functions = sqlCondition.getDateToStrFunctions();
+    assertTrue( functions.size() == 1 );
+
+    DateToStrFunction function = functions.iterator().next();
+    assertThat( function.getDateMask(), is( "yyyy-MM" ) );
+    assertThat( function.getFieldName(), is( "ORDERDATE" ) );
+
+    Condition condition = sqlCondition.getCondition();
+    assertThat( condition.getFunctionDesc(), is( "=" ) );
+    assertTrue( condition.getLeftValuename() == function.getResultName() );
+    assertThat( condition.getRightExact().getValueData(), is( "2018-02" ) );
+    assertTrue( condition.isAtomic() );
+  }
+
+  @Test
+  public void testDateToStrConditionRightField() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+
+    SQLCondition sqlCondition = new SQLCondition(
+        "table", "STATE = DATE_TO_STR(ORDERDATE, 'yyyy-MM')", rowMeta );
+
+    Collection<DateToStrFunction> functions = sqlCondition.getDateToStrFunctions();
+    assertTrue( functions.size() == 1 );
+
+    DateToStrFunction function = functions.iterator().next();
+    assertThat( function.getDateMask(), is( "yyyy-MM" ) );
+    assertThat( function.getFieldName(), is( "ORDERDATE" ) );
+
+    Condition condition = sqlCondition.getCondition();
+    assertThat( condition.getFunctionDesc(), is( "=" ) );
+    assertTrue( condition.getRightValuename() == function.getResultName() );
+    assertThat( condition.getLeftValuename(), is( "STATE" ) );
+    assertTrue( condition.isAtomic() );
+  }
+
+  @Test
+  public void testDateToStrConditionSharedName() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+
+    SQLCondition sqlCondition = new SQLCondition(
+        "table",
+        "DATE_TO_STR(orderdate, 'MM') >= '01' and date_to_str(ORDERDATE, 'MM') <= '03'", rowMeta );
+
+    Collection<DateToStrFunction> functions = sqlCondition.getDateToStrFunctions();
+    assertTrue( functions.size() == 1 );
+
+    DateToStrFunction function = functions.iterator().next();
+    assertThat( function.getDateMask(), is( "MM" ) );
+    assertThat( function.getFieldName(), is( "ORDERDATE" ) );
+
+    Condition condition = sqlCondition.getCondition();
+    Condition firstCondition = condition.getCondition(0);
+    Condition secondCondition = condition.getCondition(1);
+
+    assertThat( firstCondition.getFunctionDesc(), is( ">=" ) );
+    assertThat( secondCondition.getFunctionDesc(), is( "<=" ) );
+    assertTrue( firstCondition.getLeftValuename() == function.getResultName() );
+    assertTrue( secondCondition.getLeftValuename() == function.getResultName() );
+  }
+
+  @Test
+  public void testDateToStrConditionUnknownField() {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+    try {
+      SQLCondition sqlCondition = new SQLCondition(
+          "table", "DATE_TO_STR(potatos, 'MM') = '01'", rowMeta );
+      fail();
+    } catch ( KettleSQLException kse ) {
+      assertTrue( kse.getMessage().contains( "Unknown field" ) );
+    }
+  }
+
+  @Test
+  public void testDateToStrConditionInvalidFieldType() {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+    try {
+      SQLCondition sqlCondition = new SQLCondition(
+          "table", "DATE_TO_STR(STATE, 'MM') = '01'", rowMeta );
+      fail();
+    } catch ( KettleSQLException kse ) {
+      assertTrue( kse.getMessage().contains( "Invalid field type" ) );
+    }
   }
 }
