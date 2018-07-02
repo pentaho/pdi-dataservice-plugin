@@ -1148,4 +1148,29 @@ public class SQLConditionTest extends TestCase {
       assertTrue( kse.getMessage().contains( "Invalid field type" ) );
     }
   }
+
+  @Test
+  public void testDateToStrEscapedQuotes() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+
+    /* simple quote */
+    SQLCondition sqlCondition = new SQLCondition(
+        "table", "STATE = DATE_TO_STR(ORDERDATE, 'yyyy-MM-dd''T''HH:mm:ss.SSSXXX')", rowMeta );
+
+    Collection<DateToStrFunction> functions = sqlCondition.getDateToStrFunctions();
+    assertTrue( functions.size() == 1 );
+
+    DateToStrFunction function = functions.iterator().next();
+    assertThat( function.getDateMask(), is( "yyyy-MM-dd'T'HH:mm:ss.SSSXXX" ) );
+
+    /* double quote */
+    SQLCondition sqlCondition2 = new SQLCondition(
+        "table", "STATE = DATE_TO_STR(ORDERDATE, 'hh ''o''''clock'' a, zzzz')", rowMeta );
+
+    Collection<DateToStrFunction> functions2 = sqlCondition2.getDateToStrFunctions();
+    assertTrue( functions2.size() == 1 );
+
+    DateToStrFunction function2 = functions2.iterator().next();
+    assertThat( function2.getDateMask(), is( "hh 'o''clock' a, zzzz" ) );
+  }
 }

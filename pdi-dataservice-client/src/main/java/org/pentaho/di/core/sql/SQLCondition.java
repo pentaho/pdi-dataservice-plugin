@@ -58,7 +58,7 @@ public class SQLCondition {
 
   private static final Pattern
     DATE_TO_STR_REGEX_PATTERN =
-    Pattern.compile( "(?i)^DATE_TO_STR\\s*\\(\\s*([^,]*)\\s*,?\\s*'?([^']*)'?\\s*\\)$" );
+    Pattern.compile( "(?i)^DATE_TO_STR\\s*\\(\\s*([^,]*)\\s*,?\\s*'?(([^']|'')*)'?\\s*\\)$" );
 
   public SQLCondition( String tableAlias, String conditionSql, RowMetaInterface serviceFields )
     throws KettleSQLException {
@@ -360,7 +360,7 @@ public class SQLCondition {
     Matcher dateToStrMatcher = DATE_TO_STR_REGEX_PATTERN.matcher( element );
     if ( dateToStrMatcher.matches() ) {
       String dateToStrFieldName = dateToStrMatcher.group( 1 );
-      String dateToStrMatcherValue = dateToStrMatcher.group( 2 );
+      String dateToStrMatcherValue = resolveEscapedSingleQuotes( dateToStrMatcher.group( 2 ) );
 
       // get clean field name
       dateToStrFieldName = getCleansedName( getAlias( dateToStrFieldName ).orElse( dateToStrFieldName ) );
@@ -383,6 +383,10 @@ public class SQLCondition {
     } else {
       return element;
     }
+  }
+
+  private String resolveEscapedSingleQuotes( String str ) {
+    return str.replaceAll( "''", "'" );
   }
 
   private void validateDateToStrField( String element, String dateToStrFieldName ) throws KettleSQLException {
