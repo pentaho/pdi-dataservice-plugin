@@ -30,6 +30,7 @@
     <commons.collections.version>3.2.2</commons.collections.version>
     <pdi.version>9.0.0.0-SNAPSHOT</pdi.version>
     <pentaho-metastore.version>9.0.0.0-SNAPSHOT</pentaho-metastore.version>
+    <rxjava.version>2.0.4</rxjava.version>
   </properties>
   <profiles>
     <profile>

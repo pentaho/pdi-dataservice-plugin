@@ -23,6 +23,7 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.collect.ImmutableMap;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,6 +32,8 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.IStreamingParams;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.StreamingMode;
 
 import java.io.DataInputStream;
 import java.lang.reflect.Method;
@@ -47,12 +50,18 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -221,7 +230,56 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
     assertThat( statement.getMaxRows(), equalTo( 42 ) );
   }
 
+  @Test
+  public void testExecutePushQuery() throws Exception {
+    IStreamingParams params = new IStreamingParams () {
+      @Override
+      public StreamingMode getWindowMode() {
+        return IDataServiceClientService.StreamingMode.ROW_BASED;
+      }
+      @Override
+      public long getWindowSize() {
+        return 3;
+      }
+      @Override
+      public long getWindowEvery() {
+        return 2;
+      }
+      public long getWindowLimit() {
+        return 1000;
+      }
+    };
+    when( connection.isLocal() ).thenReturn( true );
+    statement.executePushQuery( SQL, params );
+    verify( clientService ).query( eq( SQL ), eq( params ), anyObject(), anyObject() );
+  }
+
+  @Test( expected = UnsupportedOperationException.class )
+  public void testExecutePushQueryNonLocal() throws Exception {
+    when( connection.isLocal() ).thenReturn( false );
+    statement.executePushQuery( SQL, mock( IStreamingParams.class ) );
+  }
+
+  @Test
+  public void unwrapTest() throws Exception {
+    assertTrue( statement.isWrapperFor( ThinStatement.class ) );
+    assertEquals( ThinStatement.class, statement.unwrap( Statement.class ).getClass() );
+  }
+  @Test
+  public void unwrapTestDS() throws Exception {
+    assertTrue( statement.isWrapperFor( IDataServiceClientService.class ) );
+    IDataServiceClientService ds = statement.unwrap( IDataServiceClientService.class );
+    assertNotNull( ds );
+  }
+
+  @Test( expected = SQLException.class )
+  public void unwrapFailTest() throws Exception {
+    assertFalse( statement.isWrapperFor( String.class ) );
+    statement.unwrap( String.class );
+  }
+
   @Override protected ThinStatement getTestObject() {
     return statement;
   }
+
 }
