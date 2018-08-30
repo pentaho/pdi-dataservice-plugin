@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2017 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -66,7 +66,7 @@ public class DataServiceClientPluginTest {
   public void testSupportChecks() throws Exception {
     ImmutableSet<String> supported = ImmutableSet.of(
       "supportsBooleanDataType", "supportsOptionsInURL", "supportsErrorHandling", "supportsSetMaxRows",
-      "supportsSetLong", "supportsTimeStampToDateConversion"
+      "supportsSetLong", "supportsTimeStampToDateConversion", "supportsStandardTableOutput"
     );
 
     for ( Method method : DatabaseInterface.class.getMethods() ) {

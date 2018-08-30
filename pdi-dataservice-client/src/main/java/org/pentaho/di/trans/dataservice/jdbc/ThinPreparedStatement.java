@@ -23,6 +23,10 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.base.Throwables;
+
+import io.reactivex.Observable;
+
+import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.exception.KettleSQLException;
 import org.pentaho.di.core.jdbc.ThinUtil;
 import org.pentaho.di.core.row.ValueMetaInterface;
@@ -33,6 +37,7 @@ import org.pentaho.di.core.row.value.ValueMetaInteger;
 import org.pentaho.di.core.row.value.ValueMetaNumber;
 import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.IStreamingParams;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 import org.pentaho.di.trans.dataservice.jdbc.api.IThinPreparedStatement;
 
@@ -193,6 +198,12 @@ public class ThinPreparedStatement extends ThinStatement implements IThinPrepare
                                  long windowSize, long windowEvery,
                                  long windowLimit ) throws SQLException {
     return executeQuery( replaceSql(), windowMode, windowSize, windowEvery, windowLimit );
+  }
+
+  @Override
+  public Observable<List<RowMetaAndData>> executePushQuery( IStreamingParams streamParams )
+    throws Exception {
+    return super.executePushQuery( replaceSql(), streamParams );
   }
 
   @Override @NotSupported
@@ -490,6 +501,22 @@ public class ThinPreparedStatement extends ThinStatement implements IThinPrepare
    */
   public Object[] getParamData() {
     return paramData;
+  }
+
+  @Override
+  public boolean isWrapperFor( Class<?> type ) throws SQLException {
+    if ( type.isAssignableFrom( ThinPreparedStatement.class ) ) {
+      return true;
+    }
+    return super.isWrapperFor( type );
+  }
+
+  @Override
+  public <T> T unwrap( Class<T> type ) throws SQLException {
+    if ( type.isAssignableFrom( ThinPreparedStatement.class ) ) {
+      return type.cast( this );
+    }
+    return super.unwrap( type );
   }
 
   protected void setValue( int nr, Object value, ValueMetaInterface valueMeta ) throws SQLException {

@@ -30,6 +30,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.IStreamingParams;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.StreamingMode;
 
 import java.io.DataInputStream;
 import java.io.Serializable;
@@ -53,6 +55,7 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -324,6 +327,40 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
   public void testStringStreaming() throws Exception {
     statement.setString( 1, "foobar" );
     verifyStreamingQuery( "'foobar'" );
+  }
+
+  @Test
+  public void testPreparePushQuery() throws Exception {
+    when( connection.isLocal() ).thenReturn( true );
+    statement.setObject( 1, 1 );
+    IStreamingParams params = getStreamParams();
+    statement.executePushQuery( params );
+    verify( clientService ).query(
+      eq ( "SELECT * FROM dataService WHERE query = 1" ), eq( params ), anyObject(), anyObject() );
+  }
+
+  private IStreamingParams getStreamParams() {
+    return new  IDataServiceClientService.IStreamingParams() {
+      @Override
+      public long getWindowSize() {
+        return windowSize;
+      }
+
+      @Override
+      public StreamingMode getWindowMode() {
+        return mockWindowType;
+      }
+
+      @Override
+      public long getWindowLimit() {
+        return windowLimit;
+      }
+
+      @Override
+      public long getWindowEvery() {
+        return windowEvery;
+      }
+    };
   }
 
   @Override protected Object mockValue( Class<?> type ) {

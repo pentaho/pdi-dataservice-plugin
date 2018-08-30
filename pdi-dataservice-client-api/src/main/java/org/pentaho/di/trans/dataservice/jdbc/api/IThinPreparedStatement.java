@@ -22,11 +22,16 @@
 
 package org.pentaho.di.trans.dataservice.jdbc.api;
 
+import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.IStreamingParams;
+
+import io.reactivex.Observable;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Data Services Thin Prepared Statement Interface.
@@ -53,4 +58,13 @@ public interface IThinPreparedStatement extends PreparedStatement {
   ResultSet executeQuery( IDataServiceClientService.StreamingMode windowMode,
                           long windowSize, long windowEvery,
                           long windowLimit ) throws SQLException;
+
+  /**
+   * Same as {@link #executeQuery(IDataServiceClientService.StreamingMode, long, long, long)}
+   * but results are subscribed to from the obervable. <b>Only available in local mode.</b>
+   * @param params Streaming window parameters.
+   * @return Observable sending each processed streaming window.
+   * @throws Exception
+   */
+  Observable<List<RowMetaAndData>> executePushQuery( IStreamingParams params ) throws Exception;
 }

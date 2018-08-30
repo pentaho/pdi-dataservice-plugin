@@ -22,9 +22,15 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
+import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.IStreamingParams;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 import org.pentaho.di.trans.dataservice.jdbc.api.IThinStatement;
+
+import io.reactivex.Observable;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
 
 import java.io.DataInputStream;
 import java.sql.Connection;
@@ -32,6 +38,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
+import java.util.List;
 
 public class ThinStatement extends ThinBase implements IThinStatement {
 
@@ -283,4 +290,38 @@ public class ThinStatement extends ThinBase implements IThinStatement {
     return false;
   }
 
+  @Override
+  public Observable<List<RowMetaAndData>> executePushQuery( String sql, IStreamingParams streamParams )
+    throws Exception {
+    if ( !connection.isLocal() ) {
+      throw new UnsupportedOperationException( "Only available in local mode." );
+    }
+    Subject<List<RowMetaAndData>> broadcaster = createSubject();
+    connection.getClientService().query( sql, streamParams, connection.getParameters(), broadcaster );
+    return broadcaster;
+  }
+
+  private Subject<List<RowMetaAndData>> createSubject() {
+    Subject<List<RowMetaAndData>> broadcaster = PublishSubject.create();
+    return broadcaster;
+  }
+
+  @Override
+  public boolean isWrapperFor( Class<?> type ) throws SQLException {
+    if ( type.isAssignableFrom( ThinStatement.class ) || type.isAssignableFrom( IDataServiceClientService.class ) ) {
+      return true;
+    }
+    return super.isWrapperFor( type );
+  }
+
+  @Override
+  public <T> T unwrap( Class<T> type ) throws SQLException {
+    if ( type.isAssignableFrom( ThinStatement.class ) ) {
+      return type.cast( this );
+    }
+    if ( type.isAssignableFrom( IDataServiceClientService.class ) ) {
+      return type.cast( connection.getClientService() );
+    }
+    return super.unwrap( type );
+  }
 }
