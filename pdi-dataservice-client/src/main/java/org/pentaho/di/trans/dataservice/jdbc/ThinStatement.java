@@ -22,15 +22,12 @@
 
 package org.pentaho.di.trans.dataservice.jdbc;
 
+import io.reactivex.Observer;
 import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.IStreamingParams;
 import org.pentaho.di.trans.dataservice.jdbc.annotation.NotSupported;
 import org.pentaho.di.trans.dataservice.jdbc.api.IThinStatement;
-
-import io.reactivex.Observable;
-import io.reactivex.subjects.PublishSubject;
-import io.reactivex.subjects.Subject;
 
 import java.io.DataInputStream;
 import java.sql.Connection;
@@ -291,19 +288,12 @@ public class ThinStatement extends ThinBase implements IThinStatement {
   }
 
   @Override
-  public Observable<List<RowMetaAndData>> executePushQuery( String sql, IStreamingParams streamParams )
+  public void executePushQuery( String sql, IStreamingParams streamParams, Observer<List<RowMetaAndData>> consumer )
     throws Exception {
     if ( !connection.isLocal() ) {
       throw new UnsupportedOperationException( "Only available in local mode." );
     }
-    Subject<List<RowMetaAndData>> broadcaster = createSubject();
-    connection.getClientService().query( sql, streamParams, connection.getParameters(), broadcaster );
-    return broadcaster;
-  }
-
-  private Subject<List<RowMetaAndData>> createSubject() {
-    Subject<List<RowMetaAndData>> broadcaster = PublishSubject.create();
-    return broadcaster;
+    connection.getClientService().query( sql, streamParams, connection.getParameters(), consumer );
   }
 
   @Override

@@ -22,12 +22,11 @@
 
 package org.pentaho.di.trans.dataservice.client.api;
 
+import io.reactivex.Observer;
 import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.trans.dataservice.jdbc.api.IThinServiceInformation;
 import org.pentaho.metastore.api.IMetaStore;
-
-import io.reactivex.Observer;
 
 import java.io.DataInputStream;
 import java.sql.SQLException;
@@ -61,10 +60,12 @@ public interface IDataServiceClientService {
    * @param consumer where to push the results
    * @throws Exception
    */
-  void query( String sql, IStreamingParams streamParams, Map<String, String> params,
-      Observer<List<RowMetaAndData>> consumer ) throws Exception;
+  void query( String sql,
+              IStreamingParams streamParams,
+              Map<String, String> params,
+              Observer<List<RowMetaAndData>> consumer ) throws Exception;
 
-  public interface IStreamingParams {
+  interface IStreamingParams {
     IDataServiceClientService.StreamingMode getWindowMode();
     long getWindowSize();
     long getWindowEvery();

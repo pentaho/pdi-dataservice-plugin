@@ -22,11 +22,10 @@
 
 package org.pentaho.di.trans.dataservice.jdbc.api;
 
+import io.reactivex.Observer;
 import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.IStreamingParams;
-
-import io.reactivex.Observable;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -64,9 +63,9 @@ public interface IThinStatement extends Statement {
    * but results are pushed from the observable. <b>Only available in local mode.</b>
    * @param sql The sql query.
    * @param params params Streaming window parameters.
-   * @return Observable sending each processed streaming window.
+   * @param consumer the consumer for the rows.
    * @throws Exception
    */
-  Observable<List<RowMetaAndData>> executePushQuery( String sql, IStreamingParams params ) throws Exception;
+  void executePushQuery( String sql, IStreamingParams params, Observer<List<RowMetaAndData>> consumer ) throws Exception;
 
 }

@@ -26,9 +26,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-
 import io.reactivex.Observer;
-
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
@@ -363,7 +361,7 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
 
   @Override
   public void query( String sql, IStreamingParams streamParams,
-      Map<String, String> params, Observer<List<RowMetaAndData>> consumer )
+                     Map<String, String> params, Observer<List<RowMetaAndData>> consumer )
     throws Exception {
     throw new UnsupportedOperationException( "Only available in local mode." );
   }

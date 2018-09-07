@@ -24,11 +24,13 @@ package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.reactivex.subjects.PublishSubject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.IStreamingParams;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.StreamingMode;
@@ -45,6 +47,7 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
@@ -334,7 +337,8 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
     when( connection.isLocal() ).thenReturn( true );
     statement.setObject( 1, 1 );
     IStreamingParams params = getStreamParams();
-    statement.executePushQuery( params );
+    PublishSubject<List<RowMetaAndData>> consumer = PublishSubject.create();
+    statement.executePushQuery( params, consumer );
     verify( clientService ).query(
       eq ( "SELECT * FROM dataService WHERE query = 1" ), eq( params ), anyObject(), anyObject() );
   }
