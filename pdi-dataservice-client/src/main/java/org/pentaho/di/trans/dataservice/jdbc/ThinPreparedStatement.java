@@ -23,9 +23,7 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.base.Throwables;
-
-import io.reactivex.Observable;
-
+import io.reactivex.Observer;
 import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.exception.KettleSQLException;
 import org.pentaho.di.core.jdbc.ThinUtil;
@@ -201,9 +199,9 @@ public class ThinPreparedStatement extends ThinStatement implements IThinPrepare
   }
 
   @Override
-  public Observable<List<RowMetaAndData>> executePushQuery( IStreamingParams streamParams )
-    throws Exception {
-    return super.executePushQuery( replaceSql(), streamParams );
+  public void executePushQuery( IStreamingParams streamParams,
+                                Observer<List<RowMetaAndData>> consumer ) throws Exception {
+    super.executePushQuery( replaceSql(), streamParams, consumer );
   }
 
   @Override @NotSupported

@@ -23,7 +23,7 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.collect.ImmutableMap;
-
+import io.reactivex.subjects.PublishSubject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,6 +31,7 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.IStreamingParams;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.StreamingMode;
@@ -42,6 +43,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anything;
@@ -144,6 +146,8 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
     assertThat( statement.getResultSetConcurrency(), is( ResultSet.CONCUR_READ_ONLY ) );
     assertThat( statement.getResultSetHoldability(), is( ResultSet.HOLD_CURSORS_OVER_COMMIT ) );
     assertThat( statement.isClosed(), is( false ) );
+    assertThat( statement.getResultSetType(), is( resultSet.getType() ) );
+    assertThat( statement.getUpdateCount(), equalTo( 0 ) );
 
     statement.close();
     verify( resultSet ).close();
@@ -250,14 +254,16 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
       }
     };
     when( connection.isLocal() ).thenReturn( true );
-    statement.executePushQuery( SQL, params );
-    verify( clientService ).query( eq( SQL ), eq( params ), anyObject(), anyObject() );
+    PublishSubject<List<RowMetaAndData>> consumer = PublishSubject.create();
+    statement.executePushQuery( SQL, params, consumer );
+    verify( clientService ).query( eq( SQL ), eq( params ), anyObject(), eq( consumer ) );
   }
 
   @Test( expected = UnsupportedOperationException.class )
   public void testExecutePushQueryNonLocal() throws Exception {
     when( connection.isLocal() ).thenReturn( false );
-    statement.executePushQuery( SQL, mock( IStreamingParams.class ) );
+    PublishSubject<List<RowMetaAndData>> consumer = PublishSubject.create();
+    statement.executePushQuery( SQL, mock( IStreamingParams.class ), consumer );
   }
 
   @Test
