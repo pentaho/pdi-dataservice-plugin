@@ -42,6 +42,7 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.hamcrest.Matchers;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -50,6 +51,7 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.pentaho.di.core.KettleEnvironment;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.jdbc.api.IThinServiceInformation;
 
@@ -111,6 +113,13 @@ public class RemoteClientTest {
         return "http://localhost:8080/pentaho/kettle" + invocation.getArguments()[ 0 ];
       }
     } );
+  }
+
+  @BeforeClass
+  public static void setUpBeforeClass() throws Exception {
+    if ( !KettleEnvironment.isInitialized() ) {
+      KettleEnvironment.init();
+    }
   }
 
   private void testQueryBefore() throws Exception {
