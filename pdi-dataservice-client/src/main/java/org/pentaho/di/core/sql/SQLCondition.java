@@ -307,7 +307,7 @@ public class SQLCondition {
         ValueMetaAndData extractedConstraint = ThinUtil.extractConstant( part );
         if ( extractedConstraint == null ) {
           throw new KettleSQLException( "Condition parsing error: [" + part + "]" );
-        } else {
+        } else if ( !extractedConstraint.getValueMeta().isNumber() && !extractedConstraint.getValueMeta().isBigNumber() ) {
           part = extractedConstraint.toString();
         }
 
