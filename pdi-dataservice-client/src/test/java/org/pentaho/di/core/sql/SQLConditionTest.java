@@ -37,6 +37,7 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.pentaho.di.core.sql.SQLTest.mockRowMeta;
 
 public class SQLConditionTest extends TestCase {
@@ -1172,5 +1173,170 @@ public class SQLConditionTest extends TestCase {
 
     DateToStrFunction function2 = functions2.iterator().next();
     assertThat( function2.getDateMask(), is( "hh 'o''clock' a, zzzz" ) );
+  }
+
+  /**
+   * Test IN-clause with decimal numbers should not truncate the number.
+   *
+   * @throws KettleSQLException
+   */
+  public void testInNumberDecimalCondition() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateNumberRowMeta();
+
+    String fieldsClause = "A";
+    String conditionClause = "A IN (123.456, -123.456)";
+
+    // Correctness of the next statement is tested in SQLFieldsTest
+    //
+    SQLFields fields = new SQLFields( "Service", rowMeta, fieldsClause );
+
+    SQLCondition sqlCondition = new SQLCondition( "Service", conditionClause, rowMeta, fields );
+    Condition condition = sqlCondition.getCondition();
+
+    assertNotNull( condition );
+    assertFalse( condition.isEmpty() );
+    assertTrue( condition.isAtomic() );
+    assertEquals( Condition.FUNC_IN_LIST, condition.getFunction() );
+
+    assertEquals( fieldsClause, condition.getLeftValuename() );
+    assertEquals( "123.456;-123.456", condition.getRightExactString() );
+  }
+
+  /**
+   * Test IN-clause with decimal big numbers should not truncate the number.
+   *
+   * @throws KettleSQLException
+   */
+  public void testInBigNumberDecimalCondition() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateNumberRowMeta();
+
+    String fieldsClause = "B";
+    String conditionClause = "B IN (123.456, -123.456)";
+
+    // Correctness of the next statement is tested in SQLFieldsTest
+    //
+    SQLFields fields = new SQLFields( "Service", rowMeta, fieldsClause );
+
+    SQLCondition sqlCondition = new SQLCondition( "Service", conditionClause, rowMeta, fields );
+    Condition condition = sqlCondition.getCondition();
+
+    assertNotNull( condition );
+    assertFalse( condition.isEmpty() );
+    assertTrue( condition.isAtomic() );
+    assertEquals( Condition.FUNC_IN_LIST, condition.getFunction() );
+
+    assertEquals( fieldsClause, condition.getLeftValuename() );
+    assertEquals( "123.456;-123.456", condition.getRightExactString() );
+  }
+
+  /**
+   * Test Mondrian, analyzer contains hack:
+   * '%' || 'string' || '%' --> '%string%'
+   *
+   */
+  public void testMondrianContainsCondition() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+
+    String fieldsClause = "CUSTOMERNAME";
+    String conditionClause = "CUSTOMERNAME CONTAINS '%' || 'string' || '%'";
+
+    // Correctness of the next statement is tested in SQLFieldsTest
+    //
+    SQLFields fields = new SQLFields( "Service", rowMeta, fieldsClause );
+
+    SQLCondition sqlCondition = new SQLCondition( "Service", conditionClause, rowMeta, fields );
+    Condition condition = sqlCondition.getCondition();
+
+    assertNotNull( condition );
+    assertFalse( condition.isEmpty() );
+    assertTrue( condition.isAtomic() );
+    assertEquals( Condition.FUNC_CONTAINS, condition.getFunction() );
+
+    assertEquals( fieldsClause, condition.getLeftValuename() );
+    assertEquals( "%string%", condition.getRightExactString() );
+  }
+
+  public void testGetTableAlias() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+
+    String fieldsClause = "CUSTOMERNAME";
+    String tableAlias = "Service";
+    String conditionClause = "CUSTOMERNAME = 'MockConditionClause'";
+
+    SQLFields fields = new SQLFields( tableAlias, rowMeta, fieldsClause );
+
+    SQLCondition condition = new SQLCondition( tableAlias, conditionClause, rowMeta, fields );
+
+    assertEquals( tableAlias, condition.getTableAlias() );
+  }
+
+  public void testGetSelectFields() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+
+    String fieldsClause = "CUSTOMERNAME";
+    String conditionClause = "CUSTOMERNAME = 'MockConditionClause'";
+
+    SQLFields fields = new SQLFields( "Service", rowMeta, fieldsClause );
+
+    SQLCondition condition = new SQLCondition( "Service", conditionClause, rowMeta, fields );
+
+    assertEquals( fields, condition.getSelectFields() );
+  }
+
+  public void testSetGetConditionClause() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+
+    String fieldsClause = "CUSTOMERNAME";
+    String conditionClause = "CUSTOMERNAME = 'MockConditionClause'";
+    String conditionClause2 = "CUSTOMERNAME = 'MockConditionClause2'";
+
+    SQLFields fields = new SQLFields( "Service", rowMeta, fieldsClause );
+
+    SQLCondition condition = new SQLCondition( "Service", conditionClause, rowMeta, fields );
+
+    assertEquals( conditionClause, condition.getConditionClause() );
+
+    condition.setConditionClause( conditionClause2 );
+
+    assertEquals( conditionClause2, condition.getConditionClause() );
+  }
+
+  public void testSetGetServiceFields() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+    RowMetaInterface rowMeta2 = SQLTest.generateServiceRowMeta();
+
+    String fieldsClause = "CUSTOMERNAME";
+    String conditionClause = "CUSTOMERNAME = 'MockConditionClause'";
+
+    SQLFields fields = new SQLFields( "Service", rowMeta, fieldsClause );
+
+    SQLCondition condition = new SQLCondition( "Service", conditionClause, rowMeta, fields );
+
+    assertEquals( rowMeta, condition.getServiceFields() );
+
+    condition.setServiceFields( rowMeta2 );
+
+    assertEquals( rowMeta2, condition.getServiceFields() );
+  }
+
+  public void testSetGetCondition() throws KettleSQLException {
+    RowMetaInterface rowMeta = SQLTest.generateGettingStartedRowMeta();
+    Condition mockCondition = mock( Condition.class );
+    when( mockCondition.isEmpty() ).thenReturn( true );
+
+    String fieldsClause = "CUSTOMERNAME";
+    String conditionClause = "CUSTOMERNAME = 'MockConditionClause'";
+
+    SQLFields fields = new SQLFields( "Service", rowMeta, fieldsClause );
+
+    SQLCondition condition = new SQLCondition( "Service", conditionClause, rowMeta, fields );
+
+    assertNotNull( condition.getCondition() );
+    assertFalse( condition.isEmpty() );
+
+    condition.setCondition( mockCondition );
+
+    assertEquals( mockCondition, condition.getCondition() );
+    assertTrue( condition.isEmpty() );
   }
 }
