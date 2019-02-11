@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -23,6 +23,7 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.exception.KettleSQLException;
 import org.pentaho.di.core.jdbc.ThinUtil;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMeta;
@@ -30,6 +31,7 @@ import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMeta;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaString;
+import org.pentaho.di.core.sql.SQL;
 import org.pentaho.di.trans.dataservice.jdbc.api.IThinServiceInformation;
 import org.pentaho.di.version.BuildVersion;
 
@@ -196,8 +198,17 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
   public ResultSet getColumns( String catalog, String schemaPattern, String tableNamePattern,
     String columnNamePattern ) throws SQLException {
 
+    String calculatedTableNamePattern = "";
+    try {
+      SQL sql = new SQL( tableNamePattern );
+      calculatedTableNamePattern = sql.hasServiceClause() ? sql.getServiceName() : tableNamePattern;
+    } catch ( KettleSQLException e ) {
+      //ignore the exception, and just leave the calculated table name pattern to empty string
+      logger.info( "The received tableNamePattern[" + tableNamePattern + "] didn't yield a service name, so we will continue with an empty string" );
+    }
+
     logger.info( "getColumns("
-      + catalog + ", " + schemaPattern + ", " + tableNamePattern + ", " + columnNamePattern + ")" );
+      + catalog + ", " + schemaPattern + ", " + calculatedTableNamePattern + ", " + columnNamePattern + ")" );
 
     try {
 
@@ -236,7 +247,7 @@ public class ThinDatabaseMetaData extends ThinBase implements DatabaseMetaData {
       rowMeta.addValueMeta( new ValueMetaString( "SOURCE_CURRENCY_SYMBOL" ) ); // Mask currency symbol
 
       List<Object[]> rows = new ArrayList<Object[]>();
-      for ( IThinServiceInformation service : getServices( tableNamePattern ) ) {
+      for ( IThinServiceInformation service : getServices( calculatedTableNamePattern ) ) {
         int ordinal = 1;
         for ( ValueMetaInterface valueMeta : service.getServiceFields().getValueMetaList() ) {
           if ( Const.isEmpty( columnNamePattern ) || ThinUtil.like( valueMeta.getName(), columnNamePattern ) ) {

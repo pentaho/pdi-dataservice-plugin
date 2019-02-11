@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -37,6 +37,7 @@ import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import java.lang.reflect.Method;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -135,6 +136,39 @@ public class ThinDatabaseMetaDataTest extends JDBCTestBase<ThinDatabaseMetaData>
         assertThat( method.toString(), (Boolean) invoke( metaData, method ), equalTo( supported ) );
       }
     }
+  }
+
+  @Test
+  public void testGetColumnsWithSQLExpressionAsTableNamePattern() throws Exception {
+    String tableName = "dataServiceTable";
+    String sql = "select * from " + tableName;
+    RowMeta rowMeta = new RowMeta();
+    rowMeta.addValueMeta( new ValueMetaString( "valuename" ) );
+    when( clientService.getServiceNames( tableName ) ).thenReturn(
+      Arrays.asList( tableName ) );
+    when( clientService.getServiceInformation( tableName ) ).thenReturn(
+      new ThinServiceInformation( tableName, false, rowMeta )
+    );
+
+    ResultSet columns = metaData.getColumns( null, null, sql, null );
+    assertThat( columns.next(), is( true ) );
+    assertThat( columns.getString( "TABLE_NAME" ), equalTo( tableName ) );
+  }
+
+  @Test
+  public void testGetColumnsTableNamePattern() throws Exception {
+    String tableName = "dataServiceTable";
+    RowMeta rowMeta = new RowMeta();
+    rowMeta.addValueMeta( new ValueMetaString( "valuename" ) );
+    when( clientService.getServiceNames( tableName ) ).thenReturn(
+      Arrays.asList( tableName ) );
+    when( clientService.getServiceInformation( tableName ) ).thenReturn(
+      new ThinServiceInformation( tableName, false, rowMeta )
+    );
+
+    ResultSet columns = metaData.getColumns( null, null, tableName, null );
+    assertThat( columns.next(), is( true ) );
+    assertThat( columns.getString( "TABLE_NAME" ), equalTo( tableName ) );
   }
 
   @Override protected ThinDatabaseMetaData getTestObject() {
