@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -123,6 +123,10 @@ public class SQL {
     }
     foundClause = ThinUtil.findClauseWithRest( foundClause.getRest(), "LIMIT" );
     limitClause = foundClause.getClause();
+  }
+
+  public boolean hasServiceClause() {
+    return !Const.isEmpty( serviceClause );
   }
 
   private void parseServiceClause() throws KettleSQLException {
