@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -58,6 +58,7 @@ import org.pentaho.di.trans.dataservice.jdbc.api.IThinServiceInformation;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.sql.SQLException;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
@@ -65,6 +66,8 @@ import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -212,9 +215,9 @@ public class RemoteClientTest {
     EntityUtils.consume( httpPost.getEntity() );
     actual = URLDecoder.decode( actual, "UTF-8" );
     assertThat( actual, equalTo(
-            "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3" +
-                    "&MaxRows=200&WindowMode=ROW_BASED&WindowSize=1" +
-                    "&WindowEvery=2&WindowLimit=3&debugtrans=/tmp/genTrans.ktr"
+            "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3"
+                    + "&MaxRows=200&WindowMode=ROW_BASED&WindowSize=1"
+                    + "&WindowEvery=2&WindowLimit=3&debugtrans=/tmp/genTrans.ktr"
     ) );
     assertThat( (Integer) httpPost.getParams().getParameter( "http.socket.timeout" ), equalTo( 0 ) );
   }
@@ -234,8 +237,8 @@ public class RemoteClientTest {
     EntityUtils.consume( httpPost.getEntity() );
     actual = URLDecoder.decode( actual, "UTF-8" );
     assertThat( actual, equalTo(
-            "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3" +
-                    "&WindowMode=ROW_BASED&WindowSize=1&WindowEvery=2&WindowLimit=3&debugtrans=/tmp/genTrans.ktr"
+            "PARAMETER_ECHO=hello world&SQL=SELECT * FROM myService WHERE id = 3"
+                    + "&WindowMode=ROW_BASED&WindowSize=1&WindowEvery=2&WindowLimit=3&debugtrans=/tmp/genTrans.ktr"
     ) );
     assertThat( (Integer) httpPost.getParams().getParameter( "http.socket.timeout" ), equalTo( 0 ) );
   }
@@ -385,6 +388,41 @@ public class RemoteClientTest {
     when( response.getEntity() ).thenReturn( entity );
     when( httpClient.execute( isA( HttpPost.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
     assertThat( remoteClient.execService( "/status" ), equalTo( "kettle status" ) );
+  }
+
+  @Test
+  public void testGetServiceNames() throws Exception {
+    String url = "http://localhost:8080/pentaho/kettle/listServices";
+    String xml = Resources.toString( ClassLoader.getSystemResource( "jdbc/listServices.xml" ), Charsets.UTF_8 );
+
+    when( response.getStatusLine() ).thenReturn( statusLine );
+    when( statusLine.getStatusCode() ).thenReturn( 200 );
+    when( response.getEntity() ).thenReturn( entity );
+    when( httpClient.execute( isA( HttpGet.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
+
+    remoteClient.setResponse( xml );
+
+    List<String> serviceList = remoteClient.getServiceNames();
+    assertNotNull( serviceList );
+    assertFalse( serviceList.isEmpty() );
+    assertThat( serviceList.size(), is( 1 ) );
+    assertTrue( serviceList.contains( "sequence" ) );
+  }
+
+  @Test
+  public void testGetServiceNamesPassingServiceNameWithNoMatch() throws Exception {
+    String url = "http://localhost:8080/pentaho/kettle/listServices";
+    String xml = Resources.toString( ClassLoader.getSystemResource( "jdbc/emptyListServices.xml" ), Charsets.UTF_8 );
+
+    when( response.getStatusLine() ).thenReturn( statusLine );
+    when( statusLine.getStatusCode() ).thenReturn( 200 );
+    when( response.getEntity() ).thenReturn( entity );
+    when( httpClient.execute( isA( HttpGet.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
+
+    remoteClient.setResponse( xml );
+
+    List<String> serviceList = remoteClient.getServiceNames( "noMatch" );
+    assertTrue( serviceList.isEmpty() );
   }
 
   private class RemoteClientMock extends RemoteClient {

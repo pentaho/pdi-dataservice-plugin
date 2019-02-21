@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -27,6 +27,7 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import io.reactivex.Observer;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
@@ -56,6 +57,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -242,11 +244,7 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
 
   @Override public ThinServiceInformation getServiceInformation( String name ) throws SQLException {
     try {
-      String result = execService( "/listServices" );
-      Document doc = XMLHandler.loadXMLString( createDocumentBuilder(), result );
-      Node servicesNode = XMLHandler.getSubNode( doc, "services" );
-      List<Node> serviceNodes = XMLHandler.getNodes( servicesNode, "service" );
-
+      List<Node> serviceNodes = getServiceNodes( name );
       for ( Node serviceNode : serviceNodes ) {
         String serviceName = XMLHandler.getTagValue( serviceNode, "name" );
         boolean streaming = XMLHandler.getTagValue( serviceNode, "streaming" ).equals( "Y" );
@@ -264,26 +262,37 @@ class RemoteClient implements IDataServiceClientService, ConnectionAbortingSuppo
     return null;
   }
 
-  @Override public List<String> getServiceNames( String serviceName ) throws SQLException {
-    return getServiceNames();
+  @Override public List<String> getServiceNames() throws SQLException {
+    return getServiceNames( null );
   }
 
-  @Override public List<String> getServiceNames() throws SQLException {
+  @Override public List<String> getServiceNames( String serviceName ) throws SQLException {
+    return getServices( serviceName );
+  }
+
+  private List<String> getServices( String serviceName ) throws SQLException {
     List<String> serviceNames = new ArrayList<String>();
     try {
-      String result = execService( "/listServices" );
-      Document doc = XMLHandler.loadXMLString( createDocumentBuilder(), result );
-      Node servicesNode = XMLHandler.getSubNode( doc, "services" );
-      List<Node> serviceNodes = XMLHandler.getNodes( servicesNode, "service" );
-
+      List<Node> serviceNodes = getServiceNodes( serviceName );
       for ( Node serviceNode : serviceNodes ) {
-        String serviceName = XMLHandler.getTagValue( serviceNode, "name" );
-        serviceNames.add( serviceName );
+        serviceNames.add( XMLHandler.getTagValue( serviceNode, "name" ) );
       }
     } catch ( Exception e ) {
       throw serverException( e );
     }
     return serviceNames;
+  }
+
+  private List<Node> getServiceNodes( String name ) throws Exception {
+    StringBuilder serviceArguments = new StringBuilder().append( "/listServices" );
+    if ( StringUtils.isNotBlank( name ) ) {
+      serviceArguments.append( "?serviceName=" );
+      serviceArguments.append( URLEncoder.encode( name, CONTENT_CHARSET ) );
+    }
+    String result = execService( serviceArguments.toString() );
+    Document doc = XMLHandler.loadXMLString( createDocumentBuilder(), result );
+    Node servicesNode = XMLHandler.getSubNode( doc, "services" );
+    return XMLHandler.getNodes( servicesNode, "service" );
   }
 
   @Override
