@@ -23,8 +23,6 @@
     <url>scm:git:git@github.com:pentaho/${project.artifactId}.git</url>
   </scm>
   <properties>
-    <karaf-maven-plugin.aggregateFeatures>false</karaf-maven-plugin.aggregateFeatures>
-    <karaf-maven-plugin.version>3.0.8</karaf-maven-plugin.version>
     <mockito.version>1.9.5</mockito.version>
     <guava.version>17.0</guava.version>
     <commons.collections.version>3.2.2</commons.collections.version>
@@ -81,39 +79,8 @@
         </plugins>
       </reporting>
     </profile>
-    <profile>
-      <id>feature-generation</id>
-      <activation>
-        <file>
-          <exists>${basedir}/src/main/feature</exists>
-        </file>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.karaf.tooling</groupId>
-            <artifactId>karaf-maven-plugin</artifactId>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
   </profiles>
 
-  <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.karaf.tooling</groupId>
-          <artifactId>karaf-maven-plugin</artifactId>
-          <version>${karaf-maven-plugin.version}</version>
-          <extensions>true</extensions>
-          <configuration>
-            <aggregateFeatures>${karaf-maven-plugin.aggregateFeatures}</aggregateFeatures>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-  </build>
 
   <repositories>
     <repository>
