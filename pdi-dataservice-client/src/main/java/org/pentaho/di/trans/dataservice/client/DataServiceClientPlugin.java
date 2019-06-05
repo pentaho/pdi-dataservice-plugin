@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -70,7 +70,7 @@ public class DataServiceClientPlugin extends BaseDatabaseMeta implements Databas
   }
 
   @Override public String getExtraOptionsHelpText() {
-    return Const.getDocUrl( "Products/Data_Integration/Data_Services/Optimize" );
+    return Const.getDocUrl( "Products/Optimize_a_Pentaho_Data_Service" );
   }
 
   @Override
