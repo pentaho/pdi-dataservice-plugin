@@ -30,6 +30,10 @@
         <include>README.txt</include>
       </includes>
     </fileSet>
+    <fileSet>
+      <directory>src/resources</directory>
+      <outputDirectory>.</outputDirectory>
+    </fileSet>
   </fileSets>
 
   <dependencySets>
@@ -40,6 +44,7 @@
         <include>pentaho-kettle:kettle-engine:jar:*</include>
         <include>pentaho:pdi-dataservice-client-plugin:jar:*</include>
         <include>pentaho:pdi-dataservice-client-plugin-api:jar:*</include>
+        <include>org.pentaho:pentaho-encryption-support:jar:*</include>
         <include>org.apache.commons:commons-vfs2:*</include>
         <include>commons-codec:commons-codec:*</include>
         <include>commons-lang:commons-lang:*</include>

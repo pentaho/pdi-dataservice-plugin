@@ -33,5 +33,10 @@
       <artifactId>kettle-engine</artifactId>
       <version>${pdi.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.pentaho</groupId>
+      <artifactId>pentaho-encryption-support</artifactId>
+      <version>${pdi.version}</version>
+    </dependency>
   </dependencies>
 </project>
