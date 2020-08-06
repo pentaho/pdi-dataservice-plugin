@@ -45,6 +45,7 @@
         <include>pentaho:pdi-dataservice-client-plugin:jar:*</include>
         <include>pentaho:pdi-dataservice-client-plugin-api:jar:*</include>
         <include>org.pentaho:pentaho-encryption-support:jar:*</include>
+        <include>pentaho:metastore:jar:*</include>
         <include>org.apache.commons:commons-vfs2:*</include>
         <include>commons-codec:commons-codec:*</include>
         <include>commons-lang:commons-lang:*</include>
