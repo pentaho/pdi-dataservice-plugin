@@ -38,5 +38,10 @@
       <artifactId>pentaho-encryption-support</artifactId>
       <version>${pdi.version}</version>
     </dependency>
+    <dependency>
+      <groupId>pentaho</groupId>
+      <artifactId>metastore</artifactId>
+      <version>${pdi.version}</version>
+    </dependency>
   </dependencies>
 </project>
