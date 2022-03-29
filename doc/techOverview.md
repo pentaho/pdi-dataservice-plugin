@@ -22,13 +22,13 @@
 0. [Troubleshooting](#troubleshooting)
 
 ## Use Cases
-Pentaho Data Services enables users to access data with the ease of use and standard skillset of the SQL query language, while also leveraging the power and complexity of a Pentaho Data Integration transformation. 
+Pentaho Data Services enables users to access data with the ease of use and standard skillset of the SQL query language, while also leveraging the power and complexity of a Pentaho Data Integration transformation.
 
 A standard use case that has driven the development of Pentaho Data Services is to easily serve the Data Scientist who would like access to data in an analytics tool like Tableau or R Studio, but doesn’t want to struggle with the heavy lifting of cleansing the data, blending it, dealing with IT security concerns, etc. A transformation is developed as a Data Service, and then exposed through a DI Server, giving the Data Scientist easy access to data through his/her favorite tools via standard JDBC.
 
 Data Services is a candidate for data preparation and service to the embedded and OEM solutions that many of our customers craft. Data Services can replace CDA, or be leveraged through CDA, in some solutions where the queries are consistently querying the same table of data, with filtering and sorting (as examples) as primary capabilities for the embedded solution. This is a prime use case, as the improvements to query and parameter pushdown now optimize for these capabilities.  
 
-Data Services can be used where any standard JDBC connection can be used to deliver data. You can use Data Services as a source to Pentaho Reporting, Analytics, as a service in another PDI job or transformation. See documented boundaries for the Pentaho suite of tools below. Performance can b improved using optimizations, and mileage will vary. 
+Data Services can be used where any standard JDBC connection can be used to deliver data. You can use Data Services as a source to Pentaho Reporting, Analytics, as a service in another PDI job or transformation. See documented boundaries for the Pentaho suite of tools below. Performance can b improved using optimizations, and mileage will vary.
 
 The Streamlined Data Refinery, with improvements made to PDI’s auto-model and auto-publish capabilities, can now be used to automate the creation and publishing of new Data Services.  This allows IT to give end users a self-service capability for complex data sources. The transformation developer can design a Data Service on the auto-model step, publish this Data Service and model, and have a streamlined solution for data extraction and analytics that can be on-demand. Pushdown query and parameter optimizations have been improved and can mitigate some latency in this use case, but consideration must still be given to the size of the dataset queried and the on-demand expectation of the data delivery. Carefully review the limitations sections in this document for boundaries on when to use this solution.  Many of the improvements made in the latest release were driven from the BioMe demonstration, which is a sample SDR solution.
 
@@ -37,10 +37,10 @@ The Streamlined Data Refinery, with improvements made to PDI’s auto-model and 
 Data Services is implemented as a set of OSGi plugins and is included in all core Pentaho products. It allows data to be processed in Pentaho Data Integration and used in another tool in the form of a virtual table.
 
 Any Transformation can be used as a virtual table. Here's out it works:
-  0. In Spoon, an ETL designer [creates a Data Service](https://help.pentaho.com/Documentation/8.0/Products/Data_Integration/Data_Services/020#Create_a_Pentaho_Data_Service) on the step which will generate the virtual table's rows.
+  0. In Spoon, an ETL designer [creates a Data Service](https://help.hitachivantara.com/Documentation/Pentaho/9.3/Products/Pentaho_Data_Services#Creating_a_regular_or_streaming_Pentaho_Data_Service) on the step which will generate the virtual table's rows.
   0. Metadata is saved to the transformation describing the the virtual table's name and any optimizations applied.
   0. On saving the transformation to a repository, a table in the repository's MetaStore maps the virtual table to the transformation in which it is defined. A DI Server must be connected to this repository and running for any Data Services to be accessible.
-  0. A user with a JDBC client [connects to the server](https://help.pentaho.com/Documentation/8.0/Products/Data_Integration/Data_Services/040). The client can list available Data Services (virtual tables), view table structure, and submit SQL SELECT queries.
+  0. A user with a JDBC client [connects to the server](https://help.hitachivantara.com/Documentation/Pentaho/9.3/Products/Pentaho_Data_Services#Connect_to_the_Pentaho_Data_Service_from_a_Pentaho_tool). The client can list available Data Services (virtual tables), view table structure, and submit SQL SELECT queries.
   0. When the server receives a SQL query, the table name is resolved and the user-defined **Service Transformation** is loaded from the repository. The SQL is parsed and a second **Generated Transformation** is created, containing all of the query operations (grouping, sorting, filtering).  
   0. Optimizations may be applied to the Service Transformation, depending on the user's query and constraints of the optimization type. These optimizations are intended to reduce the number of rows processed during query execution.
   0. Both transformations execute. The service transformation will only execute those steps necessary to produce rows from the selected step.  Output from the service transformation is injected into the generated transformation, and output of the generated transformation is returned to the user as a Result Set.
@@ -55,9 +55,9 @@ Although any transformation step can be used as a Data Service, it is highly rec
 
 ### Testing
 
-Data services can be tested directly within Spoon. After creating the data service, use the test dialog to run test queries [(see help)](https://help.pentaho.com/Documentation/8.0/Products/Data_Integration/Data_Services/020#Create_a_Pentaho_Data_Service).
+Data services can be tested directly within Spoon. After creating the data service, use the test dialog to run test queries [(see help)](https://help.hitachivantara.com/Documentation/Pentaho/9.3/Products/Pentaho_Data_Services#cp_pentaho_test_a_pentaho_data_service_pentaho_data_services_pdi).
 
-It is also highly recommended to save the transformation to a DI server and test the service from a [new database connection](https://help.pentaho.com/Documentation/8.0/Products/Data_Integration/Data_Services/040) within Spoon. This will ensure that any resources used by the transformation will be accessible when executing remotely.
+It is also highly recommended to save the transformation to a DI server and test the service from a [new database connection](https://help.hitachivantara.com/Documentation/Pentaho/9.3/Products/Pentaho_Data_Services#Connect_to_the_Pentaho_Data_Service_from_a_Pentaho_tool) within Spoon. This will ensure that any resources used by the transformation will be accessible when executing remotely.
 
 ### Optimizations
 
@@ -71,13 +71,13 @@ Caching is designed to run the Service Transformation only once for similar quer
 
 On subsequent queries, this optimization will determine if the cache holds enough rows to answer the query. If it does, the Service Transformation will not run. Rows will be injected into the Generated Transformation directly from the cache. A Generated Transformation will always be created and run for each query.
 
-Caching is enabled by default when a Data Service is created. The timeout for a cache (TTL) can be configured on a per-service basis within Spoon. There is no option today to explicitly clear the cache, but disabling the cache and running the transformation will clear the cache. 
+Caching is enabled by default when a Data Service is created. The timeout for a cache (TTL) can be configured on a per-service basis within Spoon. There is no option today to explicitly clear the cache, but disabling the cache and running the transformation will clear the cache.
 
 Depending on system resources and the size of the service output, [cache limits](#result-set-size) may be reached and performance will degrade severely.
 
 #### Query Pushdown
 
-Query Pushdown should be used when a service imports rows form an 'Table Input' or 'Mongo Input' Step. Use the [help pages](https://help.pentaho.com/Documentation/8.0/Products/Data_Integration/Data_Services/020#Optimize_a_Pentaho_Data_Service) to configure a Query Pushdown optimization.
+Query Pushdown should be used when a service imports rows form an 'Table Input' or 'Mongo Input' Step. Use the [help pages](https://help.hitachivantara.com/Documentation/Pentaho/9.3/Products/Optimize_a_Pentaho_Data_Service) to configure a Query Pushdown optimization.
 
 This optimization will analyze the WHERE clause of an incoming query and push parts of the query down to an input step. The query fragment will be reformatted as SQL or JSON, depending on the input step type.
 
@@ -89,7 +89,7 @@ Parameter Pushdown requires special consideration when designing as Service Tran
 
 Mappings are configured to correlate virtual table columns to transformation parameters. When a query contains a simple `COLUMN = 'value'` predicate in the WHERE clause, the corresponding transformation parameter is set to `value`. A formatting string can optionally be modified to add a prefix or postfix to the value. A default value can be set from the Transformation Properties dialog.
 
-When designing the transformation, be careful of the case where the parameter may be empty, meaning the query was not optimized. For example, consider the [marsPhoto sample transformation](https://github.com/hudak/nasa-samples/blob/master/mars.ktr)
+When designing the transformation, be careful of the case where the parameter may be empty, meaning the query was not optimized. For example, consider the [marsPhoto sample transformation](https://github.com/pentaho/pentaho-engineering-samples/tree/master/Product%20Samples/Pentaho_Data_Integration/Transformations/mars.ktr)
 
 ![Parameter Pushdown configuration](resources/paramPushdown.png)
 
@@ -120,7 +120,7 @@ Hosting Data Services from **Carte** is not yet officially supported.
 ## User Guide
 
 ### SQL Queries
-Data Services support a limited subset of SQL.  The capabilities are documented here: [6.0](http://help.pentaho.com/Documentation/6.0/0L0/0Y0/090/080), [6.1](http://help.pentaho.com/Documentation/6.1/0L0/0Y0/090/080), [7.0](http://help.pentaho.com/Documentation/7.0/0L0/0Y0/090/080), [7.1](http://help.pentaho.com/Documentation/7.1/0L0/0Y0/090/080), [8.0](http://help.pentaho.com/Documentation/8.0/Products/Data_Integration/Data_Services/080)
+Data Services support a limited subset of SQL.  The capabilities are documented here: [9.3](https://help.hitachivantara.com/Documentation/Pentaho/9.3/Products/Pentaho_Data_Service_SQL_support_reference_and_other_development_considerations)
 
 
 **Some important things to keep in mind:**
@@ -198,7 +198,7 @@ Be aware, however, that some external tools are likely to hit issues with Data S
 
 ### Multi-tenancy
 
-Many of the [techniques](https://help.pentaho.com/Documentation/8.0/Developer_Center/Multi-Tenancy) used to support multi-tenancy should transparently work with Data Services.  For example, when using a "sharded" approach to managing a multi-tentanted environment, each tenant will have its own Data Service.  Custom logic can then be used to map a user's session information to the Data Service connection appropriate for a given tenant.  
+Many of the [techniques](https://help.hitachivantara.com/Documentation/Pentaho/9.3/Developer_center/Multi-tenancy) used to support multi-tenancy should transparently work with Data Services.  For example, when using a "sharded" approach to managing a multi-tentanted environment, each tenant will have its own Data Service.  Custom logic can then be used to map a user's session information to the Data Service connection appropriate for a given tenant.  
 
 For Analyzer, Dynamic Schema Processors can similarly be used to enforce limited views of a Data Service in much the same way as with ordinary relational databases.  By adding templated &lt;SQL&gt; in the &lt;Table&gt; tag of the Mondrian schema for the Data Service virtual table, a dynamic schema processor can ensure that an appropriate tenant contraint is included in each WHERE clause issued to the Data Service.  
 
@@ -216,7 +216,7 @@ Caching can be disabled from the Data Service dialog in Spoon. This will ensure 
 This issue may be partially resolved when cache persistence is supported. ([BACKLOG-2835](http://jira.pentaho.com/browse/BACKLOG-2835)) Additional development work will be needed to stream results from cache. ([BACKLOG-6874](http://jira.pentaho.com/browse/BACKLOG-6874))
 
 ## Troubleshooting
-The help [docs](https://help.pentaho.com/Documentation/8.0/Setup/Administration/Troubleshooting/Data_Integration_Issues#Troubleshoot_Pentaho_Data_Service_Issues) have some good suggestions for troubleshooting basic issues.  Some additional things to keep in mind:
+The help [docs](https://help.hitachivantara.com/Documentation/Pentaho/9.3/Setup/Data_integration_issues#Troubleshoot_Pentaho_data_service_issues) have some good suggestions for troubleshooting basic issues.  Some additional things to keep in mind:
 
 When troubleshooting a data service, running within the Data Service Test dialog is the simplest way to collect information about what’s going wrong, since it allows viewing DEBUG level logging of both the Generated and Service transformation.  Often the errors from one or both of these logs will identify the cause of a failure.
 
@@ -224,6 +224,6 @@ If you encounter errors when executing your data service remotely which you did 
 
 Reviewing the di-server logs can provide additional information about the failure.  Typically the error information returned to the jdbc client will be fairly generic, but the server logs should provide more detailed information and stack traces connected with the failure.
 
-Additionally, setting the debugtrans connection parameter will allow you to write out the generated transformation to a location you specify.  Being able to review the generated transformation can occasionally identify the cause of problems (see the “Required Parameters” section of [Connect to a Pentaho Data Service](https://help.pentaho.com/Documentation/8.0/Products/Data_Integration/Data_Services/040))
+Additionally, setting the debugtrans connection parameter will allow you to write out the generated transformation to a location you specify.  Being able to review the generated transformation can occasionally identify the cause of problems (see the “Required Parameters” section of [Connect to a Pentaho Data Service](https://help.hitachivantara.com/Documentation/Pentaho/9.3/Products/Pentaho_Data_Services#Connect_to_the_Pentaho_Data_Service_from_a_Pentaho_tool))
 
 One issue that can occur under heavy usage with data services is that a large amount of memory can be consumed, eventually leading to OOM if intensive enough.  This can happen because generated transformations used when executing SQL will be kept around until the cleanup thread removes them, which by default only happens every 4 hours.  If Data Services will be frequently queried, the cleanup job interval should be adjusted to accommodate by setting the KETTLE_CARTE_OBJECT_TIMEOUT_MINUTES property.  [PDI-14491](http://jira.pentaho.com/browse/PDI-14491) is intended to address the flood of carte objects that can occur.
