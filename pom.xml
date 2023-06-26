@@ -24,7 +24,6 @@
   </scm>
   <properties>
     <mockito.version>1.9.5</mockito.version>
-    <guava.version>17.0</guava.version>
     <commons.collections.version>3.2.2</commons.collections.version>
     <pdi.version>9.6.0.0-SNAPSHOT</pdi.version>
     <pentaho-metastore.version>9.6.0.0-SNAPSHOT</pentaho-metastore.version>
