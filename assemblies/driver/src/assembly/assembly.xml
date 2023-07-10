@@ -47,6 +47,7 @@
         <include>org.pentaho:pentaho-encryption-support:jar:*</include>
         <include>pentaho:metastore:jar:*</include>
         <include>org.apache.commons:commons-vfs2:*</include>
+        <include>org.apache.commons:commons-lang3:*</include>
         <include>commons-codec:commons-codec:*</include>
         <include>commons-lang:commons-lang:*</include>
         <include>commons-logging:commons-logging:*</include>
