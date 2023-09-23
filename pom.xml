@@ -5,11 +5,11 @@
   <parent>
     <groupId>org.pentaho</groupId>
     <artifactId>pentaho-ce-jar-parent-pom</artifactId>
-    <version>10.1.0.0-SNAPSHOT</version>
+    <version>10.1.0.0-30</version>
   </parent>
   <groupId>pentaho</groupId>
   <artifactId>pdi-dataservice-client</artifactId>
-  <version>10.1.0.0-SNAPSHOT</version>
+  <version>10.1.0.0-30</version>
   <packaging>pom</packaging>
   <name>Dataservice client parent project</name>
   <modules>
@@ -25,8 +25,8 @@
   <properties>
     <mockito.version>1.9.5</mockito.version>
     <commons.collections.version>3.2.2</commons.collections.version>
-    <pdi.version>10.1.0.0-SNAPSHOT</pdi.version>
-    <pentaho-metastore.version>10.1.0.0-SNAPSHOT</pentaho-metastore.version>
+    <pdi.version>10.1.0.0-30</pdi.version>
+    <pentaho-metastore.version>10.1.0.0-30</pentaho-metastore.version>
     <rxjava.version>2.2.3</rxjava.version>
   </properties>
   <profiles>
