@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService.IStreamingParams;
@@ -53,13 +53,13 @@ import java.util.Map;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.same;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.anyMap;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -97,7 +97,7 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
     DataInputStream dataInputStream = MockDataInput.dual().toDataInputStream();
     DataInputStream dataInputStreamStreaming = MockDataInput.dual().toDataInputStream();
     when( clientService.query( anyString(), anyInt(), anyMap() ) ).thenReturn( dataInputStream );
-    when( clientService.query( anyString(),anyObject(), anyLong(), anyLong(), anyLong(), anyMap() ) )
+    when( clientService.query( anyString(),any(), anyLong(), anyLong(), anyLong(), anyMap() ) )
             .thenReturn( dataInputStreamStreaming );
     when( resultFactory.loadResultSet( same( dataInputStream ), same( clientService ) ) ).thenReturn( resultSet );
     when( resultFactory.loadResultSet( same( dataInputStreamStreaming ), same( clientService ) ) )
@@ -340,7 +340,7 @@ public class ThinPreparedStatementTest extends JDBCTestBase<ThinPreparedStatemen
     PublishSubject<List<RowMetaAndData>> consumer = PublishSubject.create();
     statement.executePushQuery( params, consumer );
     verify( clientService ).query(
-      eq ( "SELECT * FROM dataService WHERE query = 1" ), eq( params ), anyObject(), anyObject() );
+      eq ( "SELECT * FROM dataService WHERE query = 1" ), eq( params ), any(), any() );
   }
 
   private IStreamingParams getStreamParams() {

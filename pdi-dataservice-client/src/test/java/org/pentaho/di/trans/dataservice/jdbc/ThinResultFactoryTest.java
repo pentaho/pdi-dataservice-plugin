@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -46,7 +46,7 @@ import static org.mockito.Mockito.when;
  * @author nhudak
  */
 
-@RunWith( org.mockito.runners.MockitoJUnitRunner.class )
+@RunWith( org.mockito.junit.MockitoJUnitRunner.class )
 public class ThinResultFactoryTest {
 
   @Mock IDataServiceClientService client;

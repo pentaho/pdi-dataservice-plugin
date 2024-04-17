@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -49,7 +49,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.pentaho.di.core.KettleEnvironment;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
@@ -70,9 +70,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.isA;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -345,7 +345,6 @@ public class RemoteClientTest {
 
     when( response.getStatusLine() ).thenReturn( statusLine );
     when( statusLine.getStatusCode() ).thenReturn( 200 );
-    when( response.getEntity() ).thenReturn( entity );
     when( httpClient.execute( isA( HttpGet.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
 
     remoteClient.setResponse( xml );
@@ -385,8 +384,6 @@ public class RemoteClientTest {
     }
     when( response.getStatusLine() ).thenReturn( statusLine );
     when( statusLine.getStatusCode() ).thenReturn( 200 );
-    when( response.getEntity() ).thenReturn( entity );
-    when( httpClient.execute( isA( HttpPost.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
     assertThat( remoteClient.execService( "/status" ), equalTo( "kettle status" ) );
   }
 
@@ -397,7 +394,6 @@ public class RemoteClientTest {
 
     when( response.getStatusLine() ).thenReturn( statusLine );
     when( statusLine.getStatusCode() ).thenReturn( 200 );
-    when( response.getEntity() ).thenReturn( entity );
     when( httpClient.execute( isA( HttpGet.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
 
     remoteClient.setResponse( xml );
@@ -416,7 +412,6 @@ public class RemoteClientTest {
 
     when( response.getStatusLine() ).thenReturn( statusLine );
     when( statusLine.getStatusCode() ).thenReturn( 200 );
-    when( response.getEntity() ).thenReturn( entity );
     when( httpClient.execute( isA( HttpGet.class ), isA( HttpClientContext.class ) ) ).thenReturn( response );
 
     remoteClient.setResponse( xml );
