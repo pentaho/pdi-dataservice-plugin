@@ -23,7 +23,7 @@
     <url>scm:git:git@github.com:pentaho/${project.artifactId}.git</url>
   </scm>
   <properties>
-    <mockito.version>1.9.5</mockito.version>
+    <mockito.version>5.10.0</mockito.version>
     <commons.collections.version>3.2.2</commons.collections.version>
     <pdi.version>10.2.0.0-SNAPSHOT</pdi.version>
     <pentaho-metastore.version>10.2.0.0-SNAPSHOT</pentaho-metastore.version>

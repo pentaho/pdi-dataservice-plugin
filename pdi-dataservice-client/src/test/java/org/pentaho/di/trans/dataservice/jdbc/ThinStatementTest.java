@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2018 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -28,8 +28,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.trans.dataservice.client.api.IDataServiceClientService;
@@ -57,11 +58,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.anyMap;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -97,23 +98,8 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
     statement = new ThinStatement( connection, resultFactory );
     assertThat( statement.getConnection(), sameInstance( (Connection) connection ) );
 
-    when( clientService.query( anyString(), anyInt() ) ).then( new Answer<DataInputStream>() {
-      @Override public DataInputStream answer( InvocationOnMock invocation ) throws Throwable {
-        return mock( DataInputStream.class );
-      }
-    } );
-
-    when( clientService.query( anyString(), any(), anyLong(), anyLong(), anyLong() ) )
-            .then( new Answer<DataInputStream>() {
-      @Override public DataInputStream answer( InvocationOnMock invocation ) throws Throwable {
-        return mock( DataInputStream.class );
-      }
-    } );
-
-    when( resultSet.getHeader() ).thenReturn( header );
-    when( header.getServiceObjectId() ).thenReturn( SERVICE_OBJECT_ID );
     when( connection.getClientService() ).thenReturn( clientService );
-    when( resultFactory.loadResultSet( any( DataInputStream.class ), any( IDataServiceClientService.class ) ) )
+    when( resultFactory.loadResultSet( Mockito.<DataInputStream>any(), Mockito.<IDataServiceClientService>any() ) )
         .thenReturn( resultSet );
   }
 
@@ -256,7 +242,7 @@ public class ThinStatementTest extends JDBCTestBase<ThinStatement> {
     when( connection.isLocal() ).thenReturn( true );
     PublishSubject<List<RowMetaAndData>> consumer = PublishSubject.create();
     statement.executePushQuery( SQL, params, consumer );
-    verify( clientService ).query( eq( SQL ), eq( params ), anyObject(), eq( consumer ) );
+    verify( clientService ).query( eq( SQL ), eq( params ), any(), eq( consumer ) );
   }
 
   @Test( expected = UnsupportedOperationException.class )
