@@ -7,20 +7,20 @@
     <artifactId>pdi-dataservice-client-assemblies</artifactId>
     <version>10.3.0.0-SNAPSHOT</version>
   </parent>
-  <artifactId>pdi-dataservice-driver-bundle</artifactId>
+  <artifactId>pdi-dataservice-driver</artifactId>
   <name>Pentaho Community Edition Project: ${project.artifactId}</name>
-  <description>PDI Data Services driver bundle</description>
+  <description>PDI Data Services driver</description>
   <packaging>pom</packaging>
   <url>http://www.pentaho.com</url>
   <dependencies>
     <dependency>
       <groupId>pentaho</groupId>
-      <artifactId>pdi-dataservice-client-plugin</artifactId>
+      <artifactId>pdi-dataservice-client-impl</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>pentaho</groupId>
-      <artifactId>pdi-dataservice-client-plugin-api</artifactId>
+      <artifactId>pdi-dataservice-client-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

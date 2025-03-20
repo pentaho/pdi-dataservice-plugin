@@ -7,8 +7,9 @@
     <artifactId>pdi-dataservice-client</artifactId>
     <version>10.3.0.0-SNAPSHOT</version>
   </parent>
-  <artifactId>pdi-dataservice-client-plugin-api</artifactId>
-  <packaging>bundle</packaging>
+  <groupId>pentaho</groupId>
+  <artifactId>pdi-dataservice-client-api</artifactId>
+  <packaging>jar</packaging>
   <name>Pentaho Community Edition Project: ${project.artifactId}</name>
   <description>API for the PDI Data Services</description>
   <url>http://www.pentaho.com</url>
@@ -64,17 +65,10 @@
     </dependency>
   </dependencies>
   <build>
-    <finalName>${project.artifactId}</finalName>
     <plugins>
       <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <extensions>true</extensions>
-        <configuration>
-          <instructions>
-            <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
-          </instructions>
-        </configuration>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

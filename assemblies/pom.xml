@@ -13,7 +13,7 @@
   <url>http://www.pentaho.com</url>
   <packaging>pom</packaging>
   <modules>
-    <module>client</module>
+    <module>client-plugin</module>
     <module>driver</module>
   </modules>
 </project>

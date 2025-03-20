@@ -9,15 +9,15 @@
     <version>10.3.0.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>pentaho-dataservice-client</artifactId>
-  <packaging>feature</packaging>
+  <artifactId>pentaho-dataservice-client-plugin</artifactId>
+  <packaging>pom</packaging>
   <name>Pentaho Community Edition Project: ${project.artifactId}</name>
-  <description>Pentaho Data Services Client</description>
+  <description>Pentaho Data Services Client Plufin</description>
 
   <dependencies>
     <dependency>
       <groupId>pentaho</groupId>
-      <artifactId>pdi-dataservice-client-plugin</artifactId>
+      <artifactId>pdi-dataservice-client-impl</artifactId>
       <version>${project.version}</version>
       <exclusions>
         <exclusion>
@@ -28,7 +28,7 @@
     </dependency>
     <dependency>
       <groupId>pentaho</groupId>
-      <artifactId>pdi-dataservice-client-plugin-api</artifactId>
+      <artifactId>pdi-dataservice-client-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
