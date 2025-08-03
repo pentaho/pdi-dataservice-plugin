@@ -37,7 +37,7 @@ The Streamlined Data Refinery, with improvements made to PDI’s auto-model and 
 Data Services is implemented as a set of OSGi plugins and is included in all core Pentaho products. It allows data to be processed in Pentaho Data Integration and used in another tool in the form of a virtual table.
 
 Any Transformation can be used as a virtual table. Here's out it works:
-  0. In Spoon, an ETL designer [creates a Data Service](https://docs.hitachivantara.com/r/en-us/pentaho-data-integration-and-analytics/10.2.x/mk-95pdia003/advanced-pentaho-data-integration-topics/pentaho-data-services/creating-a-regular-or-streaming-pentaho-data-service) on the step which will generate the virtual table's rows.
+  0. In Spoon, an ETL designer [creates a Data Service](https://docs.pentaho.com/pdia/11.0-data-integration/advanced-topics-pentaho-data-integration-overview/pentaho-data-services/creating-a-regular-or-streaming-pentaho-data-service) on the step which will generate the virtual table's rows.
   0. Metadata is saved to the transformation describing the the virtual table's name and any optimizations applied.
   0. On saving the transformation to a repository, a table in the repository's MetaStore maps the virtual table to the transformation in which it is defined. A DI Server must be connected to this repository and running for any Data Services to be accessible.
   0. A user with a JDBC client [connects to the server](https://docs.hitachivantara.com/r/en-us/pentaho-data-integration-and-analytics/10.2.x/mk-95pdia003/advanced-pentaho-data-integration-topics/pentaho-data-services/share-a-pentaho-data-service-with-others/connect-to-the-pentaho-data-service-from-a-pentaho-tool). The client can list available Data Services (virtual tables), view table structure, and submit SQL SELECT queries.
@@ -77,7 +77,7 @@ Depending on system resources and the size of the service output, [cache limits]
 
 #### Query Pushdown
 
-Query Pushdown should be used when a service imports rows form an 'Table Input' or 'Mongo Input' Step. Use the [help pages](https://docs.hitachivantara.com/r/en-us/pentaho-data-integration-and-analytics/10.2.x/mk-95pdia003/advanced-pentaho-data-integration-topics/pentaho-data-services/optimize-a-pentaho-data-service) to configure a Query Pushdown optimization.
+Query Pushdown should be used when a service imports rows form an 'Table Input' or 'Mongo Input' Step. Use the [help pages](https://docs.pentaho.com/pdia/11.0-data-integration/advanced-topics-pentaho-data-integration-overview/pentaho-data-services/optimize-a-pentaho-data-service) to configure a Query Pushdown optimization.
 
 This optimization will analyze the WHERE clause of an incoming query and push parts of the query down to an input step. The query fragment will be reformatted as SQL or JSON, depending on the input step type.
 

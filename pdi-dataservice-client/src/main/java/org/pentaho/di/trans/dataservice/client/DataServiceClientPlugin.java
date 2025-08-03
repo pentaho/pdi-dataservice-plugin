@@ -61,7 +61,7 @@ public class DataServiceClientPlugin extends BaseDatabaseMeta implements Databas
   }
 
   @Override public String getExtraOptionsHelpText() {
-    return Const.getDocUrl( "mk-95pdia003/advanced-pentaho-data-integration-topics/pentaho-data-services/optimize-a-pentaho-data-service" );
+    return Const.getDocUrl( "advanced-topics-pentaho-data-integration-overview/pentaho-data-services/optimize-a-pentaho-data-service" );
   }
 
   @Override
