@@ -14,7 +14,6 @@
 package org.pentaho.di.trans.dataservice.jdbc;
 
 import com.google.common.base.Throwables;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -31,8 +30,6 @@ import static org.hamcrest.Matchers.anything;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author nhudak
@@ -59,11 +56,14 @@ public class ThinResultFactoryTest {
   }
 
   @Test
-  @Ignore("Skipping until fixed for JDK 21 - BACKLOG-46470")
   public void testLoadResultSetFailure() throws Exception {
-    InputStream inputStream = mock( InputStream.class );
     IOException expected = new IOException();
-    when( inputStream.read() ).thenThrow( expected );
+    InputStream inputStream = new InputStream() {
+      @Override
+      public int read() throws IOException {
+        throw expected;
+      }
+    };
 
     try {
       assertThat( factory.loadHeader( new DataInputStream( inputStream ) ), not( anything() ) );
