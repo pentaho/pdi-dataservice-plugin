@@ -21,8 +21,8 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.database.BaseDatabaseMeta;
@@ -579,8 +579,8 @@ public class ThinConnection extends ThinBase implements Connection {
       clientBuilder.setConnectionTimeout( 0 );
       String user = connection.username;
       String pass = connection.password;
-      String unescapedUsername = StringEscapeUtils.unescapeHtml( user );
-      String unescapedPassword = StringEscapeUtils.unescapeHtml( pass );
+      String unescapedUsername = StringEscapeUtils.unescapeHtml4( user );
+      String unescapedPassword = StringEscapeUtils.unescapeHtml4( pass );
       if ( StringUtils.isNotBlank( unescapedUsername ) ) {
         URI uri = connection.baseURI;
         clientBuilder.setCredentials( unescapedUsername, unescapedPassword );
